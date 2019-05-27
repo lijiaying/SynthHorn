@@ -280,3 +280,7 @@ To people who developed the SeaHorn verification framework:
 
 To people who developed an initial implementation of the ICE algorithm inside SeaHorn:
 * [Chenguang Zhu](http://cozy.ece.utexas.edu/~cgzhu/)
+
+./build/tools/seahorn/seahorn --keep-shadows=true --horn-solve -horn-inter-proc -horn-sem-lvl=mem --horn-step=large -log none /var/folders/q1/vbndrz356txfg2tsyzzd_wsm0000gn/T/sea-55ckU1/mytest3.pp.ms.o.bc --horn-answer --horn-stats --horn-ice --horn-ice-svm-c-paramter=10 --horn-ice-c5-exec-path=C50/c5.0.dt_entropy --horn-ice-svm-exec-path=libsvm/svm-invgen --horn-ice-svm-coeff-bound=5 --horn-rule-sample-length=1 --horn-ice-svm-call-freq-pos=0 --horn-ice-svm-call-freq-neg=30 --debug-pass=Structure
+
+./seahorn --keep-shadows=true -horn-inter-proc -horn-sem-lvl=mem --horn-step=small -o test.smt2 test.bc

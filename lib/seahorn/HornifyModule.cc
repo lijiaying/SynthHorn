@@ -34,6 +34,8 @@
 #include "seahorn/FlatHornifyFunction.hh"
 #include "seahorn/IncHornifyFunction.hh"
 
+#include "seahorn/BvSymExec.hh"
+
 #ifdef HAVE_CRAB_LLVM
 #include "crab_llvm/CrabLlvm.hh"
 #endif
@@ -89,6 +91,11 @@ AbstractFunctions("horn-abstract",
 		  llvm::cl::desc("Abstract all calls to these functions"),
 		  llvm::cl::ZeroOrMore);
 
+static llvm::cl::opt<bool>
+Bounded("bounded",
+        llvm::cl::desc ("Encode program variables as bounded datatype (bitvector and floating points)"),
+        cl::init (false));
+
 namespace seahorn
 {
   char HornifyModule::ID = 0;
@@ -135,17 +142,27 @@ namespace seahorn
     m_td = &getAnalysis<DataLayoutPass> ().getDataLayout ();
     m_canFail = getAnalysisIfAvailable<CanFail> ();
 
-    typename UfoSmallSymExec::FunctionPtrSet abs_fns;
-    if (!AbstractFunctions.empty ()) {
-      for (auto &F: M)
-	if (shouldBeAbstracted (F)) abs_fns.insert(&F);
+    if (Bounded)
+    {
+      errs () << "Bounded version.\n";
+      m_sem.reset(new BvSmallSymExec(m_efac, *this, TL));
     }
-    
-    if (Step == hm_detail::CLP_SMALL_STEP || 
-        Step == hm_detail::CLP_FLAT_SMALL_STEP)
-      m_sem.reset (new ClpSmallSymExec (m_efac, *this, TL));
     else
-      m_sem.reset (new UfoSmallSymExec (m_efac, *this, TL, abs_fns));
+    {
+      errs () << "UnBounded version.\n";
+      typename UfoSmallSymExec::FunctionPtrSet abs_fns;
+      if (!AbstractFunctions.empty())
+      {
+        for (auto &F: M)
+          if (shouldBeAbstracted(F)) abs_fns.insert(&F);
+      }
+
+      if (Step == hm_detail::CLP_SMALL_STEP ||
+          Step == hm_detail::CLP_FLAT_SMALL_STEP)
+        m_sem.reset (new ClpSmallSymExec (m_efac, *this, TL));
+      else
+        m_sem.reset(new UfoSmallSymExec(m_efac, *this, TL, abs_fns));
+    }
 
     Function *main = M.getFunction ("main");
     if (!main)
@@ -285,6 +302,7 @@ namespace seahorn
       if (f) Changed = (runOnFunction (*f) || Changed);
     }
 
+    llvm::errs() << m_db << "\n";
     if (!m_db.hasQuery ())
     {
       // --- This may happen if the exit block of main is unreachable
