@@ -184,7 +184,8 @@ def logged_sys_call(args, quiet, timeout):
   if quiet:
     out = open("result.log", "a")
   else:
-    out = None
+    out = sys.stdout
+    # out = None
   kill = lambda process: process.kill()  
   seahorn = subprocess.Popen(args, stdout=out, stderr=None)
   timer = Timer(timeout, kill, [seahorn])

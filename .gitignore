@@ -18,3 +18,5 @@
 FromCmd.*
 /C50/c5.0.dt_entropy*
 /C50/c5.0.dt_penalty*
+*temp
+*log

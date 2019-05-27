@@ -6,6 +6,8 @@ set (SeaHorn_VERSION_MINOR 1)
 set (SeaHorn_VERSION_PATCH 0)
 set (SeaHorn_VERSION_TWEAK "rc3")
 
+# set(CMAKE_VERBOSE_MAKEFILE ON)
+
 if (NOT PACKAGE_VERSION)
   set(PACKAGE_VERSION
     "${SeaHorn_VERSION_MAJOR}.${SeaHorn_VERSION_MINOR}.${SeaHorn_VERSION_PATCH}")
@@ -283,8 +285,8 @@ else()
   set(GMPXX_LIB "")
 endif()
 
-find_package(OpenMP)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+# find_package(OpenMP)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 install(DIRECTORY include/
   DESTINATION include
