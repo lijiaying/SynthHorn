@@ -30,6 +30,30 @@
 
 using namespace llvm;
 
+#ifdef LOG
+#undef LOG
+#endif
+
+static std::string function;
+static std::string line;
+
+#define LOG(TAG, CODE) do {} while(0)
+
+#define LOG1(TAG, CODE) do { \
+	if (__FUNCTION__ != function) { \
+		function = __FUNCTION__; \
+		errs() << "------------ function: " << function << " ---------------\n"; \
+	} \
+	char cur_line[10]; \
+	sprintf(cur_line, "%d", __LINE__); \
+	if (cur_line != line) { \
+		line = cur_line; \
+		errs() << "L" << line; \
+		CODE; \
+	} \
+} while (0);
+	
+
 static llvm::cl::opt<std::string>
 ICEInvDump("horn-ice-inv-dump", llvm::cl::desc("ICE Invariants Dump File:"),
                llvm::cl::init(""), llvm::cl::value_desc("filename"));
@@ -299,7 +323,6 @@ namespace seahorn
 		  data_of.close();
 
 		  // Call SVM to learn invariants
-
 		  LOG("ice", errs() << "SVM DATA FILES ARE GENERATED\n";);
 
 		  FILE *fp;

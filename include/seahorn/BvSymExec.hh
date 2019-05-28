@@ -19,7 +19,7 @@ namespace seahorn
   { 
     Pass &m_pass;
     TrackLevel m_trackLvl;
-   
+
     const DataLayout *m_td;
     const CanFail *m_canFail;
     

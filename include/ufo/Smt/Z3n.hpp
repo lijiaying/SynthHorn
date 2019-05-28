@@ -784,19 +784,20 @@ namespace ufo
           if (isOpX<BOOL_TY> (ty)) out << "Bool ";
           else if (isOpX<REAL_TY> (ty)) out << "Real ";
           else if (isOpX<INT_TY> (ty)) out << "Int ";
+          else if (isOpX<BVSORT> (ty)) out << "() (_ BitVec 32) ";
           else if (isOpX<ARRAY_TY> (ty))
           {
             out << "(Array ";
             if (isOpX<INT_TY> (sort::arrayIndexTy (ty)))
               out << "Int ";
-            else out << "UfoUnknownSort ";
+            else out << "UfoUnknownSort1 ";
             if (isOpX<INT_TY> (sort::arrayValTy (ty)))
               out << "Int";
-            else out << "UfoUnknownSort";
+            else out << "UfoUnknownSort1";
             out << ") ";
           }
               
-          else out << "UfoUnknownSort ";
+          else out << "UfoUnknownSort2 ";
         }
         out << "))\n";
       }
@@ -809,19 +810,20 @@ namespace ufo
         Expr ty = bind::typeOf (v);
         if (isOpX<BOOL_TY> (ty)) out << "Bool ";
         else if (isOpX<REAL_TY> (ty)) out << "Real ";
+        else if (isOpX<BVSORT> (ty)) out << "(_ BitVec 32) ";
         else if (isOpX<INT_TY> (ty)) out << "Int ";
         else if (isOpX<ARRAY_TY> (ty))
         {
           out << "(Array ";
           if (isOpX<INT_TY> (sort::arrayIndexTy (ty)))
             out << "Int ";
-          else out << "UfoUnknownSort ";
+          else out << "UfoUnknownSort3 ";
           if (isOpX<INT_TY> (sort::arrayValTy (ty)))
             out << "Int";
-          else out << "UfoUnknownSort";
+          else out << "UfoUnknownSort4";
           out << ") ";
         }
-        else out << "UfoUnknownSort ";
+        else out << "UfoUnknownSort5 ";
         out << ")\n";
       }
 

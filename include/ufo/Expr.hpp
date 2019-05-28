@@ -429,8 +429,7 @@ namespace expr
 	}
       
 
-      std::pair<unique_entry_type::iterator,bool> x = 
-	unique [typeid (v->op ()).name ()].insert (v);
+      std::pair<unique_entry_type::iterator,bool> x = unique [typeid (v->op ()).name ()].insert (v);
       if (x.second) 
 	{ 
 	  v->setId (uniqueId ());

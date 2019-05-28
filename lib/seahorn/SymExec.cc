@@ -29,7 +29,8 @@ namespace
   {
     SymExecVisitor (SymStore &s, IntLightSymExec &sem) : SymExecBase (s, sem) {}
     
-    void visitInstruction (Instruction &I) {havoc (I);}
+    void visitInstruction (Instruction &I) {
+        havoc (I);}
     
     void visitPHINode (PHINode &I) {/* do nothing */}
     void visitReturnInst (ReturnInst &I) {lookup (*I.getOperand (0));}

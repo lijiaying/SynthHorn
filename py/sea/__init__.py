@@ -54,11 +54,13 @@ class TimeLimitedExec(threading.Thread):
                 r.setrlimit (r.RLIMIT_AS, [mem_bytes, mem_bytes])
 
         if self.verbose > 0: print self.cmd
+        print '. ' * 30
+        print ' -> ', ' '.join(self.cmd)
         self.p = subprocess.Popen(self.cmd,
                                   preexec_fn=set_limits,
                                   **popen_args)
         self.stdout, self.stderr = self.p.communicate()
-
+ 
     def Run(self):
         self.start()
 
@@ -103,7 +105,7 @@ def add_tmp_dir_args (ap):
     ap.add_argument ('--save-temps', '--keep-temps',
                      dest="save_temps",
                      help="Do not delete temporary files",
-                     action="store_true", default=False)
+                     action="store_true", default=True)
     ap.add_argument ('--temp-dir', dest='temp_dir', metavar='DIR',
                      help="Temporary directory", default=None)
     return ap
@@ -136,6 +138,7 @@ class CliCmd (object):
         else:
             args = ap.parse_args (argv)
             extra = []
+        print('EXE: ' + str(args))
         return self.run (args, extra)
 
 class LimitedCmd (CliCmd):
@@ -217,6 +220,8 @@ class ExtCmd (LimitedCmd):
         argv.extend (extra)
 
         if not self.quiet: print ' '.join (argv)
+        print '-'*60
+        print ' '.join (argv)
 
         self.cmd = TimeLimitedExec (argv, args.cpu, args.mem)
         return self.cmd.Run ()

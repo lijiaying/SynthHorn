@@ -94,7 +94,8 @@ AbstractFunctions("horn-abstract",
 static llvm::cl::opt<bool>
 Bounded("bounded",
         llvm::cl::desc ("Encode program variables as bounded datatype (bitvector and floating points)"),
-        cl::init (false));
+        cl::init (true));
+        // cl::init (false));
 
 namespace seahorn
 {
