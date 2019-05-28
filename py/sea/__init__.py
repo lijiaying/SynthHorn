@@ -54,8 +54,8 @@ class TimeLimitedExec(threading.Thread):
                 r.setrlimit (r.RLIMIT_AS, [mem_bytes, mem_bytes])
 
         if self.verbose > 0: print self.cmd
-        print '. ' * 30
-        print ' -> ', ' '.join(self.cmd)
+        # print '. ' * 30
+        # print ' -> ', ' '.join(self.cmd)
         self.p = subprocess.Popen(self.cmd,
                                   preexec_fn=set_limits,
                                   **popen_args)
@@ -138,7 +138,7 @@ class CliCmd (object):
         else:
             args = ap.parse_args (argv)
             extra = []
-        print('EXE: ' + str(args))
+        # print('EXE: ' + str(args))
         return self.run (args, extra)
 
 class LimitedCmd (CliCmd):
@@ -221,7 +221,7 @@ class ExtCmd (LimitedCmd):
 
         if not self.quiet: print ' '.join (argv)
         print '-'*60
-        print ' '.join (argv)
+        # print ' '.join (argv)
 
         self.cmd = TimeLimitedExec (argv, args.cpu, args.mem)
         return self.cmd.Run ()

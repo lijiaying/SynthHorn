@@ -34,21 +34,22 @@ using namespace llvm;
 #undef LOG
 #endif
 
-static std::string function;
+static std::string function = "init---";
 static std::string line;
 
-#define LOG(TAG, CODE) do {} while(0)
+// #define LOG(TAG, CODE) do {} while(0)
 
-#define LOG1(TAG, CODE) do { \
+#define LOG(TAG, CODE) do { \
 	if (__FUNCTION__ != function) { \
-		function = __FUNCTION__; \
-		errs() << "------------ function: " << function << " ---------------\n"; \
+		errs() << "<<< ****** function: " << function << " ****** <<<\n\n"; \
+		function = __FUNCTION__;\
+		errs() << ">>> ****** function: " << function << " ****** >>>\n"; \
 	} \
 	char cur_line[10]; \
 	sprintf(cur_line, "%d", __LINE__); \
 	if (cur_line != line) { \
 		line = cur_line; \
-		errs() << "L" << line; \
+		errs() << "#" << line << ": "; \
 		CODE; \
 	} \
 } while (0);
@@ -144,7 +145,7 @@ namespace seahorn
   {
 	  auto &db = m_hm.getHornClauseDB();
 	  ZSolver<EZ3> solver(m_hm.getZContext());
-
+	  errs() << "======================================================\n";
 	  for(Expr rel : db.getRelations())
 	  {
 		  ExprVector arg_list;
@@ -158,10 +159,14 @@ namespace seahorn
 		  Expr cand_app = m_candidate_model.getDef(fapp);
 		  LOG("ice", errs() << "HEAD: " << *fapp << "\n";);
 		  LOG("ice", errs() << "CAND: " << *cand_app << "\n";);
+		  errs() << "HEAD: " << *fapp << "\n";
+		  errs() << "CAND: " << *cand_app << "\n";
 
 		  solver.assertExpr(mk<IMPL>(fapp, cand_app));
 	  }
+	  errs() << "======================================================\n";
 	  std::ofstream ofs(ICEInvDump.c_str());
+	  solver.toSmtLib(errs());
 	  solver.toSmtLib(ofs);
   }
 

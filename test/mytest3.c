@@ -6,7 +6,7 @@ extern int unknown2();
 
 int main()
 {
-	unsigned int a = 7;
+	int a = 7;
 
 	while(unknown1()){
 		a++;
