@@ -23,6 +23,9 @@
 #include "ufo/Stats.hh"
 #include "color.hh"
 
+#include <chrono>
+#include <ctime>
+
 using namespace llvm;
 
 
