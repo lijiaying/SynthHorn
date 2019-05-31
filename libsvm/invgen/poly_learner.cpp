@@ -1,5 +1,5 @@
 #include "config.h"
-#include "color.h"
+#include "color.hh"
 #include "polynomial.h"
 #include "classifier.h"
 #include "poly_learner.h"

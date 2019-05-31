@@ -4,7 +4,7 @@
 #include <time.h>
 #include "instrumentation.h"
 #include <assert.h>
-#include "color.h"
+#include "color.hh"
 
 bool _passP = false;
 bool _passQ = false;
