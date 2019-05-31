@@ -858,12 +858,13 @@ namespace expr
 	for (std::vector<ENode*>::const_iterator it = args.begin (), 
 	       end = args.end (); it != end; ++it)
 	  {
-	    OS << "\n";
-	    space (OS, depth + 2);
+	    // OS << "\n";
+	    // space (OS, depth + 2);
+      OS << " ";
 	    (*it)->Print (OS, depth + 2, false);
 	  }
 
-	OS << "\n";
+	//OS << "\n";
 	space (OS, depth);
 	OS << "]";
       }

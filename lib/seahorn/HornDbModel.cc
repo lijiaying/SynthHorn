@@ -1,6 +1,7 @@
 #include "seahorn/HornDbModel.hh"
 #include "seahorn/HornifyModule.hh"
 #include "seahorn/HornClauseDB.hh"
+#include "color.hh"
 
 #include "ufo/Expr.hpp"
 #include <vector>
@@ -11,6 +12,7 @@ namespace seahorn
 {
   void HornDbModel::addDef(Expr fapp, Expr lemma)
   {
+    LOG("HornDbModel", llvm::errs() << cyan << "add definition>> " << *fapp << " |-> " << *lemma << "\n" << normal);
 	Expr lemma_def;
 
     if (isOpX<TRUE> (lemma) || isOpX<FALSE> (lemma))
@@ -33,6 +35,7 @@ namespace seahorn
     }
 
     m_defs[bind::fname(fapp)] = lemma_def;
+    LOG("HornDbModel", llvm::errs() << mag << "<< << " << *bind::fname(fapp) << " |-> " << *lemma_def << "\n" << normal);
   }
 
   Expr HornDbModel::getDef(Expr fapp)

@@ -1,0 +1,21 @@
+(set-info :original "mytest2.bc")
+(set-info :authors "SeaHorn v.0.1.0-rc3")
+(declare-rel verifier.error (Bool Bool Bool ))
+(declare-rel main@entry ())
+(declare-rel main@entry.split ())
+(declare-var main@%_0_0 Int )
+(declare-var main@%_1_0 Bool )
+(declare-var main@%_2_0 Bool )
+(rule (verifier.error false false false))
+(rule (verifier.error false true true))
+(rule (verifier.error true false true))
+(rule (verifier.error true true true))
+(rule main@entry)
+(rule (=> (and main@entry
+         true
+         (= main@%_1_0 (> main@%_0_0 2))
+         (not main@%_1_0)
+         (= main@%_2_0 (xor main@%_1_0 true)))
+    main@entry.split))
+(query main@entry.split)
+

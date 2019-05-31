@@ -173,6 +173,21 @@ namespace seahorn
 //		  else
 //			  m_impl_data_count.insert (std::make_pair(dp.getPredName(), 1));
 //      }
+	
+	  void drawDataPoint(DataPoint& dp, std::string ending = "") {
+		  Expr pred_cname = dp.getPredName();
+		  outs() << *pred_cname << "(";
+		  int i = 0;
+		  for(Expr attr :  dp.getAttrValues()) {
+				  if (i < dp.getAttrValues().size() - 1)
+					  outs() << *attr << ",";
+				  else
+					  outs() << *attr;
+				  i++;
+		  }
+		  outs() << ")" << ending;
+
+	  }
 
       void drawPosTree (int pindex) {
     	  DataPoint p = m_pos_list[pindex];
@@ -180,73 +195,21 @@ namespace seahorn
     		  if (postree[pindex].size() > 0) {
 				  for (int index : postree[pindex]) {
 					  drawPosTree (index);
+					  // Draw the reach-to relation.  PRE --> P
 					  DataPoint pre = m_pos_list[index];
-					  // Draw the reach-to relation.
-					  Expr pred_name = pre.getPredName();
-					  //Expr C5_pred_name = m_rel_to_c5_rel_name_map.find(pred_name)->second;
-					  outs() << *pred_name << "(";
-
-					  int i = 0;
-					  for(Expr attr :  pre.getAttrValues())
-					  {
-						  if (i < pre.getAttrValues().size() - 1)
-							  outs() << *attr << ",";
-						  else
-							  outs() << *attr;
-						  i++;
-					  }
-					  outs() << ")  -->  ";
-
-					  pred_name = p.getPredName();
-					  //C5_pred_name = m_rel_to_c5_rel_name_map.find(pred_name)->second;
-					  outs() << *pred_name << "(";
-
-					  i = 0;
-					  for(Expr attr : p.getAttrValues())
-					  {
-						  if (i < p.getAttrValues().size() - 1)
-							  outs() << *attr << ",";
-						  else
-							  outs() << *attr;
-						  i++;
-					  }
-					  outs() << ")\n";
-				  }
-    		  } else {
+					  drawDataPoint(pre, "  -->  ");
+					  drawDataPoint(p, "\n");
+				  } // end for
+    		  } else { // Fact --> P
     			  outs() << "Fact  -->  ";
-				  Expr pred_name = p.getPredName();
-				  //Expr C5_pred_name = m_rel_to_c5_rel_name_map.find(pred_name)->second;
-				  outs() << *pred_name << "(";
-
-				  int i = 0;
-				  for(Expr attr : p.getAttrValues())
-				  {
-					  if (i < p.getAttrValues().size() - 1)
-						  outs() << *attr << ",";
-					  else
-						  outs() << *attr;
-					  i++;
-				  }
-				  outs() << ")\n";
-    		  }
-    	  else {
-    		  outs() << "Entry  -->  ";
-    		  Expr pred_name = p.getPredName();
-    		  //Expr C5_pred_name = m_rel_to_c5_rel_name_map.find(pred_name)->second;
-			  outs() << *pred_name << "(";
-
-			  int i = 0;
-			  for(Expr attr : p.getAttrValues())
-			  {
-				  if (i < p.getAttrValues().size() - 1)
-					  outs() << *attr << ",";
-				  else
-					  outs() << *attr;
-				  i++;
-			  }
-			  outs() << ")\n";
-    	  }
+				  drawDataPoint(p, "\n");
+    		  } 
+			else { // Entry --> P
+		  		outs() << "Entry  -->  ";
+		  		drawDataPoint(p, "\n");
+		  	}
       }
+
       void drawPosTree () {
     	  if (failurePoint >= 0 && failurePoint < m_pos_list.size())
     		  drawPosTree (failurePoint);

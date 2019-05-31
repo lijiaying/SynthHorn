@@ -109,7 +109,7 @@ namespace seahorn
       {return bind::isFdecl (e) && m_db.hasRelation (e);}
     };
   private:
-    
+  public:
     ExprFactory &m_efac;
     expr_set_type m_rels;
     mutable ExprVector m_vars;
