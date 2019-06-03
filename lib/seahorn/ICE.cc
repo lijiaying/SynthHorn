@@ -1896,11 +1896,8 @@ namespace seahorn
 				}
 
 				std::map<HornRule, int>::iterator itc = transitionCount.find(r);
-				if (itc == transitionCount.end()) {
-					transitionCount.insert(std::make_pair(r, 1));
-				} else {
-					itc->second = itc->second + 1;
-				}
+				if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
+				else { itc->second = itc->second + 1; }
 
 				bool run = getReachableStates(transitionCount, relationToPositiveStateMap, r.head(), pos_dp, index);
 				if (!run) return false;
@@ -1911,10 +1908,8 @@ namespace seahorn
 
 			// Iterate with the next possible solution.
 			iteri ++;
-			if (iteri >= RuleSampleWidth) {
-				// Enough samples ?
-				break;
-			}
+			// Enough samples ?
+			if (iteri >= RuleSampleWidth) { break; }
 
 			Expr notagain;
 			if(abstractEquations.size() > 1) { notagain = mknary<OR>(abstractEquations.begin(), abstractEquations.end()); } 
@@ -1930,18 +1925,12 @@ namespace seahorn
 	void countInvSize (Expr body_formula) {
 		if (isOpX<OR> (body_formula)) {
 			for (Expr arg : mk_it_range (body_formula->args_begin(), body_formula->args_end ())) {
-				if (isOpX<AND> (arg)) {
-					outs() << arg->arity() << ", ";
-				} else {
-					outs() << "1, ";
-				}
+				if (isOpX<AND> (arg)) { outs() << arg->arity() << ", "; }
+				else { outs() << "1, "; }
 			}
 		} else {
-			if (isOpX<AND> (body_formula)) {
-				outs() << body_formula->arity() << ", ";
-			} else {
-				outs() << "1, ";
-			}
+			if (isOpX<AND> (body_formula)) { outs() << body_formula->arity() << ", "; } 
+			else { outs() << "1, "; }
 		}
 		outs() << "\n";
 	}
@@ -1974,19 +1963,13 @@ namespace seahorn
 		while(isChanged) //There are still some counterexamples to find
 		{
 			isChanged = false;
-
 			no_verification_found_error = solveConstraints(db, isChanged, index);
-
-			if (!no_verification_found_error) { // A buggy program is catched.
-				break;
-			}
-
+			if (!no_verification_found_error) { break; /* A buggy program is catched. */ }
 			c ++;
 		}
 
 		std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
-		outs() << "************** CHCs Solved in " <<
-			(std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) /1000000.0 << " (secs) **************\n\n";
+		outs() << "************** CHCs Solved in " << (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) /1000000.0 << " (secs) **************\n\n";
 
 		if (no_verification_found_error) {
 			outs() << "************** Program is correct **************\n";
