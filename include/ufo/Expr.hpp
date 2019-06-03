@@ -2196,6 +2196,8 @@ namespace expr
       inline Expr var (Expr name, Expr type) { return bind (name, type); }
       inline Expr intVar (Expr name) 
       { return var (name, mk<INT_TY>(name->efac ())); }
+//      inline Expr bvVar (Expr name)
+//      { return var (name, mk<BVSORT>(name->efac ())); }
       inline Expr realVar (Expr name) 
       { return var (name, mk<REAL_TY>(name->efac ())); }
       inline Expr boolVar (Expr name) 

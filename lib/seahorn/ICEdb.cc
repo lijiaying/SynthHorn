@@ -172,6 +172,7 @@ namespace seahorn
 
 	  for (Expr rel : db.getRelations())
 			LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
+
 	  for (Expr rel : db.getRelations()) {
 		  if (targetName != NULL && ICECatch == 0) {
 			  if (targetName != bind::fname(rel)) continue;
@@ -179,6 +180,7 @@ namespace seahorn
 				  Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 				  std::stringstream ossA;
 				  ossA << C5_rel_name;
+
 				  ExprMap::iterator itr1 = m_svmattr_name_to_expr_map.begin();
 				  while (itr1 != m_svmattr_name_to_expr_map.end()) {
 					  std::stringstream ossB;
@@ -229,52 +231,36 @@ namespace seahorn
 		  std::ofstream data_of(m_C5filename + ".svm.data");
 		  if(!data_of) return;
 
-		  int pn, nn;
-		  pn = nn = 0;
-
-		  for(auto it = m_cex_list.begin(); it!=m_cex_list.end(); ++it)
-		  {
+		  int pn = 0, nn = 0;
+		  for(auto it = m_cex_list.begin(); it!=m_cex_list.end(); ++it) {
 			  if (it->getPredName() == bind::fname(rel)) {
-				  if(m_pos_data_set.count(*it) != 0)
-				  {
+				  if(m_pos_data_set.count(*it) != 0) {
 					  DataPoint pos_dp = *it;
 
 					  data_of << "1";
 					  pn ++;
 
 					  int ind = 0;
-					  for(Expr attr : pos_dp.getAttrValues())
-					  {
+					  for(Expr attr : pos_dp.getAttrValues()) {
 						  // Not excluded as a boolean var.
-						  if (exclusives.empty() || std::find(exclusives.begin(), exclusives.end(), ind) == exclusives.end()) {
-							  data_of << " " << *attr;
-						  }
+						  if (exclusives.empty() || std::find(exclusives.begin(), exclusives.end(), ind) == exclusives.end()) { data_of << " " << *attr; }
 						  ind ++;
 					  }
-
 					  data_of << "\n";
-				  }
-				  else if(m_neg_data_set.count(*it) != 0)
-				  {
+				  } else if(m_neg_data_set.count(*it) != 0) {
 					  DataPoint neg_dp = *it;
-
 					  data_of << "0";
 					  nn ++;
 
 					  int ind = 0;
-					  for(Expr attr : neg_dp.getAttrValues())
-					  {
-						  if (exclusives.empty() || std::find(exclusives.begin(), exclusives.end(), ind) == exclusives.end()) {
-							  data_of << " " << *attr;
-						  }
+					  for(Expr attr : neg_dp.getAttrValues()) {
+						  if (exclusives.empty() || std::find(exclusives.begin(), exclusives.end(), ind) == exclusives.end()) { data_of << " " << *attr; }
 						  ind ++;
 					  }
-
 					  data_of << "\n";
 				  }
 			  }
 		  }
-
 		  data_of.close();
 
 		  // Call SVM to learn invariants
@@ -299,20 +285,12 @@ namespace seahorn
 		  LOG("ice", errs() << "Call SVM: " << command << "\n");
 
 		  std::string access = "r";
-		  if((fp = popen(command.c_str(), access.c_str())) == NULL)
-		  {
-			  LOG("ice", errs() << "popen error!\n";);
-			  perror("popen failed!\n");
-			  return;
-		  }
+		  if((fp = popen(command.c_str(), access.c_str())) == NULL) { LOG("ice", errs() << "popen error!\n";); perror("popen failed!\n"); return; }
 			LOG("ice", errs() << "call svm returns!\n";);
 
 		  char buf[1024];
 		  size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-		  if(status == 0) {
-			  LOG("ice", errs() << "read from popen failed!\n";);
-			  return;
-		  }
+		  if(status == 0) { LOG("ice", errs() << "read from popen failed!\n";); return; }
 		  fwrite(buf, 1, sizeof(buf), wp);
 		  pclose(fp);
 		  fclose(wp);
@@ -338,18 +316,18 @@ namespace seahorn
 				  ExprVector addargs;
 				  std::ostringstream attross;
 				  std::vector<std::string> thetas = split_string (line, " ");
+					// c0 + c1 * x0 + c2 * x1 + ... + c{n+1} * xn >= 0
 				  for (int i = 1; i < thetas.size(); i++) {
 					  int coeff = atoi(thetas[i].c_str());
 					  if (coeff == 0)
 						  continue;
 
 					  //if (coeff != 1 && coeff != -1) nonOctagon = true;
-
 					  Expr c = mkTerm<mpz_class>(atoi(thetas[i].c_str()), rel->efac());
 					  addargs.push_back (mk<MULT> (c, arg_list.at(i-1)));
 
 					  attross << "(" << thetas[i].c_str() << "*" << C5_rel_name << "!" << arg_list.at(i-1) << ")+";
-					  LOG("SVM", llvm::errs() << bold << red << "(" << thetas[i].c_str() << "*" << C5_rel_name << "!" << arg_list.at(i-1) << ")+" << normal);
+					  LOG("SVM", llvm::errs() << bold << red << "(" << thetas[i].c_str() << " * " << C5_rel_name << " ! " << arg_list.at(i-1) << ")+\n" << normal);
 				  }
 
 				  if (addargs.size () > 1 /*&& nonOctagon*/) {
@@ -357,7 +335,6 @@ namespace seahorn
 					  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(ind, mkTerm<std::string> ("SVM", rel->efac ())), arg_i_type));
 					  Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
 					  m_svmattr_name_to_expr_map.insert(std::make_pair(attr_name_i, mknary<PLUS> (addargs)));
-							  //mk<GEQ>(mknary<PLUS> (addargs), zero)));
 					  std::string strrep = attross.str();
 					  m_svmattr_name_to_str_map.insert(std::make_pair(attr_name_i, strrep.substr(0, strrep.length() - 1)));
 					  LOG("ice", errs() << bold << red << "SVM inferred a hyperlane: " << strrep.substr(0, strrep.length() - 1) << "\n" << normal);
@@ -401,51 +378,36 @@ namespace seahorn
   void ICE::initC5(ExprVector targets)
   {
 	  auto &db = m_hm.getHornClauseDB();
-
 	  m_attr_name_to_expr_map.clear();
-
 	  m_pred_name_to_expr_map.clear();
 
 	  std::ofstream names_of(m_C5filename + ".names");
 	  if(!names_of)return;
-
-	  std::ofstream intervals_of(m_C5filename + ".intervals");
-	  if(!intervals_of)return;
-
-	  int lowerInterval = 2;
-	  int upperInterval = 2;
-
 	  names_of << "invariant.\n";
 
 	  //first attribute is the predicate names
 	  names_of << "$pc: ";
 	  int counter=0;
-	  for(Expr rel : db.getRelations())
-	  {
+	  for(Expr rel : db.getRelations()) {
 		  if(std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 			  Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
-			  if(counter == targets.size()-1)
-			  {
-				  names_of << *C5_rel_name << ".\n";
-			  }
-			  else
-			  {
-				  names_of << *C5_rel_name << ",";
-			  }
+			  if(counter == targets.size()-1) names_of << *C5_rel_name << ".\n";
+			  else names_of << *C5_rel_name << ",";
 			  counter ++;
 		  }
 	  }
 
+	  int lowerInterval = 2;
+	  int upperInterval = 2;
+	  std::ofstream intervals_of(m_C5filename + ".intervals");
+	  if(!intervals_of)return;
 	  //each argument of each predicate is an attribute
-	  for(Expr rel : db.getRelations())
-	  {
+	  for(Expr rel : db.getRelations()) {
 		  if(std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 			  Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
-			  for(int i=0; i<bind::domainSz(rel); i++)
-			  {
+			  for(int i=0; i<bind::domainSz(rel); i++) {
 				  // if(isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
-				  if(isOpX<BVSORT>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
-				  {
+				  if(isOpX<BVSORT>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i))) {
 				  	  LOG("ice", errs() << "BVSORT OR BOOL TYPE!\n";);
 					  if (unknowns[rel][i]) // Exclude unknowns from invariant inference.
 						  continue;
@@ -455,27 +417,21 @@ namespace seahorn
 					  m_attr_name_to_expr_map.insert(std::make_pair(attr_name_i, arg_i));
 					  names_of << attr_name_i << ": continuous.\n";
 					  upperInterval ++;
-				  }
-				  else
-				  {
-					  LOG("ice", errs() << "NOT BVSORT OR BOOL TYPE!\n";);
-					  // LOG("ice", errs() << "NOT INT OR BOOL TYPE!\n";);
+				  } else {
+					  LOG("ice", errs() << "NOT BVSORT, INT OR BOOL TYPE!\n";);
 				  }
 			  }
 			  //implicit attributes which have the form x % n.
 			  if (ICEMod > 0 && !ruleConstants.empty()) {
-				  for(int i=0; i<bind::domainSz(rel); i++)
-				  {
+				  for(int i=0; i<bind::domainSz(rel); i++) {
 					  if (unknowns[rel][i]) // Exclude unknowns from invariant inference.
 						  continue;
 					  for (int cons : ruleConstants) {
-						  if(isOpX<INT_TY>(bind::domainTy(rel, i)))
-						  {
+						  if(isOpX<INT_TY>(bind::domainTy(rel, i))) {
 							  Expr arg_i_type = bind::domainTy(rel, i);
 							  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 							  Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
-							  names_of << attr_name_i << "mod" << cons << ":= ("
-									  << attr_name_i << " % " << cons << " + " << cons << ") % " << cons << ".\n";
+							  names_of << attr_name_i << "mod" << cons << ":= (" << attr_name_i << " % " << cons << " + " << cons << ") % " << cons << ".\n";
 							  upperInterval ++;
 						  }
 					  }
@@ -483,16 +439,13 @@ namespace seahorn
 			  }
 			  //implicit attributes which have the form x1 +/- x2
 			  if (ICEOct) {
-			  for(int i=0; i<bind::domainSz(rel); i++)
-			  {
+			  for(int i=0; i<bind::domainSz(rel); i++) {
 				  if (unknowns[rel][i]) // Exclude unknowns from invariant inference.
 					  continue;
-				  for(int j=i+1; j<bind::domainSz(rel); j++)
-				  {
+				  for(int j=i+1; j<bind::domainSz(rel); j++) {
 					  if (unknowns[rel][j]) // Exclude unknowns from invariant inference.
 						  continue;
-					  if(isOpX<INT_TY>(bind::domainTy(rel, i)) && isOpX<INT_TY>(bind::domainTy(rel, j)))
-					  {
+					  if(isOpX<INT_TY>(bind::domainTy(rel, i)) && isOpX<INT_TY>(bind::domainTy(rel, j))) {
 						  Expr arg_type = bind::domainTy(rel, i);
 						  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_type));
 						  Expr arg_j = bind::fapp(bind::constDecl(variant::variant(j, mkTerm<std::string> ("V", rel->efac ())), arg_type));
@@ -507,8 +460,7 @@ namespace seahorn
 			  }
 			  // atrributes found by SVM -- which must be realted to C5_rel_name
 			  std::ostringstream ossR; ossR << C5_rel_name;
-			  for(std::map<Expr, std::string>::iterator it = m_svmattr_name_to_str_map.begin(); it!= m_svmattr_name_to_str_map.end(); ++it)
-			  {
+			  for(std::map<Expr, std::string>::iterator it = m_svmattr_name_to_str_map.begin(); it!= m_svmattr_name_to_str_map.end(); ++it) {
 				  std::ostringstream ossA; ossA << *(it->first);
 				  if (ossA.str().find(ossR.str()) != std::string::npos) {
 					  // This is ineed realted to C5_rel_name
@@ -518,12 +470,9 @@ namespace seahorn
 			  }
 
 			  std::string interval_line;
-			  if(bind::domainSz(rel) == 0)
-			  {
+			  if(bind::domainSz(rel) == 0) {
 				  interval_line = boost::lexical_cast<std::string>(lowerInterval) + " " + boost::lexical_cast<std::string>(upperInterval) + "\n";
-			  }
-			  else
-			  {
+			  } else {
 				  interval_line = boost::lexical_cast<std::string>(lowerInterval) + " " + boost::lexical_cast<std::string>(upperInterval - 1) + "\n";
 			  }
 			  intervals_of << interval_line;
@@ -532,20 +481,15 @@ namespace seahorn
 		  }
 	  }
 
-      names_of << "invariant: true, false.\n";
+    names_of << "invariant: true, false.\n";
 	  names_of.close();
 	  intervals_of.close();
   }
 
   void ICE::C5learn(ExprVector targets)
   {
-
-		LOG("ice", errs() << "-------------------------C5Learn--------------------------\n");
-		LOG("ice", errs() << "target size = " << targets.size() << "\n");
-		for (int i = 0; i < targets.size(); i++) {
-			LOG("ice", errs() << "target " << i << "\n");
-			LOG("ice", errs() << "target " << i << " : "<< blue << *targets[i] << normal << "\n");
-		}
+		errs() << "-------------------------C5Learn--------------------------\n";
+		for (int i = 0; i < targets.size(); i++) { errs() << "target " << i << " : "<< blue << *targets[i] << normal << "\n"; }
 	  initC5 (targets);
 	  generateC5DataAndImplicationFiles(targets);
 	  LOG("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n";);
@@ -554,17 +498,11 @@ namespace seahorn
 	  std::string command = C5ExecPath + " -I 1 -m 1 -f " + m_C5filename;
 	  //std::string command = "/home/chenguang/Desktop/C50-ICE/C50/c5.0dbg -I 1 -m 1 -f " + m_C5filename;
 	  std::string access = "r";
-	  if((fp = popen(command.c_str(), access.c_str())) == NULL) {
-		  perror("popen failed!\n");
-		  return;
-	  }
+	  if((fp = popen(command.c_str(), access.c_str())) == NULL) { perror("popen failed!\n"); return; }
 
 	  char buf[1024];
 	  size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-	  if(status == 0) {
-		  LOG("ice", errs() << "read from popen failed!\n";);
-		  return;
-	  }
+	  if(status == 0) { LOG("ice", errs() << "read from popen failed!\n";); return; }
 	  pclose(fp);
 
 	  FILE *wp;
@@ -607,60 +545,9 @@ namespace seahorn
 		  }
 		  Expr fapp = bind::fapp(rel, arg_list);
 		  Expr cand = m_candidate_model.getDef(fapp);
-		  LOG("ice", errs() << green << *fapp << normal << " : " << *cand << "\n";);
+		  errs() << green << *fapp << normal << " : " << *cand << "\n";
 	  }
   }
-
-  void ICE::generateC5DataAndImplicationFiles(ExprVector targets)
-  {
-  	  LOG("ice", errs()<<"Neg sample size: " << m_neg_data_set.size() << "\n");
-  	  LOG("ice", errs()<<"Pos sample size: " << m_pos_data_set.size() << "\n");
-
-  	  //generate .data file
-  	  std::ofstream data_of(m_C5filename + ".data");
-  	  if(!data_of)return;
-  	  for(auto it = m_cex_list.begin(); it!=m_cex_list.end(); ++it) {
-  		  if (std::find(targets.begin(), targets.end(), it->getPredName()) != targets.end()) {
-					std::string label = "";
-					if(m_pos_data_set.count(*it) != 0) { label = "true"; } 
-					else if(m_neg_data_set.count(*it) != 0) { label = "false"; } 
-					else if(ICEICE && m_impl_cex_set.count(*it) != 0) { label = "?"; }
-					data_of << outputDataPoint(targets, *it) << "," << label << "\n";
-					LOG("ice", errs() << outputDataPoint(targets, *it) << "," << label << "\n");
-  		  }
-  	  }
-  	  data_of.close();
-
-  	  //generate .implications file
-  	  if (ICEICE) {
-  	  std::ofstream implications_of(m_C5filename + ".implications");
-  	  if(!implications_of)return;
-
-  	  for(std::pair<DataPoint, DataPoint> impl_pair : m_impl_pair_set) {
-  		  DataPoint start_point = impl_pair.first;
-  		  if (std::find(targets.begin(), targets.end(), start_point.getPredName()) != targets.end()) {
-  			  std::map<DataPoint, int>::iterator it = m_data_point_to_index_map.find(start_point);
-			  assert(it != m_data_point_to_index_map.end());
-			  int start_index = it->second;
-
-			  DataPoint end_point = impl_pair.second;
-			  std::map<DataPoint, int>::iterator itr = m_data_point_to_index_map.find(end_point);
-			  assert(itr != m_data_point_to_index_map.end());
-			  int end_index = itr->second;
-
-			  implications_of << start_index << " " << end_index << "\n";
-			  LOG("ice", errs()<< "implication: " <<  start_index << " " << end_index << "\n");
-  		  }
-  	  }
-
-  	  implications_of.close();
-  	  }
-  }
-
-  std::string ICE::outputDataPoint(ExprVector targets, DataPoint p) { return ""; }
-
-  void ICE::convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprVector targets) { }
-
 
 
 
@@ -697,11 +584,6 @@ namespace seahorn
 
 	  for(std::map<Expr, std::vector<bool>>::iterator itr =
 			  unknowns.begin(); itr != unknowns.end(); ++itr) {
-		  //LOG("ice", errs() << "Rel: " << *(itr->first) << ":\n");
-		  //for (bool b : itr->second) {
-			  //LOG("ice", errs() << b << " ");
-		  //}
-		  //LOG("ice", errs() << "\n");
 		  for (int i = 0; i < itr->second.size(); i++) {
 			  itr->second[i] = !itr->second[i];
 		  }
@@ -714,14 +596,11 @@ namespace seahorn
   void ICE::extractConstants(HornClauseDB &db) {
 	  struct IsREM : public std::unary_function<Expr, bool>
 	  {
-		  IsREM () {}
-
-	  	  bool operator() (Expr e)
-	  	  {return isOpX<REM>(e);}
+		  IsREM () {} 
+	  	bool operator() (Expr e) {return isOpX<REM>(e);}
 	  };
 
-	  for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
-	  {
+	  for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
 		  HornRule r = *it;
 		  ExprVector body_pred_apps;
 
@@ -1071,20 +950,18 @@ namespace seahorn
 static int solveConstraintTime = 0;
   bool ICE::solveConstraints(HornClauseDB &db, bool &isChanged, int &index)
   {
-  	  solveConstraintTime++;
+  	solveConstraintTime++;
 	  std::list<HornRule> workList;
 	  workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
 	  workList.reverse();
 
-  	  LOG("ice", errs() << "=========================== Constraint Solving of Horn Clauses ============================\n";);
+  	LOG("ice", errs() << "=========================== Constraint Solving of Horn Clauses ============================\n";);
 	  ZSolver<EZ3> solver(m_hm.getZContext());
 
 	  int loopi = 0;
 	  while (!workList.empty())
-	  //for (auto it = db.getRules().rbegin(); it != db.getRules().rend(); ++it)
-	  //for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
 	  {
-	  	  LOG ("ice", errs() << bold << yellow << " solveConstraint #" << solveConstraintTime << " --- LOOP #" << ++loopi << " times ---\n" << normal);
+	  	LOG ("ice", errs() << bold << yellow << " solveConstraint #" << solveConstraintTime << " --- LOOP #" << ++loopi << " times ---\n" << normal);
 		  HornRule r = workList.front();
 		  workList.pop_front();
 		  // HornRule r = *it;
@@ -1097,16 +974,6 @@ static int solveConstraintTime = 0;
 		  ExprVector body_pred_apps;
 		  get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
 
-		  //if(body_pred_apps.size() > 1)
-		  //{
-		  //	  LOG ("ice", errs() << "Nonlinear Horn Constraints are not supported right now.\n");
-		  //	  exit (-3);
-		  //}
-
-		  // This is important as ICE is not able to handle it.
-		  //if(bind::fname(r.head()) != bind::fname(body_app)) {
-		  //  continue;
-		  //}
 
 		  bool cleanBody = true;
 		  for (Expr body_app : body_pred_apps) {
@@ -1150,14 +1017,9 @@ static int solveConstraintTime = 0;
 						  // Which predicates will be changed in this iteration of solving.
 						  ExprVector changedPreds;
 						  // FixMe. Bad Code.
-						  //if (SVMExecPath.compare("") == 0) {
-						  	  changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-						  //}
+						  changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
 						  changedPreds.push_back(bind::fname(bind::fname(r.head())));
-						  //if (SVMExecPath.compare("") == 0)
-							  C5learn (changedPreds);
-						  //else
-						  //	  svmLearn (changedPreds);
+							C5learn (changedPreds);
 					  }
 				  } while (upd);
 				  // --- Extend work list as we just go through a strengthening loop ----
@@ -1165,15 +1027,13 @@ static int solveConstraintTime = 0;
 			  }
 		  } else {
 			  //Expr body_app = body_pred_apps[0];
-
 			  //Expr preSolve = m_candidate_model.getDef(body_app);
 			  if (ICELocalStrengthen) {
 			  HornDbModel global_cache;
 			  for (Expr body_app : body_pred_apps) {
 				  ExprVector arg_list;
 				  Expr rel = bind::fname (body_app);
-				  for(int i=0; i<bind::domainSz(rel); i++)
-				  {
+				  for(int i=0; i<bind::domainSz(rel); i++) {
 					  Expr arg_i_type = bind::domainTy(rel, i);
 					  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 					  arg_list.push_back(arg_i);
@@ -1216,20 +1076,12 @@ static int solveConstraintTime = 0;
 
 				  do {
 					  counter ++;
-
 					  LOG("ice", errs() << "Rule Verification Round " << counter << "\n");
 
 					  // Which predicates will be changed in this iteration of solving.
 					  ExprVector changedPreds;
-					  // FixMe. Bad Code.
-					  //if (SVMExecPath.compare("") == 0) {
 					  changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-					  //}
 
-					  //Expr currSolve = m_candidate_model.getDef(body_app);
-					  //if (currSolve != preSolve) {
-					  //	  m_candidate_model.addDef(body_app, mk<AND>(preSolve, currSolve));
-					  //}
 
 					  upd = false;
 					  //Expr r_head = r.head();
@@ -1246,8 +1098,7 @@ static int solveConstraintTime = 0;
 					  errs() << normal;
 
 					  boost::tribool result = solver.solve();
-					  if(result != UNSAT)
-					  {
+					  if(result != UNSAT) {
 						  LOG("ice", errs() << "SAT, NEED TO ADD The Counterexample\n";);
 						  upd = true; isChanged = true;
 						  //get cex
@@ -1260,15 +1111,13 @@ static int solveConstraintTime = 0;
 								  continue;
 
 							  LOG("ice", errs() << "(";);
-							  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++)
-							  {
+							  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) {
 								  Expr arg_i = body_app->arg(i+1);
 								  Expr arg_i_value = m.eval(arg_i);
 								  LOG("ice", errs() << *arg_i_value << ",";);
 							  }
 							  LOG("ice", errs() << ") -> (";);
-							  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++)
-							  {
+							  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) {
 								  Expr arg_i = r_head->arg(i+1);
 								  Expr arg_i_value = m.eval(arg_i);
 								  LOG("ice", errs() << *arg_i_value << ",";);
@@ -1277,20 +1126,16 @@ static int solveConstraintTime = 0;
 
 							  // Presumbaly add counterexample
 							  std::list<Expr> attr_values;
-							  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++)
-							  {
+							  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) {
 								  Expr arg_i = body_app->arg(i+1);
 								  Expr arg_i_value = m.eval(arg_i);
 
 								  //deal with uncertain values in cexs
-								  if(bind::isBoolConst(arg_i_value))
-								  {
+								  if(bind::isBoolConst(arg_i_value)) {
 									  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mk<FALSE>(arg_i_value->efac());
 									  arg_i_value = uncertain_value;
-								  }
-								  else if(bind::isIntConst(arg_i_value))
-								  {
+								  } else if(bind::isIntConst(arg_i_value)) {
 									  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 									  arg_i_value = uncertain_value;
@@ -1298,19 +1143,14 @@ static int solveConstraintTime = 0;
 
 								  //convert true/false to 1/0 in C5 data point
 								  if(isOpX<TRUE>(arg_i_value))
-								  {
 									  arg_i_value = mkTerm<mpz_class>(1, arg_i_value->efac());
-								  }
 								  else if(isOpX<FALSE>(arg_i_value))
-								  {
 									  arg_i_value = mkTerm<mpz_class>(0, arg_i_value->efac());
-								  }
 
 								  //deal with too large integer value like: -0xffffffb
 								  std::ostringstream oss;
 								  oss << arg_i_value;
-								  if(oss.str().find("-0x") == 0)
-								  {
+								  if(oss.str().find("-0x") == 0) {
 									  LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 									  arg_i_value = uncertain_value;
@@ -1321,7 +1161,6 @@ static int solveConstraintTime = 0;
 
 							  // If the counterexample is already labeled positive;
 							  // Add its successive (aka. state transition) to positives instead.
-
 							  DataPoint neg_dp(bind::fname(bind::fname(body_app)), attr_values);
 							  negPoints.insert(neg_dp);
 						  }
@@ -1342,7 +1181,7 @@ static int solveConstraintTime = 0;
 						  if (foundPos) {
 							  if (bind::domainSz(bind::fname(r_head)) <= 0) {
 								  outs()<<"Program is buggy.\n";
-			  	  	  	  	  	  std::list<Expr> attr_values;
+			  	  	  	std::list<Expr> attr_values;
 								  DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 								  addPosCex(pos_dp);
 								  failurePoint = m_pos_list.size()-1;
@@ -1358,20 +1197,16 @@ static int solveConstraintTime = 0;
 							  }
 
 							  std::list<Expr> attr_values;
-							  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++)
-							  {
+							  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) {
 								  Expr arg_i = r_head->arg(i+1);
 								  Expr arg_i_value = m.eval(arg_i);
 
 								  //deal with uncertain values in cexs
-								  if(bind::isBoolConst(arg_i_value))
-								  {
+								  if(bind::isBoolConst(arg_i_value)) {
 									  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mk<FALSE>(arg_i_value->efac());
 									  arg_i_value = uncertain_value;
-								  }
-								  else if(bind::isIntConst(arg_i_value))
-								  {
+								  } else if(bind::isIntConst(arg_i_value)) {
 									  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 									  arg_i_value = uncertain_value;
@@ -1379,19 +1214,14 @@ static int solveConstraintTime = 0;
 
 								  //convert true/false to 1/0 in C5 data point
 								  if(isOpX<TRUE>(arg_i_value))
-								  {
 									  arg_i_value = mkTerm<mpz_class>(1, arg_i_value->efac());
-								  }
 								  else if(isOpX<FALSE>(arg_i_value))
-								  {
 									  arg_i_value = mkTerm<mpz_class>(0, arg_i_value->efac());
-								  }
 
 								  //deal with too large integer value like: -0xffffffb
 								  std::ostringstream oss;
 								  oss << arg_i_value;
-								  if(oss.str().find("-0x") == 0)
-								  {
+								  if(oss.str().find("-0x") == 0) {
 									  LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *arg_i_value << "\n";);
 									  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 									  arg_i_value = uncertain_value;
@@ -1411,16 +1241,10 @@ static int solveConstraintTime = 0;
 
 								  m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(),
 										  [pos_dp,r_head,this](DataPoint p) {
-											  return p.getPredName() == bind::fname(bind::fname(r_head))
-											  		  && m_neg_data_set.find(p) != m_neg_data_set.end();
-									  	  	  //return p == pos_dp;
+											  return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();
 								  	  	  }), m_cex_list.end());
-								  //m_neg_data_set.erase(std::remove_if(m_neg_data_set.begin(), m_neg_data_set.end(),
-								  //		  [r_head](DataPoint p) {
-								  //			  return p.getPredName() == bind::fname(bind::fname(r_head)); }), m_neg_data_set.end());
 								  for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
 									  if (it->getPredName() == bind::fname(bind::fname(r_head))) {
-									  //if (*it == pos_dp) {
 										  m_neg_data_set.erase (it++);
 									  } else {
 										  ++it;
@@ -1437,14 +1261,9 @@ static int solveConstraintTime = 0;
 											  [body_app,this](DataPoint p) {
 												  return p.getPredName() == bind::fname(bind::fname(body_app))
 														  && m_neg_data_set.find(p) != m_neg_data_set.end();
-												  //return p == pos_dp;
 											  }), m_cex_list.end());
-									  //m_neg_data_set.erase(std::remove_if(m_neg_data_set.begin(), m_neg_data_set.end(),
-									  //		  [r_head](DataPoint p) {
-									  //			  return p.getPredName() == bind::fname(bind::fname(r_head)); }), m_neg_data_set.end());
 									  for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
 										  if (it->getPredName() == bind::fname(bind::fname(body_app))) {
-										  //if (*it == pos_dp) {
 											  m_neg_data_set.erase (it++);
 										  } else {
 											  ++it;
@@ -1456,27 +1275,24 @@ static int solveConstraintTime = 0;
 
 								  m_cex_list.push_back(pos_dp);
 								  addDataPointToIndex(pos_dp, index);
-
-			  	  	  	  	  	  std::list<int> preIndices;
-			  	  	  	  	  	  for (DataPoint neg_dp : negPoints) {
+			  	  	  	std::list<int> preIndices;
+			  	  	  	for (DataPoint neg_dp : negPoints) {
 									  auto searched = m_pos_data_set.find(neg_dp);
 									  if (searched != m_pos_data_set.end()) {
 										  preIndices.push_back(m_pos_index_map[neg_dp]);
 									  }
 								  }
-			  	  	  	  	  	  postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+			  	  	  	postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 
 								  LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n";);
 								  index++;
 								  posUpd = true;
 
 								  bool run = sampleLinearHornCtrs(r_head, pos_dp, index);
-			  	  	  	  	  	  if (!run) return false;
+			  	  	  	if (!run) return false;
 
 								  changedPreds.push_back(pos_dp.getPredName());
-							  }
-							  else //it is a duplicate data point
-							  {
+							  } else //it is a duplicate data point {
 								  LOG("ice", errs() << "Duplicated positive points should be impossible.\n");
 								  exit (-3);
 							  }
@@ -1495,13 +1311,10 @@ static int solveConstraintTime = 0;
 										  LOG("ice", errs() << "NEG CEX, INDEX IS " << index << "\n";);
 										  index++;
 
-										  if (changedPreds.size() <= 1 ||
-												  std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
+										  if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
 											  changedPreds.push_back(neg_dp.getPredName());
 
-										  if (SVMExecPath.compare("") != 0)
-												  //&& m_neg_data_set.size() > 100 && m_neg_data_set.size() % 100 == 0) {
-										  {
+										  if (SVMExecPath.compare("") != 0) {
 											  std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
 											  if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
 												  LOG("ice", errs() << "SVM based Hyperplane Learning!\n");
@@ -1524,33 +1337,14 @@ static int solveConstraintTime = 0;
 						  // Expr pre = m_candidate_model.getDef(body_app);
 						  //if (SVMExecPath.compare("") == 0)
 							  C5learn (changedPreds);
-							  if (posUpd) {
-								  /*for (Expr body_app : body_pred_apps) {
-									  if (bind::fname(bind::fname(r_head)) == bind::fname(bind::fname(body_app)))
-									  	  continue;
-									  ExprVector arg_list;
-									  Expr rel = bind::fname (body_app);
-									  for(int i=0; i<bind::domainSz(rel); i++)
-									  {
-										  Expr arg_i_type = bind::domainTy(rel, i);
-										  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
-										  arg_list.push_back(arg_i);
-									  }
-									  Expr fapp = bind::fapp(rel, arg_list);
-									  Expr preSolve = global_cache.getDef(fapp);
-									  m_candidate_model.addDef(fapp, preSolve);
-								  }*/
-								  break;
-							  }
+							  if (posUpd) { break; }
 							  else
 								  for (Expr body_app : body_pred_apps) {
-									  if (std::find(changedPreds.begin(), changedPreds.end(), bind::fname(bind::fname(body_app)))
-									  	  == changedPreds.end()) {
+									  if (std::find(changedPreds.begin(), changedPreds.end(), bind::fname(bind::fname(body_app))) == changedPreds.end()) {
 									  } else {
 										  ExprVector arg_list;
 										  Expr rel = bind::fname (body_app);
-										  for(int i=0; i<bind::domainSz(rel); i++)
-										  {
+										  for(int i=0; i<bind::domainSz(rel); i++) {
 											  Expr arg_i_type = bind::domainTy(rel, i);
 											  Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 											  arg_list.push_back(arg_i);
@@ -1562,16 +1356,12 @@ static int solveConstraintTime = 0;
 										  m_candidate_model.addDef(fapp, mk<AND>(preSolve, currSolve));
 									  }
 								  }
-						  //else
-						  //	  svmLearn (changedPreds);
 					  }
 				  } while (upd);
 			  } while (true);
-		  	  }
-			  else {
+		  	  } else {
 			  do {
 				  counter ++;
-
 				  LOG("ice", errs() << "Rule Verification Round " << counter << "\n");
 
 				  // Which predicates will be changed in this iteration of solving.
@@ -1579,33 +1369,20 @@ static int solveConstraintTime = 0;
 				  // FixMe. Bad Code.
 				  //if (SVMExecPath.compare("") == 0) {
 				  	  changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-				  //}
-
-				  //Expr currSolve = m_candidate_model.getDef(body_app);
-				  //if (currSolve != preSolve) {
-				//	  m_candidate_model.addDef(body_app, mk<AND>(preSolve, currSolve));
-				  //}
 
 				  upd = false;
 				  Expr r_head = r.head();
 				  Expr r_head_cand = m_candidate_model.getDef(r_head);
-
 				  LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n";);
-
 				  solver.reset();
-
 				  solver.assertExpr(mk<NEG>(r_head_cand));
-
 				  Expr body_forumla = extractRelation(r, db, NULL, NULL);
-
 				  LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <- " << *body_forumla << "\n");
-
 				  solver.assertExpr(body_forumla);
 
 				  //solver.toSmtLib(errs());
 				  boost::tribool result = solver.solve();
-				  if(result != UNSAT)
-				  {
+				  if(result != UNSAT) {
 					  LOG("ice", errs() << "SAT, NEED TO ADD The Counterexample\n";);
 					  upd = true; isChanged = true;
 					  //get cex
@@ -1618,15 +1395,13 @@ static int solveConstraintTime = 0;
 							  continue;
 
 						  LOG("ice", errs() << "(";);
-						  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++)
-						  {
+						  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) {
 							  Expr arg_i = body_app->arg(i+1);
 							  Expr arg_i_value = m.eval(arg_i);
 							  LOG("ice", errs() << *arg_i_value << ",";);
 						  }
 						  LOG("ice", errs() << ") -> (";);
-						  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++)
-						  {
+						  for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) {
 							  Expr arg_i = r_head->arg(i+1);
 							  Expr arg_i_value = m.eval(arg_i);
 							  LOG("ice", errs() << *arg_i_value << ",";);
@@ -1635,40 +1410,32 @@ static int solveConstraintTime = 0;
 
 						  // Presumbaly add counterexample
 						  std::list<Expr> attr_values;
-						  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++)
-						  {
+						  for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) {
 							  Expr arg_i = body_app->arg(i+1);
 							  Expr arg_i_value = m.eval(arg_i);
 
 							  //deal with uncertain values in cexs
-							  if(bind::isBoolConst(arg_i_value))
-							  {
+							  if(bind::isBoolConst(arg_i_value)) {
 								  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 								  Expr uncertain_value = mk<FALSE>(arg_i_value->efac());
 								  arg_i_value = uncertain_value;
-							  }
-							  else if(bind::isIntConst(arg_i_value))
-							  {
+							  } else if(bind::isIntConst(arg_i_value)) {
 								  LOG("ice", errs() << "UNCERTAIN VALUE: " << *arg_i_value << "\n";);
 								  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 								  arg_i_value = uncertain_value;
 							  }
 
 							  //convert true/false to 1/0 in C5 data point
-							  if(isOpX<TRUE>(arg_i_value))
-							  {
+							  if(isOpX<TRUE>(arg_i_value)) {
 								  arg_i_value = mkTerm<mpz_class>(1, arg_i_value->efac());
-							  }
-							  else if(isOpX<FALSE>(arg_i_value))
-							  {
+							  } else if(isOpX<FALSE>(arg_i_value)) {
 								  arg_i_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 							  }
 
 							  //deal with too large integer value like: -0xffffffb
 							  std::ostringstream oss;
 							  oss << arg_i_value;
-							  if(oss.str().find("-0x") == 0)
-							  {
+							  if(oss.str().find("-0x") == 0) {
 								  LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *arg_i_value << "\n";);
 								  Expr uncertain_value = mkTerm<mpz_class>(0, arg_i_value->efac());
 								  arg_i_value = uncertain_value;
@@ -1679,7 +1446,6 @@ static int solveConstraintTime = 0;
 
 						  // If the counterexample is already labeled positive;
 						  // Add its successive (aka. state transition) to positives instead.
-
 						  DataPoint neg_dp(bind::fname(bind::fname(body_app)), attr_values);
 						  negPoints.insert(neg_dp);
 					  }
@@ -1982,8 +1748,7 @@ static int solveConstraintTime = 0;
 	  std::map<HornRule, int> transitionCount;
 	  ExprVector equations;
 
-	  for(int i=0; i<=bind::domainSz(head); i++)
-	  {
+	  for(int i=0; i<=bind::domainSz(head); i++) {
 		  Expr var = bind::domainTy(head, i);
 		  std::list<Expr>::iterator it = p.getAttrValues().begin();
 		  std::advance(it, i);
@@ -2010,23 +1775,16 @@ static int solveConstraintTime = 0;
 	  }
 	  Expr state_assignment;
 	  if(equations.size() > 1)
-	  {
 		  state_assignment = mknary<AND>(equations.begin(), equations.end());
-	  }
 	  else
-	  {
 		  state_assignment = equations[0];
-	  }
 	  LOG("ice", errs() << "STATE ASSIGNMENT: " << *state_assignment << "\n";);
 
-	  if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end())
-	  {
+	  if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
 		  ExprVector states;
 		  states.push_back(state_assignment);
 		  relationToPositiveStateMap.insert(std::make_pair(bind::fname(head), states));
-	  }
-	  else
-	  {
+	  } else {
 		  ExprVector &states = relationToPositiveStateMap.find(bind::fname(head))->second;
 		  states.push_back(state_assignment);
 	  }
@@ -2035,14 +1793,11 @@ static int solveConstraintTime = 0;
 	  if (!run) return false;
 
 	  LOG("ice", errs() << "THE WHOLE STATE MAP:\n";);
-	  for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr)
-	  {
+	  for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
 		  LOG("ice", errs() << "KEY: " << *(itr->first) << "\n";);
 		  LOG("ice", errs() << "VALUE: [";);
 		  for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2)
-		  {
 			  LOG("ice", errs() << *(*itr2) << ", ";);
-		  }
 		  LOG("ice", errs() << "]\n";);
 	  }
 	  return true;

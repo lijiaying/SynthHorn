@@ -27,9 +27,11 @@
 static std::string function = "Start tracing ---";
 static std::string line;
 
-// #define LOG(TAG, CODE) do {} while(0)
+#define LOG(TAG, CODE) do {} while(0)
 
-#define LOG(TAG, CODE) do { \
+// #define LOG(TAG, CODE) do { \
+//
+#define LOGDP(TAG, CODE) do { \
 	if (__FUNCTION__ != function) { \
 		llvm::errs() << blue << "<<< ****** function: " << function << " ****** <<<\n\n" << normal; \
 		function = __FUNCTION__;\
@@ -46,4 +48,8 @@ static std::string line;
 } while (0);
 
 
+#define LOGPURE(TAG, CODE) do { \
+		CODE; \
+		llvm::errs().flush();\
+} while (0);
 #endif
