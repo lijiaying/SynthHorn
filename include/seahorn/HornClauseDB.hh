@@ -111,6 +111,7 @@ namespace seahorn
   private:
   public:
     ExprFactory &m_efac;
+    // relations means Predicates!
     expr_set_type m_rels;
     mutable ExprVector m_vars;
     RuleVector m_rules;
