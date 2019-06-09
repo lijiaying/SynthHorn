@@ -115,7 +115,7 @@ namespace seahorn
 	  void setupC5();
 	  void initC5(ExprVector targets);
 	  void C5learn(ExprVector targets);
-	  std::string outputDataPoint(ExprVector targets, DataPoint p, bool valueOnly = false);
+	  std::string DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly = false);
 
   public:
       HornifyModule& getHornifyModule() {return m_hm;}

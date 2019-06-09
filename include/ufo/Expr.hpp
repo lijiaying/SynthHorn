@@ -2316,6 +2316,7 @@ namespace expr
 				inline bool isBoolConst (Expr v) { return isConst<BOOL_TY> (v); }
 				inline bool isIntConst (Expr v) { return isConst<INT_TY> (v); }
 				inline bool isBvConst (Expr v) { return isConst<BV_TY> (v); }
+				// inline bool isBvConst (Expr v) { return is_bvnum(v); }
 				inline bool isRealConst (Expr v) { return isConst<REAL_TY> (v); }      
 
 

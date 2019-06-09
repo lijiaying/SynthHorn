@@ -62,13 +62,13 @@ namespace seahorn
 		errs() << yellow << bold << "--------------------------------------------------------------------------\n" << normal;
 		HornifyModule &hm = getAnalysis<HornifyModule> ();
 
-		LOG("ice-res", errs() << "Start ICE Pass\n";);
+		LOG("ice-res", errs() << "Start ICE Pass\n");
 		Stats::resume ("ICE inv");
 		ICE ice(hm);
 		ice.setupC5();
 		ice.genInitialCandidates(hm.getHornClauseDB());
 		ice.runICE();
-		LOG("ice-res", errs() << "RUN ICE SUCCESSCULLY\n";);
+		LOG("ice-res", errs() << "RUN ICE SUCCESSCULLY\n");
 		Stats::stop ("ICE inv");
 
 		return false;
@@ -132,19 +132,19 @@ namespace seahorn
 	{
 		errs() << "========================== add inv cand to solver ===========================\n";
 		auto &db = m_hm.getHornClauseDB();
-		LOG("test", errs() << "pre_db---\n" << cyan << db << "\n" << normal;);
+		LOG("test", errs() << "pre_db---\n" << cyan << db << "\n" << normal);
 		for(Expr rel : db.getRelations())
 		{
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
-			LOG("candidates", errs() << bold << red << "HEAD: " << normal << blue << *fapp << "\n" << normal;);
-			LOG("candidates", errs() << bold << red << "CAND: " << normal << green << *cand_app << "\n" << normal;);
+			LOG("candidates", errs() << bold << red << "HEAD: " << normal << blue << *fapp << "\n" << normal);
+			LOG("candidates", errs() << bold << red << "CAND: " << normal << green << *cand_app << "\n" << normal);
 			if(!isOpX<TRUE>(cand_app)) { 
-				LOG("candidates", errs() << bold << green << "ADD CONSTRAINT\n" << normal;); 
+				LOG("candidates", errs() << bold << green << "ADD CONSTRAINT\n" << normal); 
 				db.addConstraint(fapp, cand_app); 
 			}
 		}
-		LOG("test", errs() << "post_db---\n" << cyan << db << "\n" << normal;);
+		LOG("test", errs() << "post_db---\n" << cyan << db << "\n" << normal);
 		errs() << "========================== added inv cand to solver ===========================\n";
 	}
 
@@ -222,7 +222,7 @@ namespace seahorn
 				arg_list.push_back(arg_i);
 			}
 
-			LOG("ice", errs() << "SVM DATA FILES ARE GENERATING\n";);
+			LOG("ice", errs() << "SVM DATA FILES ARE GENERATING\n");
 			int pn=0, nn=0;
 			//generate .data file
 			std::ofstream data_of(m_C5filename + ".svm.data");
@@ -248,7 +248,7 @@ namespace seahorn
 				}
 			}
 			data_of.close();
-			LOG("ice", errs() << "SVM DATA FILES ARE GENERATED\n";);
+			LOG("ice", errs() << "SVM DATA FILES ARE GENERATED\n");
 
 			// Call SVM to learn invariants
 			// call SVM, output the result into buf, output "attr" into FromCmd.attr
@@ -265,19 +265,19 @@ namespace seahorn
 				m_C5filename + ".svm.data";
 
 			LOG("ice", errs() << "Call SVM: " << command << "\n");
-			if((fp = popen(command.c_str(), "r")) == NULL) { LOG("ice", errs() << "popen error!\n";); perror("popen failed!\n"); return; }
-			// LOG("ice", errs() << "call svm returns!\n";);
+			if((fp = popen(command.c_str(), "r")) == NULL) { LOG("ice", errs() << "popen error!\n"); perror("popen failed!\n"); return; }
+			// LOG("ice", errs() << "call svm returns!\n");
 			n_svm_calls ++;
 
 			// char buf[1024];
 			// size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-			// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n";); return; }
+			// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n"); return; }
 			pclose(fp);
 
 			// FILE *wp = fopen("SVM_temp","w+");
 			// fwrite(buf, 1, sizeof(buf), wp);
 			// fclose(wp);
-			// LOGDP("ice", errs() << "buf: " << yellow << buf << normal << "\n";);
+			// LOGDP("ice", errs() << "buf: " << yellow << buf << normal << "\n");
 
 			std::ifstream if_svm(m_C5filename + ".attr");
 			std::ostringstream svm_buf;
@@ -286,7 +286,7 @@ namespace seahorn
 			if_svm.close();
 			std::string svmattr_string = svm_buf.str();
 			std::vector<std::string> lines = split_string (svmattr_string, "\n");
-			LOGDP("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal << "\n";);
+			LOGDP("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal << "\n");
 
 
 			// Expr zero = mkTerm<mpz_class>(0, rel->efac());
@@ -345,21 +345,21 @@ namespace seahorn
 		if (ICEMod) {
 			extractConstants(db);
 			if (ruleConstants.size() > 0) {
-				LOGLINE("const", errs() << " inspect constants in Modulo operations in CHC \n";);
+				LOGLINE("const", errs() << " inspect constants in Modulo operations in CHC \n");
 				for (auto i : ruleConstants) {
-					LOGIT("const", errs() << " -> " << i << "\t";); 
+					LOGIT("const", errs() << " -> " << i << "\t"); 
 				}
-				LOGLINE("const", errs() << "\n end of constants\n";); 
+				LOGLINE("const", errs() << "\n end of constants\n"); 
 			}
 		}
 		//consider unknowns which are definitely not useful in invariant inference.
 		extractUnknowns(db);
 
 		//print the map from predicate name to C5-form predicate name
-		LOGDP("ice", errs() << "REL NAME TO C5 NAME MAP:\n";);
-		LOGDP("ice", errs() << "relation in CHC   ||   relation in C5\n";);
+		LOGDP("ice", errs() << "REL NAME TO C5 NAME MAP:\n");
+		LOGDP("ice", errs() << "relation in CHC   ||   relation in C5\n");
 		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
-		{ LOGDP("ice", errs() << *(it->first) << "  <-|->  " << *(it->second) << "\n";); }
+		{ LOGDP("ice", errs() << *(it->first) << "  <-|->  " << *(it->second) << "\n"); }
 	}
 
 	void outputFileContent(std::string filename) {
@@ -435,7 +435,7 @@ namespace seahorn
 					// if(isOpX<BV_TY>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
 					if(isOpX<BVSORT>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
 					{
-						LOGIT("ice", errs() << green << "GOOD, in int/bv/bool TYPE!\n" << normal;);
+						LOGIT("ice", errs() << green << "GOOD, in int/bv/bool TYPE!\n" << normal);
 						if (unknowns[rel][i]) // Exclude unknowns from invariant inference.
 						{
 							errs() << red "        --> unknown, thus skip\n" << normal;
@@ -449,7 +449,7 @@ namespace seahorn
 						upperInterval ++;
 					}
 					else { 
-						LOGIT("ice", errs() << red << "BAD, not in int/bv/bool TYPE!\n" << normal;);
+						LOGIT("ice", errs() << red << "BAD, not in int/bv/bool TYPE!\n" << normal);
 					}
 				}
 				//implicit attributes which have the form x % n.
@@ -531,7 +531,7 @@ namespace seahorn
 		// 	errs() << "target " << i << " : "<< blue << *targets[i] << normal << "\n";
 		initC5 (targets); // Set .names file and .interval file
 		generateC5DataAndImplicationFiles(targets);
-		LOG("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n";);
+		LOG("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n");
 
 		// call C50, output to .json file
 		FILE *fp;
@@ -540,7 +540,7 @@ namespace seahorn
 		if((fp = popen(command.c_str(), "r")) == NULL) { perror("popen failed!\n"); return; }
 		// char buf[1024];
 		// size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-		// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n";); return; }
+		// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n"); return; }
 		pclose(fp);
 		// FILE *wp = fopen("C5_temp","w+"); fwrite(buf, 1, sizeof(buf), wp); fclose(wp);
 
@@ -553,7 +553,7 @@ namespace seahorn
 		boost::property_tree::ptree pt;
 		std::stringstream ss(json_string);
 		try { boost::property_tree::json_parser::read_json(ss, pt); }
-		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n";); return; }
+		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n"); return; }
 
 		//parse ptree to invariant format
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
@@ -565,9 +565,9 @@ namespace seahorn
 		extractFacts(db, targets);
 
 		//print the invariant map after this learning round
-		LOG("ice", errs() << "NEW CANDIDATES MAP:\n";);
+		LOG("ice", errs() << "NEW CANDIDATES MAP:\n");
 		for(Expr rel : db.getRelations()) {
-			// LOG("ice", errs() << red << "relations : " << *rel << "\n" << normal;);
+			// LOG("ice", errs() << red << "relations : " << *rel << "\n" << normal);
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
 			errs() << green << *fapp << normal << " : " << *cand_app << "\n";
@@ -588,7 +588,7 @@ namespace seahorn
 				if(m_pos_data_set.count(*it) != 0) { label = "true"; } 
 				else if(m_neg_data_set.count(*it) != 0) { label = "false"; } 
 				else if(ICEICE && m_impl_cex_set.count(*it) != 0) { label = "?"; }
-				std::string dpstr = outputDataPoint(targets, *it, true);
+				std::string dpstr = DataPointToStr(targets, *it, true);
 				int len1 = 1;
 				int len2= 8;
 				int start2 = dpstr.find(":bv");
@@ -603,8 +603,8 @@ namespace seahorn
 					start2 = dpstr.find(":bv");
 				}
 				data_of << dpstr << "," << label << "\n";
-				// data_of << outputDataPoint(targets, *it, true) << "," << label << "\n";
-				LOG("ice", errs() << outputDataPoint(targets, *it) << "," << label << "\n");
+				// data_of << DataPointToStr(targets, *it, true) << "," << label << "\n";
+				LOG("ice", errs() << DataPointToStr(targets, *it) << "," << label << "\n");
 			}
 		}
 		data_of.close();
@@ -637,7 +637,7 @@ namespace seahorn
 		}
 	}
 
-	std::string ICE::outputDataPoint(ExprVector targets, DataPoint p, bool valueOnly)
+	std::string ICE::DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly)
 	{
 		auto &db = m_hm.getHornClauseDB();
 		Expr pred_name = p.getPredName();
@@ -667,7 +667,7 @@ namespace seahorn
 		auto &db = m_hm.getHornClauseDB();
 		//if only have the root node
 		if(pt.get<std::string>("children") == std::string("null")) {
-			LOG("ice", errs() << "PT HAS NO CHILDREN\n";);
+			LOG("ice", errs() << "PT HAS NO CHILDREN\n");
 			Expr candidate;
 			if(pt.get<std::string>("classification") == "true" || pt.get<std::string>("classification") == "True")
 				candidate = mk<TRUE>(db.getExprFactory());
@@ -693,7 +693,7 @@ namespace seahorn
 			Expr rel = *rels_it;
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::ostringstream oss; oss << C5_rel_name;
-			LOG("ice", errs() << "TAG: " << oss.str() << "\n";);
+			LOG("ice", errs() << "TAG: " << oss.str() << "\n");
 
 			boost::property_tree::ptree sub_pt = child_it.second;
 			if(sub_pt.get<std::string>("children") == std::string("null")) {
@@ -716,7 +716,7 @@ namespace seahorn
 				if(disjunctions.size() == 1) candidate = disjunctions[0];
 				else candidate = mknary<OR>(disjunctions.begin(), disjunctions.end());
 			}
-			LOG("ice", errs() << "NEW CANDIDATE: " << *candidate << "\n";);
+			LOG("ice", errs() << "NEW CANDIDATE: " << *candidate << "\n");
 
 			Expr fapp = getFappFromRel(rel);
 			m_candidate_model.addDef(fapp, candidate);
@@ -731,7 +731,7 @@ namespace seahorn
 		//leaf node
 		if(sub_pt.get<std::string>("children") == std::string("null"))
 		{
-			LOG("ice", errs() << "LEAF NODE\n";);
+			LOG("ice", errs() << "LEAF NODE\n");
 			if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
 				std::list<Expr> new_conjunct = stack;
 				final_formula.push_back(new_conjunct);
@@ -743,9 +743,9 @@ namespace seahorn
 		}
 		//internal node
 		else {
-			LOG("ice", errs() << "INTERNAL NODE\n";);
+			LOG("ice", errs() << "INTERNAL NODE\n");
 			std::string attr_name = sub_pt.get<std::string>("attribute");
-			LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n";);
+			LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
 
 			if(attr_name.find("+") != -1) { decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
 			else if(attr_name.find("-") != -1) { decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
@@ -766,7 +766,7 @@ namespace seahorn
 					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
 					decision_expr = mk<LEQ>(attr_expr, threshold);
 				} else {
-					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n";);
+					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 					return final_formula;
 				}
 			} 
@@ -786,7 +786,7 @@ namespace seahorn
 					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
 					decision_expr = mk<LEQ>(attr_expr, threshold);
 				} else {
-					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n";);
+					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 					return final_formula;
 				}
 			}
@@ -818,7 +818,7 @@ namespace seahorn
 			if(oss.str() == left_name) left_expr = it->second;
 			if(oss.str() == right_name) right_expr = it->second;
 		}
-		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n";);
+		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 		// Expr c = mkTerm<mpz_class>(1, left_expr->efac());
@@ -842,7 +842,7 @@ namespace seahorn
 			if(oss.str() == left_name) left_expr = it->second;
 			if(oss.str() == right_name) right_expr = it->second;
 		}
-		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n";);
+		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 		// Expr c1 = mkTerm<mpz_class>(1, left_expr->efac());
@@ -871,11 +871,11 @@ namespace seahorn
 		if (right_expr == NULL) {
 			bool right_has_only_digits = (right_name.find_first_not_of( "0123456789" ) == -1);
 			if (right_has_only_digits && bind::isIntConst(left_expr)) { right_expr = mkTerm<mpz_class>(atoi(right_name.c_str()), left_expr->efac()); } 
-			else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n";); }
+			else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
 		} else if ( !bind::isIntConst(right_expr) ) {
-			LOG("ice", errs() << "OPERAND TYPE WRONG!\n";);
+			LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
 		}
-		if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n";); }
+		if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
 
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
@@ -925,13 +925,13 @@ namespace seahorn
 			}
 		}
 
-		LOGLINE("ice", errs() << " -> Unknowns: \n";);
+		LOGLINE("ice", errs() << " -> Unknowns: \n");
 		for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
-			LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<";);
+			LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
 			for (int i = 0; i < itr->second.size(); i++) {
-				LOGIT("ice", errs() << itr->second[i] << ", ";);
+				LOGIT("ice", errs() << itr->second[i] << ", ");
 			}
-			LOGIT("ice", errs() << ">\n";);
+			LOGIT("ice", errs() << ">\n");
 		}
 		LOGLINE("ice", errs() << "<<< Unknown search done.\n");
 	}
@@ -1010,10 +1010,10 @@ namespace seahorn
 			}
 		}
 
-		LOGLINE("init candidate", errs() << "---- init candidate ---- (if (predicate in queries) then: False; else: True) \n";);
-		LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal;);
-		// LOGIT("init candidate", m_candidate_model.Print(errs()););
-		LOGLINE("init candidate", errs() << "---- init candidate done ---- \n";);
+		LOGLINE("init candidate", errs() << "---- init candidate ---- (if (predicate in queries) then: False; else: True) \n");
+		LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
+		// LOGIT("init candidate", m_candidate_model.Print(errs()));
+		LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
 
 		ExprVector empty;
 		extractFacts (db, empty);
@@ -1059,15 +1059,16 @@ namespace seahorn
 				Expr head = r.head();
 				Expr head_app = bind::fname(head);
 				bool matched = false;
+				LOGIT("ice", errs() << "[");
 				for(int i=0; i<bind::domainSz(head_app); i++)
 				{
 					Expr arg_i_value = head->arg(i+1);
-					LOG("ice", errs() << *arg_i_value << ",";);
+					LOGIT("ice", errs() << *arg_i_value);
 					Expr arg_i_type = bind::domainTy(head_app, i);
 					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", head_app->efac ())), arg_i_type));
 
 					std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
-					LOG("ice", errs() << "(" <<**it << "),";);
+					LOGIT("ice", errs() << ":(" <<**it << "), ");
 					std::ostringstream oss; oss << **it;
 					if(isOpX<TRUE>(arg_i_value))
 					{
@@ -1080,16 +1081,22 @@ namespace seahorn
 							matched = true;
 						} else { matched = false; break; }
 					}
-					else if(bind::isBoolConst(arg_i_value)) { matched = true; }
-					else if(bind::isIntConst(arg_i_value)) { matched = true; }
-					else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
+					else if(bind::isBoolConst(arg_i_value)) { errs() << "match bool const "; matched = true; }
+					else if(bind::isIntConst(arg_i_value)) { errs() << "match int const "; matched = true; }
+					else if(bind::isBvConst(arg_i_value)) { errs() << "match bv const "; matched = true; }
+					else { /* Other kind of constructs in fact rules not implemented yet ...*/
+							errs() << "xxx"; }
 				}
+				LOGIT("ice", errs() << "]");
 
-				if (matched) { LOG("ice", errs() << "\nMatched!\n"); return true; }
+				if (matched) { 
+					LOGLINE("ice", errs() << "\nMatched!\n"); 
+					return true; 
+				}
 			}
 		}
 
-		LOG("ice", errs() << "\nUnMatched!\n");
+		LOGLINE("ice", errs() << "\nUnMatched!\n");
 		return false;
 	}
 
@@ -1119,15 +1126,15 @@ namespace seahorn
 					for(int i=0; i<bind::domainSz(rel); i++)
 					{
 						Expr arg_i_value = head->arg(i+1);
-						LOG("ice", errs() << *arg_i_value << ",";);
+						LOG("ice", errs() << *arg_i_value << ",");
 						Expr arg_i_type = bind::domainTy(rel, i);
 						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 						arg_list.push_back(arg_i);
 						// errs() << cyan << "       > argument[" << i << "] " << *arg_i << " = " << *arg_i_value << "\n" << normal;
 
-						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n";); }
-						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n";); }
-						else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n";); }
+						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
+						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
+						else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
 						else if(isOpX<TRUE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, arg_i); }
 						else if(isOpX<FALSE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); }
 						else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
@@ -1162,13 +1169,13 @@ namespace seahorn
 		//deal with uncertain values in cexs
 		if(bind::isBoolConst(val))
 		{
-			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n";);
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
 			Expr uncertain_value = mk<FALSE>(val->efac());
 			val = uncertain_value;
 		}
 		else if(bind::isIntConst(val))
 		{
-			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n";);
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
 			Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
 			val = uncertain_value;
 		}
@@ -1181,7 +1188,7 @@ namespace seahorn
 		std::ostringstream oss; oss << val;
 		if(oss.str().find("-0x") == 0)
 		{
-			LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *val << "\n";);
+			LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *val << "\n");
 			Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
 			val = uncertain_value;
 		}
@@ -1205,7 +1212,7 @@ namespace seahorn
 		Expr body_app = r.head();
 		if (bind::domainSz(bind::fname(body_app)) <= 0) { LOG ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
-		LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n";);
+		LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
 		Expr r_head_cand = m_candidate_model.getDef(r.head());
 		solver.reset();
 		solver.assertExpr(mk<NEG>(r_head_cand));
@@ -1217,7 +1224,7 @@ namespace seahorn
 		boost::tribool result = solver.solve();
 		if(result != UNSAT)
 		{
-			LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n";);
+			LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 			//get cex
 			ZModel<EZ3> m = solver.getModel();
 
@@ -1225,9 +1232,9 @@ namespace seahorn
 			std::list<Expr> attr_values = modelToAttrValues(m, body_app);
 
 			//print cex
-			LOG("ice", errs() << "(";); 
-			for (auto attr : attr_values) LOG("ice", errs() << *attr << ",";); 
-			LOG("ice", errs() << ")\n";);
+			LOG("ice", errs() << "("); 
+			for (auto attr : attr_values) LOG("ice", errs() << *attr << ","); 
+			LOG("ice", errs() << ")\n");
 
 			DataPoint pos_dp(bind::fname(bind::fname(body_app)), attr_values);
 			int orig_size = m_pos_data_set.size();
@@ -1246,7 +1253,7 @@ namespace seahorn
 				}
 				m_cex_list.push_back(pos_dp);
 				addDataPointToIndex(pos_dp, index);
-				LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n";);
+				LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 				index++;
 
 				run = sampleLinearHornCtrs(body_app, pos_dp, index);
@@ -1309,7 +1316,7 @@ namespace seahorn
 		workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
 		workList.reverse();
 
-		LOG("ice", errs() << "=========================== Constraint Solving of Horn Clauses ============================\n";);
+		LOG("ice", errs() << "=========================== Constraint Solving of Horn Clauses ============================\n");
 		ZSolver<EZ3> solver(m_hm.getZContext());
 
 		int loopi = 0;
@@ -1319,7 +1326,7 @@ namespace seahorn
 			HornRule r = workList.front();
 			workList.pop_front();
 
-			LOGIT("ice", errs() << red << "VERIFY Horn Rule: " << normal << *(r.head()) << " <- " << *(r.body()) << "\n";);
+			LOGIT("ice", errs() << red << "VERIFY Horn Rule: " << normal << *(r.head()) << " <- " << *(r.body()) << "\n");
 			bool upd = false; int counter = 0; bool posUpd = false;
 
 			Expr r_body = r.body();
@@ -1392,7 +1399,7 @@ namespace seahorn
 						Expr r_head = r.head();
 						Expr r_head_cand = m_candidate_model.getDef(r_head);
 
-						LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n";);
+						LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
 						solver.reset();
 						solver.assertExpr(mk<NEG>(r_head_cand));
 						Expr body_forumla = extractRelation(r, db, NULL, NULL);
@@ -1405,7 +1412,7 @@ namespace seahorn
 						boost::tribool result = solver.solve();
 						if(result != UNSAT)
 						{
-							LOG("ice", errs() << "SAT, NEED TO ADD The Counterexample\n";);
+							LOG("ice", errs() << "SAT, NEED TO ADD The Counterexample\n");
 							upd = true; isChanged = true;
 							//get cex
 							ZModel<EZ3> m = solver.getModel();
@@ -1419,12 +1426,12 @@ namespace seahorn
 								if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
 									continue;
 
-								LOG("ice", errs() << "(";);
-								LOGIT("ice", errs() << *body_app << "\n";); LOGIT("ice", errs() << "instance: (";);
-								for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) { Expr arg_i = body_app->arg(i+1); Expr arg_i_value = m.eval(arg_i); LOGIT("ice", errs() << *arg_i_value << ",";); } 
-								LOGIT("ice", errs() << ") -> (";);
-								for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) { Expr arg_i = r_head->arg(i+1); Expr arg_i_value = m.eval(arg_i); LOGIT("ice", errs() << *arg_i_value << ",";); } 
-								LOGIT("ice", errs() << ")\n";);
+								LOG("ice", errs() << "(");
+								LOGIT("ice", errs() << *body_app << "\n"); LOGIT("ice", errs() << "instance: (");
+								for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) { Expr arg_i = body_app->arg(i+1); Expr arg_i_value = m.eval(arg_i); LOGIT("ice", errs() << *arg_i_value << ","); } 
+								LOGIT("ice", errs() << ") -> (");
+								for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) { Expr arg_i = r_head->arg(i+1); Expr arg_i_value = m.eval(arg_i); LOGIT("ice", errs() << *arg_i_value << ","); } 
+								LOGIT("ice", errs() << ")\n");
 
 								// Presumbaly add counterexample
 								std::list<Expr> attr_values = modelToAttrValues(m, body_app);
@@ -1435,16 +1442,41 @@ namespace seahorn
 								negPoints.insert(neg_dp);
 							}
 
+							ExprVector empty;
+							errs() << "negPoints: " << yellow;
+							for (DataPoint dp : negPoints) {
+								errs() << DataPointToStr(empty, dp) << ", ";
+							}
+							errs() << "\n" << normal;
+
+							errs() << "m_pos_data_set: " << yellow;
+							for (DataPoint dp : m_pos_data_set) {
+								errs() << DataPointToStr(empty, dp) << ", ";
+							}
+							errs() << "\n" << normal;
+
 							bool foundPos = true;
 							for (DataPoint neg_dp : negPoints) {
+								errs() << red << " search datapoint: " << DataPointToStr(empty, neg_dp) << "\n" << normal;
 								auto searched = m_pos_data_set.find(neg_dp);
-								if (searched != m_pos_data_set.end() || matchFacts (db, neg_dp)) { // Found it in positive samples!  // foundPos = true;
-								} else { foundPos = false; break; }
+								if (searched != m_pos_data_set.end() || matchFacts (db, neg_dp)) { 
+									if (searched != m_pos_data_set.end())
+										errs() << " result: Found \n";
+									if (matchFacts (db, neg_dp)) 
+										errs() << " result: matchFact\n";
+									// Found it in positive samples!  
+									// foundPos = true;
+								} 
+								else 
+								{ 
+									errs() << " result: not Found \n";
+									foundPos = false; break; 
+								}
 							}
 							//auto searched = m_pos_data_set.find(neg_dp);
 							//if (searched != m_pos_data_set.end()) {
 							if (foundPos) {
-								errs() << "!! Found Pos !! \n";
+								LOGLINE("diff", errs() << "!! Found Pos !! \n");
 								if (bind::domainSz(bind::fname(r_head)) <= 0) {
 									outs()<<"Program is buggy.\n";
 									std::list<Expr> attr_values;
@@ -1502,7 +1534,7 @@ namespace seahorn
 									}
 									postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 
-									LOGDP("ice", errs() << "POS CEX, INDEX IS " << index << "\n";);
+									LOGDP("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 									index++;
 									posUpd = true;
 
@@ -1518,14 +1550,14 @@ namespace seahorn
 									//exit (-3);
 								}
 							} else {
-								errs() << "!! NOT Found Pos !! \n";
+								LOGLINE("diff", errs() << "!! NOT Found Pos !! \n");
 								bool surebad = false;
 								if (ICEICE) {
 									if (negPoints.size() > 1) { errs() << "ICE learning is not suitable for this program.\n"; exit (-3); }
 									if (bind::domainSz(bind::fname(r_head)) <= 0) surebad = true;
 								}
 								if (ICEICE && !surebad && negPoints.size() == 1) {
-									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option1 %%%%%%%%%%%%%\n";);
+									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option1 %%%%%%%%%%%%%\n");
 									// Add Implication samples.
 									std::list<Expr> attr_values = modelToAttrValues(m, r_head);
 									DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
@@ -1536,7 +1568,7 @@ namespace seahorn
 											addImplCex(neg_dp);
 											m_cex_list.push_back(neg_dp);
 											addDataPointToIndex(neg_dp, index);
-											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n";);
+											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n");
 											index++;
 										}
 										if(m_impl_cex_set.count(pos_dp) == 0)
@@ -1544,22 +1576,22 @@ namespace seahorn
 											addImplCex(pos_dp);
 											m_cex_list.push_back(pos_dp);
 											addDataPointToIndex(pos_dp, index);
-											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n";);
+											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n");
 											index++;
 										}
 										ExprVector empty;
-										LOGLINE("ice", errs() << red << "Add implication pair: (" << outputDataPoint(empty, neg_dp) << "->" << outputDataPoint(empty, pos_dp) << ")\n" << normal;);
+										LOGLINE("ice", errs() << red << "Add implication pair: (" << DataPointToStr(empty, neg_dp) << "->" << DataPointToStr(empty, pos_dp) << ")\n" << normal);
 
 										addImplPair(std::make_pair(neg_dp, pos_dp));
-										LOGLINE("ice", errs() << "change predicate.pushback " << neg_dp.getPredName() << "\n";);
+										LOGLINE("ice", errs() << "change predicate.pushback " << neg_dp.getPredName() << "\n");
 										changedPreds.push_back(neg_dp.getPredName());
 									}
 								}
 								else { 
-									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option2 %%%%%%%%%%%%%\n";);
+									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option2 %%%%%%%%%%%%%\n");
 									for (DataPoint neg_dp : negPoints) {
 										ExprVector empty;
-										LOGLINE("ice", errs() << " - on negDataPoint" << outputDataPoint(empty, neg_dp) << "\n";);
+										LOGLINE("ice", errs() << " - on negDataPoint" << DataPointToStr(empty, neg_dp) << "\n");
 										auto searched = m_pos_data_set.find(neg_dp);
 										if (searched != m_pos_data_set.end() || matchFacts (db, neg_dp)) 
 										/* Found this in positive set. */ 
@@ -1567,21 +1599,21 @@ namespace seahorn
 										else {
 										{ errs() << "/* not Found this in positive set. */\n"; } 
 											int org_size = m_neg_data_set.size();
-											LOGLINE("neg", errs() << "-- NEG_DATA_SET --\n";);
+											LOGLINE("neg", errs() << "-- NEG_DATA_SET --\n");
 											for (auto dp: m_neg_data_set) {
-												LOGIT("neg", errs() << outputDataPoint(empty, dp) << ", ";);
+												LOGIT("neg", errs() << DataPointToStr(empty, dp) << ", ");
 											}
-											LOGIT("neg", errs() << "\n";);
-											LOGLINE("neg", errs() << "-- NEG_DATA_SET done --\n";);
+											LOGIT("neg", errs() << "\n");
+											LOGLINE("neg", errs() << "-- NEG_DATA_SET done --\n");
 											addNegCex(neg_dp);
 
-											LOGLINE("neg", errs() << "neg sample: " << outputDataPoint(empty, neg_dp) << "\n";);
-											LOGLINE("neg", errs() << "neg size: " << org_size << "\n";);
+											LOGLINE("neg", errs() << "neg sample: " << DataPointToStr(empty, neg_dp) << "\n");
+											LOGLINE("neg", errs() << "neg size: " << org_size << "\n");
 											if(m_neg_data_set.size() == org_size + 1) //no duplicate
 											{
 												m_cex_list.push_back(neg_dp);
 												addDataPointToIndex(neg_dp, index);
-												LOGLINE("ice", errs() << "NEG CEX, INDEX IS " << index << "\n";);
+												LOGLINE("ice", errs() << "NEG CEX, INDEX IS " << index << "\n");
 												index++;
 
 												if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
@@ -1620,7 +1652,7 @@ namespace seahorn
 				}
 			}
 		}
-		LOG("ice", errs() << "==================================================================\n";);
+		LOG("ice", errs() << "==================================================================\n");
 		return true;
 	}
 
@@ -1628,7 +1660,7 @@ namespace seahorn
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::sampleLinearHornCtrs (Expr head, DataPoint p, int &index) {
 		ExprVector empty;
-		errs () << red << "expr: " << *head << " datapoint: " << outputDataPoint(empty, p) << " index:" << index << "\n" << normal;
+		errs () << red << "expr: " << *head << " datapoint: " << DataPointToStr(empty, p) << " index:" << index << "\n" << normal;
 		std::map<Expr, ExprVector> relationToPositiveStateMap;
 		std::map<HornRule, int> transitionCount;
 		ExprVector equations;
@@ -1649,14 +1681,14 @@ namespace seahorn
 				else { exit (-3); }
 			}
 
-			LOG("ice", errs() << "VAR: " << *var << "\n";);
-			LOG("ice", errs() << "VALUE: " << *value << "\n";);
+			LOG("ice", errs() << "VAR: " << *var << "\n");
+			LOG("ice", errs() << "VALUE: " << *value << "\n");
 			equations.push_back(mk<EQ>(var, value));
 		}
 		Expr state_assignment;
 		if(equations.size() > 1) { state_assignment = mknary<AND>(equations.begin(), equations.end()); } 
 		else { state_assignment = equations[0]; }
-		LOG("ice", errs() << "STATE ASSIGNMENT: " << *state_assignment << "\n";);
+		LOG("ice", errs() << "STATE ASSIGNMENT: " << *state_assignment << "\n");
 
 		if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
 			ExprVector states;
@@ -1670,14 +1702,14 @@ namespace seahorn
 		bool run = getReachableStates(transitionCount, relationToPositiveStateMap, head, p, index);
 		if (!run) return false;
 
-		LOG("ice", errs() << "THE WHOLE STATE MAP:\n";);
+		LOG("ice", errs() << "THE WHOLE STATE MAP:\n");
 		for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
-			LOG("ice", errs() << "KEY: " << *(itr->first) << "\n";);
-			LOG("ice", errs() << "VALUE: [";);
+			LOG("ice", errs() << "KEY: " << *(itr->first) << "\n");
+			LOG("ice", errs() << "VALUE: [");
 			for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
-				LOG("ice", errs() << *(*itr2) << ", ";);
+				LOG("ice", errs() << *(*itr2) << ", ");
 			}
-			LOG("ice", errs() << "]\n";);
+			LOG("ice", errs() << "]\n");
 		}
 		return true;
 	}
@@ -1719,8 +1751,8 @@ namespace seahorn
 						else { exit (-3); }
 					}
 
-					LOG("ice", errs() << "VAR: " << *var << "\n";);
-					LOG("ice", errs() << "VALUE: " << *value << "\n";);
+					LOG("ice", errs() << "VAR: " << *var << "\n");
+					LOG("ice", errs() << "VALUE: " << *value << "\n");
 					equations.push_back(mk<EQ>(var, value));
 				}
 				Expr state_assignment;
@@ -1739,8 +1771,8 @@ namespace seahorn
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
 	{
-		LOG("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n";);
-		LOG("ice", errs() << "RULE BODY: " << *(r.body()) << "\n";);
+		LOG("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n");
+		LOG("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
 
 		auto &db = m_hm.getHornClauseDB();
 		ZSolver<EZ3> solver(m_hm.getZContext());
@@ -1781,8 +1813,8 @@ namespace seahorn
 				else if(bind::isIntConst(value)) { Expr uncertain_value = mkTerm<mpz_class>(0, value->efac()); value = uncertain_value; } 
 				else { abstractEquations.push_back(mk<NEQ>(var, value)); }
 
-				LOG("ice", errs() << "VAR: " << *var << "\n";);
-				LOG("ice", errs() << "VALUE: " << *value << "\n";);
+				LOG("ice", errs() << "VAR: " << *var << "\n");
+				LOG("ice", errs() << "VALUE: " << *value << "\n");
 				equations.push_back(mk<EQ>(var, value));
 
 				//convert true/false to 1/0 in C5 data point
@@ -1793,7 +1825,7 @@ namespace seahorn
 			Expr state_assignment;
 			if(equations.size() > 1) { state_assignment = mknary<AND>(equations.begin(), equations.end()); }
 			else { state_assignment = equations[0]; }
-			LOG("ice", errs() << "STATE ASSIGNMENT: " << *state_assignment << "\n";);
+			LOG("ice", errs() << "STATE ASSIGNMENT: " << *state_assignment << "\n");
 
 			DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 			int orig_size = m_pos_data_set.size();
@@ -1819,7 +1851,7 @@ namespace seahorn
 				preIndices.push_back(pindex);
 				postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 
-				LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n";);
+				LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 				index++;
 
 				ExprVector arg_list;
@@ -1893,7 +1925,7 @@ namespace seahorn
 		//load the Horn clause database
 		auto &db = m_hm.getHornClauseDB ();
 		db.buildIndexes ();
-		LOG("ice", errs() << "DB: \n" << cyan << db << normal;);
+		LOG("ice", errs() << "DB: \n" << cyan << db << normal);
 		errs() << yellow << bold << "=========================start runICE method==================================\n" << normal;
 		// LOG("ice", errs() << "db relation size : " << cyan << bold << db.getRelations().size() << normal << "\n");
 		// for (auto &p : db.m_rels)
@@ -1924,7 +1956,7 @@ namespace seahorn
 
 		if (no_verification_found_error) {
 			outs() << "************** Program is correct **************\n";
-			LOG("ice", errs() << "FINAL INVARIANTS MAP:\n";);
+			LOG("ice", errs() << "FINAL INVARIANTS MAP:\n");
 			for(Expr rel : db.getRelations())
 			{
 				ExprVector arg_list;
@@ -1936,7 +1968,7 @@ namespace seahorn
 				}
 				Expr fapp = bind::fapp(rel, arg_list);
 				Expr cand = m_candidate_model.getDef(fapp);
-				LOG("ice", errs() << "REL: " << *fapp << ", CAND: " << *cand << "\n";);
+				LOG("ice", errs() << "REL: " << *fapp << ", CAND: " << *cand << "\n");
 				outs() << "REL: " << *fapp << " -- invariant size: ";
 				countInvSize (cand);
 			}
