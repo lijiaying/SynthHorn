@@ -24,32 +24,28 @@
 #undef LOG
 #endif
 
-static std::string function = "Start tracing ---";
+static std::string function = " ====[ Start tracing ]=== ";
 static std::string line;
+// char cur_line[10]; \
+// sprintf(cur_line, "%d", __LINE__); \
 
-#define LOG(TAG, CODE) do {} while(0)
-
-// #define LOG(TAG, CODE) do { \
-//
-#define LOGDP(TAG, CODE) do { \
+#define _NULL_LOG(TAG, CODE) do {} while(0)
+#define _PURE_LOG(TAG, CODE) do {CODE;} while(0)
+#define _LOCT_LOG(TAG, CODE) do { \
 	if (__FUNCTION__ != function) { \
 		llvm::errs() << blue << "<<< ****** function: " << function << " ****** <<<\n\n" << normal; \
 		function = __FUNCTION__;\
 		llvm::errs() << green << ">>> ****** function: " << function << " ****** >>>\n" << normal; \
 	} \
-	char cur_line[10]; \
-	sprintf(cur_line, "%d", __LINE__); \
-	if (cur_line != line) { \
-		line = cur_line; \
-		llvm::errs() << red << "#" << line << normal << ": "; \
-		CODE; \
-		llvm::errs().flush();\
-	} \
+	llvm::errs() << red << "#" << __LINE__ << normal << ": "; \
+	CODE; \
+	llvm::errs().flush();\
 } while (0);
 
 
-#define LOGPURE(TAG, CODE) do { \
-		CODE; \
-		llvm::errs().flush();\
-} while (0);
+#define LOG(TAG, CODE) _NULL_LOG(TAG, CODE)
+#define LOGIT(TAG, CODE) _PURE_LOG(TAG, CODE)
+#define LOGDP(TAG, CODE) _LOCT_LOG(TAG, CODE)
+#define LOGLINE(TAG, CODE) _LOCT_LOG(TAG, CODE)
+
 #endif

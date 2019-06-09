@@ -70,8 +70,6 @@ namespace seahorn
 	  HornifyModule &m_hm;
 	  HornDbModel m_candidate_model;
 
-	  //std::unique_ptr<ufo::ZFixedPoint <ufo::EZ3> >  m_fp;
-
 	  std::string m_C5filename;
 
 	  ExprMap m_attr_name_to_expr_map;
@@ -90,13 +88,6 @@ namespace seahorn
 
 	  // Colect unknownes in the rules
 	  std::map<Expr, std::vector<bool>> unknowns;
-
-	  //std::set<HornRule> m_pos_rule_set;
-	  //std::set<HornRule> m_neg_rule_set;
-
-	  //Expr m_pos_query;
-	  //ExprVector m_orig_queries;
-	  //Expr entry_pred;
 
 	  std::set<DataPoint> m_pos_data_set;
 	  std::set<DataPoint> m_neg_data_set;
@@ -124,7 +115,7 @@ namespace seahorn
 	  void setupC5();
 	  void initC5(ExprVector targets);
 	  void C5learn(ExprVector targets);
-	  std::string outputDataPoint(ExprVector targets, DataPoint p);
+	  std::string outputDataPoint(ExprVector targets, DataPoint p, bool valueOnly = false);
 
   public:
       HornifyModule& getHornifyModule() {return m_hm;}

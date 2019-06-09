@@ -90,7 +90,22 @@ namespace seahorn
 
     template<typename OutputIterator>
     void used_relations (HornClauseDB &db, OutputIterator out);
+
+//    raw_ostream& Print(raw_ostream& os) {
+//        os << "vars: [";
+//        for (auto var: m_vars)
+//            os << *var << ", ";
+//        os << "]\n";
+//        os << "head: " << *m_head << "\n";
+//        os << "body: " << *m_body << "\n";
+//        return os;
+//    }
   };
+
+//  raw_ostream& operator << (raw_ostream& os, HornRule& rule) {
+//      rule.Print(os);
+//      return os;
+//  }
 
 
   class HornClauseDB 
