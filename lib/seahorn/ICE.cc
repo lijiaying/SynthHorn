@@ -458,7 +458,8 @@ namespace seahorn
 					{ // Exclude unknowns from invariant inference.
 						if (unknowns[rel][i]) continue;
 						for (int cons : ruleConstants) {
-							if(isOpX<INT_TY>(bind::domainTy(rel, i)) || (isOpX<BV_TY>(bind::domainTy(rel, i))))
+							// if(isOpX<INT_TY>(bind::domainTy(rel, i)) || (isOpX<BV_TY>(bind::domainTy(rel, i))))
+							if(isOpX<INT_TY>(bind::domainTy(rel, i)) || (isOpX<bv::BvSort>(bind::domainTy(rel, i))))
 							{
 								Expr arg_i_type = bind::domainTy(rel, i);
 								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
@@ -478,7 +479,8 @@ namespace seahorn
 						{ 
 							if (unknowns[rel][j]) continue; // Exclude unknowns from invariant inference.
 							if((isOpX<INT_TY>(bind::domainTy(rel, i)) && isOpX<INT_TY>(bind::domainTy(rel, j))) 
-									|| (isOpX<BV_TY>(bind::domainTy(rel, i)) && isOpX<BV_TY>(bind::domainTy(rel, j))))
+									|| (isOpX<bv::BvSort>(bind::domainTy(rel, i))))
+									// || (isOpX<BV_TY>(bind::domainTy(rel, i)) && isOpX<BV_TY>(bind::domainTy(rel, j))))
 							{
 								Expr arg_type = bind::domainTy(rel, i);
 								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_type));
@@ -1068,7 +1070,9 @@ namespace seahorn
 					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", head_app->efac ())), arg_i_type));
 
 					std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
-					LOGIT("ice", errs() << ":(" <<**it << "), ");
+					LOGIT("ice", errs() << ">> (" <<**it << ") in typestr: \n");
+					bind::outputTypeStr(*it);
+					LOGIT("ice", errs() << ":(" <<**it << ") in typeid:" << typeid(*it).name() << " typeof:" << *bind::typeOf(*it) << "\n");
 					std::ostringstream oss; oss << **it;
 					if(isOpX<TRUE>(arg_i_value))
 					{
@@ -1084,6 +1088,7 @@ namespace seahorn
 					else if(bind::isBoolConst(arg_i_value)) { errs() << "match bool const "; matched = true; }
 					else if(bind::isIntConst(arg_i_value)) { errs() << "match int const "; matched = true; }
 					else if(bind::isBvConst(arg_i_value)) { errs() << "match bv const "; matched = true; }
+					// else if(bv::is_bvnum(arg_i_value)) { errs() << "match bv const "; matched = true; }
 					else { /* Other kind of constructs in fact rules not implemented yet ...*/
 							errs() << "xxx"; }
 				}
@@ -1115,8 +1120,8 @@ namespace seahorn
 				Expr rel = bind::fname(head);
 
 				Expr body = r.body();
-				// errs() << green << "working on rule " << normal << *head << blue << " <- " << normal << *body << "\n";
-				// errs() << blue << "       where the head is fapp: " << *rel << "\n" << normal;
+				errs() << green << "working on rule " << normal << *head << blue << " <- " << normal << *body << "\n";
+				errs() << blue << "       where the head is fapp: " << *rel << "\n" << normal;
 				
 
 				if (targets.empty() || std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
@@ -1130,11 +1135,12 @@ namespace seahorn
 						Expr arg_i_type = bind::domainTy(rel, i);
 						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 						arg_list.push_back(arg_i);
-						// errs() << cyan << "       > argument[" << i << "] " << *arg_i << " = " << *arg_i_value << "\n" << normal;
+						errs() << cyan << "       > argument[" << i << "] " << *arg_i << " = " << *arg_i_value << "\n" << normal;
 
 						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
 						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
-						else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
+						// else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
+						// else if(bv::is_bvnum(arg_i_value))  { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
 						else if(isOpX<TRUE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, arg_i); }
 						else if(isOpX<FALSE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); }
 						else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
