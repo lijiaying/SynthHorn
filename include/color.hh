@@ -7,6 +7,37 @@
 // #include <stdlib.h>
 // #include <stdio.h>
 
+#ifdef red
+#undef red
+#endif
+#ifdef green
+#undef green 
+#endif
+#ifdef yellow 
+#undef yellow
+#endif
+#ifdef blue 
+#undef blue 
+#endif
+#ifdef mag 
+#undef mag 
+#endif
+#ifdef cyan
+#undef cyan 
+#endif
+#ifdef gray
+#undef gray
+#endif
+#ifdef normal
+#undef normal
+#endif
+#ifdef bold
+#undef bold
+#endif
+#ifdef underline 
+#undef underline 
+#endif
+
 #define red "\e[31m"
 #define green "\e[32m"
 #define yellow "\e[33m"
@@ -22,6 +53,15 @@
 
 #ifdef LOG
 #undef LOG
+#endif
+#ifdef LOGIT
+#undef LOGIT
+#endif
+#ifdef LOGDP
+#undef LOGDP
+#endif
+#ifdef LOGLINE
+#undef LOGLINE
 #endif
 
 static std::string function = " ====[ Start tracing ]=== ";
