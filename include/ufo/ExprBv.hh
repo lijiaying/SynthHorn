@@ -50,7 +50,6 @@ namespace expr
 
 			inline std::ostream &operator<< (std::ostream &OS, const BvSort &b)
 			{
-				OS << "$&test&$";
 				b.Print (OS);
 				return OS;
 			}       
@@ -77,9 +76,6 @@ namespace expr
 	namespace op
 	{
 		typedef Terminal<const bv::BvSort> BVSORT;
-		// NOP(BV_TY,"BVSORT",PREFIX,SimpleTypeOp)
-		// typedef expr::Terminal<bv::BvSort const, expr::TerminalTrait<expr::op::bv::BvSort const>> BV_TY
-		// typedef Terminal<bv::BvSort const> BV_TY
 
 		namespace bv
 		{
@@ -116,6 +112,7 @@ namespace expr
 				Expr sort = bvsort (width, v->efac ());
 				return bind::mkConst (v, sort);
 			}
+
 		}
 
 		NOP_BASE(BvOp)
@@ -191,65 +188,30 @@ namespace expr
 		namespace bind{
 			inline Expr bvVar (unsigned width, Expr name)
 			{ return var (name, mkTerm<const bv::BvSort>(bv::BvSort(width), name->efac ())); }
-			// { return var (name, mkTerm<const BvSort>(BvSort(width), name->efac ())); }
 
 			inline Expr bvConstDecl (unsigned width, Expr name)
 			{ return constDecl (name, mkTerm<const bv::BvSort>(bv::BvSort(width), name->efac ())); }
-			// { return constDecl (name, mkTerm<const BvSort>(BvSort(width), name->efac ())); }
 
 			inline Expr bvConst (unsigned width, Expr name) { return fapp (bvConstDecl (width, name)); }
-			// inline bool isBvConst (Expr v) { return isConst<bv::BvSort> (v); }
-			inline bool isBvConst (Expr v)
-			{
-				using namespace bv;
-				std::cout << themag << "%%%%%%%%% check is BvConst %%%%%%%%%%%" << " input: {" << *v << "}\n" << thenormal;
-				bool isFapp = isOpX<FAPP>(v);
-				std::cout << "   is fapp? " << isFapp << "\n";
-				if (isFapp == false)
-					return false;
-				assert(v->arity() == 1);
-				Expr fdecl = fname(v);
-				bool isfdecl = isOpX<FDECL>(fdecl);
-				std::cout << "  decl: " << fdecl << "\n";
-				std::cout << "    is fdecl? " << isfdecl << "\n";
-				if (isfdecl == false)
-					return false;
+			inline bool isBvConst (Expr v) { return isConst<BVSORT> (v); }
 
-				// Expr ffname = bind::fname(fdecl);
-				// Expr fftype = bind::type(fdecl); // bv(32)
-				bool isBv = isOpX<BVSORT>(bind::type(fdecl));
-				std::cout << "   is ||bvConst||? " << isBv << "\n";
-				return isBv;
+			inline bool isBvVar (Expr v) { return isVar<BVSORT>(v); }
+
+			inline unsigned getWidth(Expr v) {
+				std::cout << thebold << thered << " getWidth: {" << *v << "} type: " << TYPE(*v) << " ------------------\n" << thenormal;
+				Expr s = v;
+				if (isBvConst(v)) {
+					std::cout << thered << "   is Bv Const\n" << thenormal;
+					s = bind::type(fname(v));
+					std::cout << thered << "   s = bind::type(fname(v)): " << s << " type:" << TYPE(s) << "\n" << thenormal;
+				}
+				if (isOpX<BVSORT>(s) == false)
+					std::cout << thered << "   s: " << s << " is not BVSORT\n" << thenormal;
+				else
+					std::cout << thered << "   s: " << s << " is in BVSORT\n" << thenormal;
+				std::cout << std::flush;
+				return getTerm<const bv::BvSort>(s).m_width;
 			}
-
-			inline bool isBvVar (Expr v) 
-			{
-				using namespace bv;
-				std::cout << themag << "%%%%%%%%% check is BvVar %%%%%%%%%%%" << " input: {" << *v << "}\n" << thenormal;
-				bool isBind = isOpX<BIND>(v);
-				std::cout << "   is bind? " << isBind << "\n";
-				if (isBind == false)
-					return false;
-				Expr bindtype = bind::type(v);
-				std::cout << "   bindtype: " << *bindtype << "\n";
-				bool isBv = isOpX<BVSORT>(bindtype);
-				std::cout << "   is bvVar? " << isBv << "\n";
-				return isBv;
-			}
-			// { return isVar<bv::BvSort>(v) || isVar<const bv::BvSort>(v); }
-
-			// { return isOpX<FAPP>(v) && v->arity() == 1 && isOpX<FDECL>(v->left()) && isOpX<const bv::BvSort>(v->right()->right()); }
-			// { return isOpX<FAPP>(v) && isOpX<FDECL>(v->left()) && bv::is_bvnum(v->right()->right()); }
-			// {return false;}
-			// inline bool isBvConst (Expr v) 
-			// {return false;}
-			// { return isOpX<FAPP>(v) && isOpX<FDECL>(v->left()) && isOpX<const bv::BvSort>(v->right()->right()); }
-			// { return isOpX<FAPP>(v) && isOpX<FDECL>(v->left()) && bv::is_bvnum(v->right()->right()); }
-			// inline bool isBvConst (Expr v) { return bv::is_bvnum(v->right()); }
-			// inline bool isBvConst (Expr v) { return true; }
-
-			//isOpX<BIND> (v) && v->arity () == 2 && isOpX<MPZ> (v->arg (0)) && isOpX<BVSORT> (v->arg (1));
-			// {return mkTerm<const BvSort> (BvSort (width), efac);}
 
 
 			inline Expr typeOf (Expr v)
@@ -268,11 +230,13 @@ namespace expr
 				if (isOpX<BIND> (v)) return bind::type (v);
 				if (isBoolVar (v) || isBoolConst (v)) return mk<BOOL_TY> (v->efac ());
 				if (isIntVar (v) || isIntConst (v)) return mk<INT_TY> (v->efac ());
-				/*if (isBvVar (v) || isBvConst (v)) {
-					std::cout << "###################### isBvvar or isBvConst)\n";
-					return mkTerm<const bv::BvSort> (getTerm<const bv::BvSort>(v->arg(1)).m_width, v->efac ());
-					}
-					*/
+				if (isBvVar (v) || isBvConst (v)) {
+					std::cout << "###################### isBvvar or isBvConst\n";
+					int width = getWidth(v);
+					std::cout << "###################### after get width\n";
+					return mkTerm<const bv::BvSort> (bv::BvSort(width), v->efac ());
+					// return mkTerm<const bv::BvSort> (getTerm<const bv::BvSort>(v->arg(1)).m_width, v->efac ());
+				}
 				if (isRealVar (v) || isRealConst (v)) return mk<REAL_TY> (v->efac ());
 				std::cerr << "WARNING: could not infer type of: " << *v << "\n";
 
@@ -283,15 +247,11 @@ namespace expr
 
 			inline void checkIsBv(Expr v) {
 				std::cout << theblue << "********************* check is bv **************************\n" << thenormal;
-				std::cout << thegreen << " $$ check is BvNum of Expr: " << *v << "  typeid(defer): " << typeid(*v).name() << "\n" << thenormal;
-				if (isBvVar(v)) 
-					std::cout << "    |-- is BvVar.\n";
-				else if (isBvConst(v)) 
-					std::cout << "    |-- is BvConst.\n";
-				else if (bv::is_bvnum(v)) 
-					std::cout << "    |-- is Bvnum.\n";
-				else
-					std::cout << "    |-- is NOT BvVar/BvConst/BvNum.\n";
+				std::cout << thegreen << " $$ check is BvNum of Expr: " << *v << "  typeid: " << TYPE(*v) << "\n" << thenormal;
+				if (isBvVar(v)) std::cout << "    |-- is BvVar.\n";
+				else if (isBvConst(v)) std::cout << "    |-- is BvConst.\n";
+				else if (bv::is_bvnum(v)) std::cout << "    |-- is Bvnum.\n";
+				else std::cout << "    |-- is NOT BvVar/BvConst/BvNum.\n";
 				std::cout << theblue << "****************** ret ************************\n" << thenormal;
 			}
 
@@ -302,43 +262,17 @@ namespace expr
 
 				if (isOpX<FAPP> (v)) {
 					std::cout << thebold << theblue << " fapp: {" << *v << "} ------------------\n" << thenormal;
-					// std::cout << theyellow << "   |-operator: " << v->op() << "\n" << thenormal;
 					Expr fdecl = fname(v);
 					std::cout << theyellow << "   |-fdecl: {" << *fdecl << "}\n" << thenormal;
-					{
-						Expr fdeclname = fname(fdecl);
-						std::cout << thegreen << "       |-fdeclname: {" << *fdeclname << "}------\n" << thenormal;
-						// std::cout << thegreen << "          |-operator: " << v->op() << "\n" << thenormal;
-						for (int i = 0; i < fdecl->arity(); i++)
-							std::cout << thegreen << "           |- args[" << i << "] = {" << *(fdecl->arg(i)) << "}\n" << thenormal;
-						std::cout << thegreen << "       fdecl done: {" << *v << "} ------------------\n" << thenormal;
-					}
 					for (int i = 0; i < v->arity(); i++)
 						std::cout << theyellow << "   |- args[" << i << "] = {" << *(v->arg(i)) << "}\n" << thenormal;
 					std::cout << thebold << theblue << " fapp done: {" << *v << "} ------------------\n" << thenormal;
 				} else {
 					std::cout << thebold << theblue << " Expr(not fapp): {" << *v << "} ------------------\n" << thenormal;
-					// std::cout << theyellow << "   |-operator: " << v->op() << "\n" << thenormal;
 					for (int i = 0; i < v->arity(); i++) {
-							std::cout << theyellow << "       |- args[" << i << "] = {" << *(v->arg(i)) << "}\n" << thenormal;
+						std::cout << theyellow << "       |- args[" << i << "] = {" << *(v->arg(i)) << "}\n" << thenormal;
 					}
 					std::cout << thebold << theblue << " Expr done: {" << *v << "} ------------------\n" << thenormal;
-				}
-					
-				if (isOpX<FAPP> (v)) {
-					Expr fdecl = fname(v);
-					std::cout << "  check fapp ------------------\n";
-					checkIsBv(v);
-					std::cout << "  fdecl ------------------\n";
-					checkIsBv(fdecl);
-					Expr left = fdecl->left();
-					Expr right = fdecl->right();
-					std::cout << "   left(fdecl.name) : " << *left << "\n";
-					checkIsBv(left);
-					std::cout << "   right(fdecl.args): " << *right<< "\n";
-					checkIsBv(right);
-					// assert (isOpX<FDECL> (v->left ()));
-					std::cout << theyellow << "----> " << *rangeTy (v->left ()) << "\n ===== check each operator ===== \n" << thenormal;
 				}
 
 				if (isOpX<VARIANT> (v)) 
@@ -346,9 +280,12 @@ namespace expr
 				else if (isOpX<BIND> (v))
 					std::cout << "2. is OpX<BIND>\n";
 				else if (isBvVar (v) || isBvConst (v)) 
-					// if (isOpX<FAPP>(v) && isOpX<FDECL>(v->left()) && bv::is_bvnum(v->right()->right());
-					// if (isOpX<FAPP>(v) && bv::is_bvnum(v->right()->right());
-					std::cout << "3: bv " << *mkTerm<const bv::BvSort> (getTerm<const bv::BvSort>(v->arg(1)).m_width, v->efac ());
+				{
+					std::cout << "###################### isBvvar or isBvConst\n";
+					unsigned width = getWidth(v);
+					std::cout << "###################### after get width\n";
+					std::cout << "3: bv " << *mkTerm<const bv::BvSort> (bv::BvSort(width), v->efac ());
+				}	
 				else if (isOpX<TRUE> (v) || isOpX<FALSE> (v)) 
 					std::cout << "4: true/false " << *mk<BOOL_TY> (v->efac ());
 				else if (isOpX<MPZ> (v)) 
