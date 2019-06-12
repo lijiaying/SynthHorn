@@ -15,6 +15,17 @@
 
 #include "seahorn/HornClauseDB.hh"
 
+
+#include "llvm/Support/CommandLine.h"
+extern llvm::cl::opt<bool> Bounded;
+/*
+llvm::cl::opt<bool>
+Bounded("bounded",
+        llvm::cl::desc ("Encode program variables as bounded datatype (bitvector and floating points)"),
+        llvm::cl::init (false));
+        // cl::init (false));
+*/
+				
 namespace seahorn
 {
   using namespace expr;

@@ -213,6 +213,8 @@ namespace seahorn
 
       void convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprVector targets);
       std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
+      // std::list<std::list<Expr>> constructBoundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
+      // std::list<std::list<Expr>> constructUnboundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 
       //ZFixedPoint<EZ3>& resetFixedPoint(HornClauseDB &db);
 

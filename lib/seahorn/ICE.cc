@@ -304,7 +304,10 @@ namespace seahorn
 						if (coef == 0) continue; //if (coef != 1 && coef != -1) nonOctagon = true;
 
 						Expr c = mkTerm<mpz_class>(coef, rel->efac());
-						addargs.push_back (mk<MULT> (c, arg_list.at(i-1)));
+						if (Bounded)
+							addargs.push_back (mk<MULT> (c, mk<BV2INT>(arg_list.at(i-1))));
+						else
+							addargs.push_back (mk<MULT> (c, arg_list.at(i-1)));
 
 						attross << "(" << thetas[i].c_str() << "*" << C5_rel_name << "!" << arg_list.at(i-1) << ")+";
 						LOG("SVM", llvm::errs() << bold << red << "(" << thetas[i].c_str() << "*" << C5_rel_name << "!" << arg_list.at(i-1) << ")+" << normal);
@@ -523,6 +526,11 @@ namespace seahorn
 		outputFileContent(m_C5filename + ".intervals");
 	}
 
+	std::string ptreeToString(boost::property_tree::ptree pt) {
+		std::stringstream ss;
+		boost::property_tree::json_parser::write_json(ss, pt);
+		return ss.str();
+	}
 
 
 	void ICE::C5learn(ExprVector targets)
@@ -550,26 +558,33 @@ namespace seahorn
 		std::ifstream if_json(m_C5filename + ".json");
 		std::ostringstream json_buf; char ch; while(json_buf && if_json.get(ch)) { json_buf.put(ch); } if_json.close();
 		std::string json_string =  json_buf.str();
-		errs() << "json: \n" << bold << json_string << "\n";
+		errs() << "json: \n" << cyan << json_string << "\n" << normal;
 
+		LOGLINE("ice", errs() << " >>> convert json to ptree: \n");
 		boost::property_tree::ptree pt;
 		std::stringstream ss(json_string);
 		try { boost::property_tree::json_parser::read_json(ss, pt); }
 		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n"); return; }
+		LOGLINE("ice", errs() << " <<< convert json to ptree (structued json format): \n" << mag << ptreeToString(pt) << "\n");
+
 
 		//parse ptree to invariant format
+		LOGLINE("ice", errs() << " >>> convert ptree to inv. \n");
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
+		LOGLINE("ice", errs() << " <<< convert ptree to inv. \n");
 		auto &db = m_hm.getHornClauseDB();
 
 		//Fixme: enforce to prove all queries are unsat.
 		// every predicate is set to be False
+		LOGLINE("ice", errs() << " >>> invalididate queries \n");
 		/* m_candidate_model = */ invalidateQueries(db);
+		LOGLINE("ice", errs() << " <<< invalididate queries \n");
 		extractFacts(db, targets);
 
 		//print the invariant map after this learning round
-		LOG("ice", errs() << "NEW CANDIDATES MAP:\n");
+		LOGLINE("ice", errs() << "NEW CANDIDATES MAP:\n");
 		for(Expr rel : db.getRelations()) {
-			// LOG("ice", errs() << red << "relations : " << *rel << "\n" << normal);
+			LOGLINE("ice", errs() << red << " relation : " << *rel << "\n" << normal);
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
 			errs() << green << *fapp << normal << " : " << *cand_app << "\n";
@@ -591,18 +606,18 @@ namespace seahorn
 				else if(m_neg_data_set.count(*it) != 0) { label = "false"; } 
 				else if(ICEICE && m_impl_cex_set.count(*it) != 0) { label = "?"; }
 				std::string dpstr = DataPointToStr(targets, *it, true);
-				int len1 = 1;
-				int len2= 8;
-				int start2 = dpstr.find(":bv");
-				while (start2 != std::string::npos) {
-					int start1 = dpstr.rfind("(", start2);
-					// int len2= dpstr.find("))", start2) + 2 - start2;
-					errs() << red << bold << "bv data: " << dpstr << " [" << start1 << ", " << start1+len1 << "]\n" << normal;
-					errs() << red << bold << " ------: " << dpstr << " [" << start2 << ", " << start2+len2 << "]\n" << normal;
-					dpstr = dpstr.erase(start2, len2);
-					dpstr = dpstr.erase(start1, len1);
-					errs() << " --> " << dpstr << "\n";
-					start2 = dpstr.find(":bv");
+				if (Bounded) {
+					int start1, start2 = dpstr.find(":bv");
+					int len1 = 1, len2= 8;
+					while (start2 != std::string::npos) {
+						start1 = dpstr.rfind("(", start2);
+						// len2= dpstr.find("))", start2) + 2 - start2;
+						errs() << red << "bv data: " << bold << dpstr << normal << " remove index range [" << start1 << ", " << start1+len1 << "], [" << start2 << ", " << start2+len2 << "]\n";
+						dpstr = dpstr.erase(start2, len2);
+						dpstr = dpstr.erase(start1, len1);
+						errs() << " --> " << dpstr << "\n";
+						start2 = dpstr.find(":bv");
+					}
 				}
 				data_of << dpstr << "," << label << "\n";
 				// data_of << DataPointToStr(targets, *it, true) << "," << label << "\n";
@@ -695,30 +710,46 @@ namespace seahorn
 			Expr rel = *rels_it;
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::ostringstream oss; oss << C5_rel_name;
-			LOG("ice", errs() << "TAG: " << oss.str() << "\n");
+			LOGLINE("ice", errs() << "TAG: " << oss.str() << "\n");
 
 			boost::property_tree::ptree sub_pt = child_it.second;
+			// LOGLINE("ice", errs() << "working on ptree-----------------------------\n " << cyan << ptreeToString(sub_pt) << "\n" << normal);
 			if(sub_pt.get<std::string>("children") == std::string("null")) {
+				// errs() << bold << red << "branch 0\n" << normal;
 				if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True")
 					candidate = mk<TRUE>(db.getExprFactory());
 				if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False")
 					candidate = mk<FALSE>(db.getExprFactory());
 			} else {
+				// errs() << bold << red << "branch 1\n" << normal;
 				std::list<Expr> stack;
 				stack.push_back(mk<TRUE>(db.getExprFactory()));
+				// errs() << red << ">> before construct Formula\n" << normal;
 				std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
+				// errs() << red << "<< after construct Formula\n" << normal;
 				ExprVector disjunctions;
+				int i = 0;
+				// errs() << ">>>>>BIG LOOP\n";
 				for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
+					errs() << "  >>>" << i << "    final_formula[" << i << "]\n";
 					ExprVector conjunctions;
+					int j = 0;
 					for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
+					{
+						errs() << "    >>>" << j << "   final_formula[" << i << "][" << j << "] = " << **conj_it << "\n";
 						conjunctions.push_back(*conj_it);
+						j++;
+					}
 					Expr disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
+					errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
 					disjunctions.push_back(disjunct);
+					i++;
 				}
 				if(disjunctions.size() == 1) candidate = disjunctions[0];
 				else candidate = mknary<OR>(disjunctions.begin(), disjunctions.end());
+				errs() << "condidate: " << *candidate << "\n";
 			}
-			LOG("ice", errs() << "NEW CANDIDATE: " << *candidate << "\n");
+			LOGLINE("ice", errs() << "NEW CANDIDATE: " << *candidate << "\n");
 
 			Expr fapp = getFappFromRel(rel);
 			m_candidate_model.addDef(fapp, candidate);
@@ -726,10 +757,17 @@ namespace seahorn
 		}
 	}
 
+
 	std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
 	{
 		Expr decision_expr;
 		std::list<std::list<Expr>> final_formula;
+		LOGIT("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
+		if (Bounded) {
+			LOGIT("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal);
+		} else {
+			LOGIT("ice", errs() << red << "--------------- ** UNBOUNED ** -----------------\n " << normal);
+		}
 		//leaf node
 		if(sub_pt.get<std::string>("children") == std::string("null"))
 		{
@@ -744,15 +782,23 @@ namespace seahorn
 			}
 		}
 		//internal node
-		else {
+		else 
+		{
 			LOG("ice", errs() << "INTERNAL NODE\n");
 			std::string attr_name = sub_pt.get<std::string>("attribute");
-			LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
+			LOGLINE("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
 
-			if(attr_name.find("+") != -1) { decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
-			else if(attr_name.find("-") != -1) { decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
-			else if (attr_name.find("mod") != -1) { decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
+			if(attr_name.find("+") != -1) { 
+				LOGIT("ice", errs() << cyan << " + plus attr: \n" << normal);
+				decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
+			else if(attr_name.find("-") != -1) { 
+				LOGIT("ice", errs() << cyan << " + minus attr: \n" << normal);
+				decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
+			else if (attr_name.find("mod") != -1) { 
+				LOGIT("ice", errs() << cyan << " + mod attr: \n" << normal);
+				decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
 			else if (attr_name.find("SVM") != -1) {
+				LOGIT("ice", errs() << cyan << " + svm attr: \n" << normal);
 				Expr attr_expr;
 				for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
 					std::ostringstream oss; oss << *(it->first); 
@@ -773,25 +819,39 @@ namespace seahorn
 				}
 			} 
 			else { // not svm
+				LOGIT("ice", errs() << cyan << " + not svm attr: \n" << normal);
 				Expr attr_expr;
 				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
 					std::ostringstream oss; oss << *(it->first);
-					if(oss.str() == attr_name) attr_expr = it->second;
+					if(oss.str() == attr_name) {
+						attr_expr = it->second;
+					}
 				}
 
+				LOGIT("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>" << normal);
+
 				if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
+					LOGIT("ice", errs() << blue << "  --> bool const \n" << normal);
 					decision_expr = mk<NEG>(attr_expr);
 					int cut = sub_pt.get<int>("cut");
 					assert(cut == 0);
 				} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+					LOGIT("ice", errs() << blue << "  --> int const \n" << normal);
 					int cut = sub_pt.get<int>("cut");
 					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
 					decision_expr = mk<LEQ>(attr_expr, threshold);
+				} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+					LOGIT("ice", errs() << blue << "  --> bv const \n" << normal);
+					int cut = sub_pt.get<int>("cut");
+					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
+					attr_expr = mk<BV2INT>(attr_expr);
+					decision_expr = mk<LEQ>(attr_expr, threshold);
 				} else {
-					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
+					LOGIT("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 					return final_formula;
 				}
 			}
+			LOGLINE("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
 			stack.push_back(decision_expr);
 			//assert(sub_pt.children().size() == 2);
 			boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
@@ -805,6 +865,7 @@ namespace seahorn
 		}
 		return final_formula;
 	}
+
 
 	//given an attribute which is x+y, return the expr
 	Expr ICE::plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
@@ -820,13 +881,20 @@ namespace seahorn
 			if(oss.str() == left_name) left_expr = it->second;
 			if(oss.str() == right_name) right_expr = it->second;
 		}
-		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
+		if (Bounded) {
+			if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			left_expr = mk<BV2INT>(left_expr);
+			right_expr = mk<BV2INT>(right_expr);
+		} else {
+			if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+		}
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 		// Expr c = mkTerm<mpz_class>(1, left_expr->efac());
 		// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c, left_expr), mk<MULT>(c, right_expr)), threshold);
 		Expr decision_expr = mk<LEQ>(mk<PLUS>(left_expr, right_expr), threshold);
-
 		return decision_expr;
 	}
 
@@ -844,7 +912,15 @@ namespace seahorn
 			if(oss.str() == left_name) left_expr = it->second;
 			if(oss.str() == right_name) right_expr = it->second;
 		}
-		if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr)) LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
+		if (Bounded) {
+			if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			left_expr = mk<BV2INT>(left_expr);
+			right_expr = mk<BV2INT>(right_expr);
+		} else {
+			if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+		}
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 		// Expr c1 = mkTerm<mpz_class>(1, left_expr->efac());
@@ -874,10 +950,20 @@ namespace seahorn
 			bool right_has_only_digits = (right_name.find_first_not_of( "0123456789" ) == -1);
 			if (right_has_only_digits && bind::isIntConst(left_expr)) { right_expr = mkTerm<mpz_class>(atoi(right_name.c_str()), left_expr->efac()); } 
 			else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
-		} else if ( !bind::isIntConst(right_expr) ) {
-			LOG("ice", errs() << "OPERAND TYPE WRONG!\n");
+		} else if ( Bounded && !bind::isBvConst(right_expr) ) {
+			LOG("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+		} else if ( !Bounded && !bind::isIntConst(right_expr) ) {
+			LOG("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
 		}
-		if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+		// if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+		if (Bounded) {
+			if(!bind::isBvConst(right_expr)) 
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			left_expr = mk<BV2INT>(left_expr);
+		} else {
+			if(!bind::isIntConst(right_expr))
+				LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+		}
 
 		int cut = sub_pt.get<int>("cut");
 		Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
@@ -1117,12 +1203,10 @@ namespace seahorn
 			HornRule r = *it;
 			if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
 				Expr head = r.head();
-				Expr rel = bind::fname(head);
-
 				Expr body = r.body();
 				errs() << green << "working on rule " << normal << *head << blue << " <- " << normal << *body << "\n";
+				Expr rel = bind::fname(head);
 				errs() << blue << "       where the head is fapp: " << *rel << "\n" << normal;
-				
 
 				if (targets.empty() || std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 					ExprVector arg_list;
@@ -1135,17 +1219,17 @@ namespace seahorn
 						Expr arg_i_type = bind::domainTy(rel, i);
 						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 						arg_list.push_back(arg_i);
-						errs() << cyan << "       > argument[" << i << "] " << *arg_i << " = " << *arg_i_value << "\n" << normal;
+						errs() << cyan << "       > args[" << i << "] " << *arg_i << " = " << *arg_i_value << normal;
 
-						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
-						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
-						// else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
-						// else if(bv::is_bvnum(arg_i_value))  { LOG("ice", errs() << "bv const UNCERTAIN VALUE Don't Care: " << *arg_i_value << "\n"); }
+						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
+						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
+						else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
 						else if(isOpX<TRUE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, arg_i); }
 						else if(isOpX<FALSE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); }
 						else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
 						// errs() << red << "         cursolve: " << *curSolve << "\n" << normal;
 					}
+					errs() << "\n";
 
 					if (fact) { // Add fact rules into solutions.
 						Expr fapp = bind::fapp(rel, arg_list);
