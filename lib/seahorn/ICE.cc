@@ -1204,9 +1204,9 @@ namespace seahorn
 			if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
 				Expr head = r.head();
 				Expr body = r.body();
-				errs() << green << "working on rule " << normal << *head << blue << " <- " << normal << *body << "\n";
+				errs() << green << "on rule " << normal << *head << blue << " <- " << normal << *body << "\n";
 				Expr rel = bind::fname(head);
-				errs() << blue << "       where the head is fapp: " << *rel << "\n" << normal;
+				errs() << blue << "       where the head is fapp: " << *rel << "  ";
 
 				if (targets.empty() || std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 					ExprVector arg_list;
@@ -1219,7 +1219,7 @@ namespace seahorn
 						Expr arg_i_type = bind::domainTy(rel, i);
 						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 						arg_list.push_back(arg_i);
-						errs() << cyan << "       > args[" << i << "] " << *arg_i << " = " << *arg_i_value << normal;
+						errs() << cyan << "   " << i << "> " << *arg_i << "=" << *arg_i_value << normal;
 
 						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
 						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
@@ -1306,9 +1306,9 @@ namespace seahorn
 		Expr r_head_cand = m_candidate_model.getDef(r.head());
 		solver.reset();
 		solver.assertExpr(mk<NEG>(r_head_cand));
-		Expr body_forumla = extractRelation(r, db, NULL, NULL);
-		solver.assertExpr(body_forumla);
-		LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <- " << *body_forumla << "\n");
+		Expr body_formula = extractRelation(r, db, NULL, NULL);
+		solver.assertExpr(body_formula);
+		LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <- " << *body_formula << "\n");
 
 		//solver.toSmtLib(errs());
 		boost::tribool result = solver.solve();
@@ -1435,9 +1435,9 @@ namespace seahorn
 					Expr r_head_cand = m_candidate_model.getDef(r.head());
 					solver.reset();
 					solver.assertExpr(mk<NEG>(r_head_cand));
-					Expr body_forumla = extractRelation(r, db, NULL, NULL);
-					LOGIT ("ice", errs() << "Verification condition: " << *r_head_cand << " <- " << *body_forumla << "\n");
-					solver.assertExpr(body_forumla);
+					Expr body_formula = extractRelation(r, db, NULL, NULL);
+					LOGIT ("ice", errs() << "Verification condition: " << *r_head_cand << " <- " << *body_formula << "\n");
+					solver.assertExpr(body_formula);
 					boost::tribool result = solver.solve();
 					if(result != UNSAT) {
 						outs()<<"Program is buggy.\n";
@@ -1489,14 +1489,17 @@ namespace seahorn
 						Expr r_head = r.head();
 						Expr r_head_cand = m_candidate_model.getDef(r_head);
 
-						LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
+						LOGLINE("ice", errs() << "TRYING TO ADD some CounterExample.\n");
 						solver.reset();
+						LOGLINE("ice", errs() << "\n");
 						solver.assertExpr(mk<NEG>(r_head_cand));
-						Expr body_forumla = extractRelation(r, db, NULL, NULL);
-						solver.assertExpr(body_forumla);
-						LOG ("ice", errs() << "Get Counter-example by solving : " << *r_head_cand << " <- " << *body_forumla << "\n");
+						LOGLINE("ice", errs() << "\n");
+						Expr body_formula = extractRelation(r, db, NULL, NULL);
+						LOGLINE("ice", errs() << "body_formula: " << *body_formula << "\n");
+						solver.assertExpr(body_formula);
+						LOGLINE ("ice", errs() << "Get Counter-example by solving : " << *r_head_cand << " <- " << *body_formula << "\n");
 						errs() << "----------------------------------------------------------\n";
-						errs() << green << "Get Counter-example by solving : " << blue << *r_head_cand << normal << " <-- " << red << *body_forumla << "\n" << normal;
+						errs() << green << "Get Counter-example by solving : " << blue << *r_head_cand << normal << " <-- " << red << *body_formula << "\n" << normal;
 
 						// solver.toSmtLib(errs());
 						boost::tribool result = solver.solve();
