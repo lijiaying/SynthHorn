@@ -198,18 +198,20 @@ namespace expr
 			inline bool isBvVar (Expr v) { return isVar<BVSORT>(v); }
 
 			inline unsigned getWidth(Expr v) {
-				std::cout << thebold << thered << " getWidth: {" << *v << "} type: " << TYPE(*v) << " ------------------\n" << thenormal;
+				// std::cout << thebold << thered << " getWidth: {" << *v << "} type: " << TYPE(*v) << " ------------------\n" << thenormal;
 				Expr s = v;
 				if (isBvConst(v)) {
-					std::cout << thered << "   is Bv Const\n" << thenormal;
+					// std::cout << thered << "   is Bv Const\n" << thenormal;
 					s = bind::type(fname(v));
-					std::cout << thered << "   s = bind::type(fname(v)): " << s << " type:" << TYPE(s) << "\n" << thenormal;
+					// std::cout << thered << "   s = bind::type(fname(v)): " << s << " type:" << TYPE(s) << "\n" << thenormal;
 				}
+				assert (isOpX<BVSORT>(s));
+				/*
 				if (isOpX<BVSORT>(s) == false)
 					std::cout << thered << "   s: " << s << " is not BVSORT\n" << thenormal;
 				else
 					std::cout << thered << "   s: " << s << " is in BVSORT\n" << thenormal;
-				std::cout << std::flush;
+				*/
 				return getTerm<const bv::BvSort>(s).m_width;
 			}
 
@@ -231,9 +233,9 @@ namespace expr
 				if (isBoolVar (v) || isBoolConst (v)) return mk<BOOL_TY> (v->efac ());
 				if (isIntVar (v) || isIntConst (v)) return mk<INT_TY> (v->efac ());
 				if (isBvVar (v) || isBvConst (v)) {
-					std::cout << "###################### isBvvar or isBvConst\n";
+					// std::cout << "###################### isBvvar or isBvConst\n";
 					int width = getWidth(v);
-					std::cout << "###################### after get width\n";
+					// std::cout << "###################### after get width\n";
 					return mkTerm<const bv::BvSort> (bv::BvSort(width), v->efac ());
 					// return mkTerm<const bv::BvSort> (getTerm<const bv::BvSort>(v->arg(1)).m_width, v->efac ());
 				}
@@ -245,6 +247,7 @@ namespace expr
 			}
 			inline Expr sortOf (Expr v) {return typeOf (v);}
 
+			/*
 			inline void checkIsBv(Expr v) {
 				std::cout << theblue << "********************* check is bv **************************\n" << thenormal;
 				std::cout << thegreen << " $$ check is BvNum of Expr: " << *v << "  typeid: " << TYPE(*v) << "\n" << thenormal;
@@ -254,7 +257,9 @@ namespace expr
 				else std::cout << "    |-- is NOT BvVar/BvConst/BvNum.\n";
 				std::cout << theblue << "****************** ret ************************\n" << thenormal;
 			}
+			*/
 
+			/*
 			inline void outputTypeStr(Expr v)
 			{
 				using namespace bind;
@@ -303,6 +308,7 @@ namespace expr
 				std::cout << " ================================================ \n"; 
 				return;
 			}
+			*/
 
 		}
 

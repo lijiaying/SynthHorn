@@ -2452,11 +2452,8 @@ namespace expr
 			{ return realVar (mkTerm (BoundVar (idx), efac )); }
 			inline Expr unintBVar (unsigned idx, ExprFactory &efac)
 			{ return unintVar (mkTerm (BoundVar (idx), efac)); }
-
 			inline bool isBVar (Expr e)
-			{
-				return isOpX<BIND>(e) && isOpX<BVAR> (bind::name (e));
-			}
+			{ return isOpX<BIND>(e) && isOpX<BVAR> (bind::name (e)); }
 
 			inline unsigned bvarId (Expr e)
 			{

@@ -1070,9 +1070,9 @@ namespace seahorn
 					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", head_app->efac ())), arg_i_type));
 
 					std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
-					LOGIT("ice", errs() << ">> (" <<**it << ") in typestr: \n");
-					bind::outputTypeStr(*it);
-					LOGIT("ice", errs() << ":(" <<**it << ") in typeid:" << typeid(*it).name() << " typeof:" << *bind::typeOf(*it) << "\n");
+					// LOGIT("ice", errs() << ">> (" <<**it << ") in typestr: \n");
+					// bind::outputTypeStr(*it);
+					// LOGIT("ice", errs() << ":(" <<**it << ") in typeid:" << typeid(*it).name() << " typeof:" << *bind::typeOf(*it) << "\n");
 					std::ostringstream oss; oss << **it;
 					if(isOpX<TRUE>(arg_i_value))
 					{
@@ -1085,12 +1085,12 @@ namespace seahorn
 							matched = true;
 						} else { matched = false; break; }
 					}
-					else if(bind::isBoolConst(arg_i_value)) { errs() << "match bool const "; matched = true; }
-					else if(bind::isIntConst(arg_i_value)) { errs() << "match int const "; matched = true; }
-					else if(bind::isBvConst(arg_i_value)) { errs() << "match bv const "; matched = true; }
+					else if(bind::isBoolConst(arg_i_value)) { errs() << "match bool const\n "; matched = true; }
+					else if(bind::isIntConst(arg_i_value)) { errs() << "match int const\n "; matched = true; }
+					else if(bind::isBvConst(arg_i_value)) { errs() << "match bv const\n "; matched = true; }
 					// else if(bv::is_bvnum(arg_i_value)) { errs() << "match bv const "; matched = true; }
 					else { /* Other kind of constructs in fact rules not implemented yet ...*/
-							errs() << "xxx"; }
+							errs() << "xxx\n "; }
 				}
 				LOGIT("ice", errs() << "]");
 
