@@ -173,6 +173,7 @@ def set_default_Experiments(arguments):
   arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=1"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=30"])
+  # arguments.extend(["--bounded"])
   return arguments
 
 #def setupExperiments (path, arguments):

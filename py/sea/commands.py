@@ -805,6 +805,9 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--bmc',
                          help='Use BMC engine',
                          dest='bmc', default=False, action='store_true')
+        ap.add_argument ('--bounded',
+                         help='use Bounded datatype',
+                         dest='bounded', default=False, action='store_true')
         return ap
 
     def run (self, args, extra):
@@ -813,6 +816,9 @@ class Seahorn(sea.LimitedCmd):
         self.seahornCmd = sea.ExtCmd (cmd_name)
 
         argv = list()
+
+        if args.bounded:
+            argv.append('--bounded=true')
 
         if args.bmc:
             argv.append ('--horn-bmc')
