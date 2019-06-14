@@ -44,6 +44,8 @@ DM-0002198
 #include "ufo/Expr.hpp"
 #include "ufo/ExprInterp.hh"
 
+#include <iostream>
+
 namespace z3
 {
   struct ast_ptr_hash : public std::unary_function<ast,std::size_t>
@@ -947,6 +949,8 @@ namespace ufo
 
     void getCexRules (ExprVector &res)
     {
+      std::cout << "\e[1m" << "\e[37;41m" << "GET CEX CALLED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\e[0m \n";
+      /*
       z3::ast_vector rules (ctx, 
                             Z3_fixedpoint_get_rules_along_trace (ctx, fp));
       for (unsigned i = 0; i < rules.size (); ++i)
@@ -957,6 +961,7 @@ namespace ufo
           rule = z3::ast (ctx, Z3_get_quantifier_body (ctx, rule));
         res.push_back (z3.toExpr (rule));
       }
+       */
    }
   };
 
