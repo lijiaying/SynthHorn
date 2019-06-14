@@ -59,20 +59,48 @@
 #undef underline 
 #endif
 
-#define red "\e[31m"
-#define green "\e[32m"
-#define yellow "\e[33m"
-#define blue "\e[34m"
-#define mag "\e[35m"
-#define cyan "\e[36m"
-#define gray "\e[90m"
-#define lgray "\e[90m"
-#define lred "\e[91m"
-#define lgreen "\e[92m"
-#define lyellow "\e[93m"
-#define lblue "\e[94m" 
-#define lmag "\e[95m"
-#define lcyan "\e[96m"
+/*
+static enum {normal=0, bold, underline=4, red=31, green, yellow, blue, mag, cyan, gray, light_gray=91, light_red, light_green, light_yellow, light_blue, light_mag, light_cyan} _color_;
+
+inline std::string background(enum color c) {
+	return "\e[37m;" + std::to_string(c+10) + "m";
+}
+
+inline std::string foreground(enum color c) {
+	return "\e[" + std::to_string(c) + "m";
+}
+*/
+
+
+#define red "\e[31;40m"
+#define green "\e[32;40m"
+#define yellow "\e[33;40m"
+#define blue "\e[34;40m"
+#define mag "\e[35;40m"
+#define cyan "\e[36;40m"
+#define lgray "\e[37;40m"
+#define gray "\e[90;40m"
+#define lred "\e[91;40m"
+#define lgreen "\e[92;40m"
+#define lyellow "\e[93;40m"
+#define lblue "\e[94;40m" 
+#define lmag "\e[95;40m"
+#define lcyan "\e[96;40m"
+
+#define bred "\e[37;41m"
+#define bgreen "\e[37;42m"
+#define byellow "\e[37;43m"
+#define bblue "\e[37;44m"
+#define bmag "\e[37;45m"
+#define bcyan "\e[37;46m"
+#define blgray "\e[37;47m"
+#define bgray "\e[37;100m"
+#define blred "\e[37;101m"
+#define blgreen "\e[37;102m"
+#define blyellow "\e[37;103m"
+#define blblue "\e[37;104m" 
+#define blmag "\e[37;105m"
+#define blcyan "\e[37;106m"
 
 #define normal "\e[0m"
 #define bold "\e[1m"

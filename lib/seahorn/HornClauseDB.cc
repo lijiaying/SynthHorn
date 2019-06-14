@@ -8,6 +8,7 @@
 
 #include "ufo/ExprLlvm.hpp"
 #include "avy/AvyDebug.h"
+#include "color.hh"
 
 #include <sstream>
 
@@ -149,15 +150,27 @@ namespace seahorn
   raw_ostream& HornClauseDB::write (raw_ostream& o) const
   {
     std::ostringstream oss;
-    oss << "Predicates:\n;";
+#if 1
+    oss << green << "===== Predicates: ====\n;" << normal;
+    for (auto &p : m_rels)
+    { oss << gray << p << "\n" << normal; }
+    oss << green << "===== Clauses: ====\n;" << normal;
+    for (auto &r : m_rules)
+    { oss << gray << r.head () << " <- " << r.body () << ".\n"; }
+    oss << green << "==== Queries: ====\n;" << normal;
+    for (auto &q : m_queries)
+    { oss << gray << q << "\n"; }
+#else
+    oss << "===== Predicates: ====\n;";
     for (auto &p : m_rels)
     { oss << p << "\n"; }
-    oss << "Clauses:\n;";
+    oss << "===== Clauses: ====\n;";
     for (auto &r : m_rules)
     { oss << r.head () << " <- " << r.body () << ".\n"; }
-    oss << "Queries:\n;";
+    oss << "==== Queries: ====\n;";
     for (auto &q : m_queries)
     { oss << q << "\n"; }
+#endif
     o << oss.str ();
     o.flush ();
     return o;

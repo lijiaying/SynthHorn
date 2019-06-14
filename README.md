@@ -290,5 +290,5 @@ seahorn --keep-shadows=true -horn-inter-proc -horn-sem-lvl=mem --bounded=true --
 /Users/lijiaying/Research/SynthHorn/build/run/bin/seahorn --keep-shadows=true --horn-solve -horn-inter-proc -horn-sem-lvl=mem --horn-step=large --horn-answer --horn-stats --horn-ice --horn-ice-svm-c-paramter=10 --horn-ice-c5-exec-path=C50/c5.0.dt_entropy --horn-ice-svm-exec-path=libsvm/svm-invgen --horn-ice-svm-coeff-bound=5 --horn-rule-sample-length=1 --horn-ice-svm-call-freq-pos=0 --horn-ice-svm-call-freq-neg=30 -bounded=false 04.bc
 
 
-python run.py [screen] [--bounded] test/mytest3.c
+python run.py [--screen] [--bounded] test/mytest3.c
 The default is unbounded, which is same as the technique in PLDI2018...

@@ -251,6 +251,8 @@ namespace seahorn
       void svmLearn (Expr targetName); //(ExprVector target);
       void extractConstants(HornClauseDB &db);
       void extractUnknowns(HornClauseDB &db);
+
+			void outputDataSetInfo();
   };
 }
 

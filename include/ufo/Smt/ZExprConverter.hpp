@@ -541,7 +541,6 @@ namespace ufo
 
 					if (kind == Z3_NUMERAL_AST)
 					{
-
 						Z3_sort sort = Z3_get_sort (ctx, z);
 						std::string snum = Z3_get_numeral_string (ctx, z);
 						switch (Z3_get_sort_kind (ctx, sort))
@@ -671,6 +670,21 @@ namespace ufo
 						return mk<NEG> (unmarshal
 								(z3::ast (ctx, Z3_get_app_arg (ctx, app, 0)),
 								 efac, cache, seen));
+					}
+
+					if (dkind == Z3_OP_INT2BV)
+					{
+						assert (Z3_get_app_num_args (ctx, app) == 1);
+						return mk<INT2BV> (unmarshal
+												(z3::ast (ctx, Z3_get_app_arg (ctx, app, 0)),
+												 efac, cache, seen));
+					}
+					if (dkind == Z3_OP_BV2INT)
+					{
+						assert (Z3_get_app_num_args (ctx, app) == 1);
+						return mk<BV2INT> (unmarshal
+												(z3::ast (ctx, Z3_get_app_arg (ctx, app, 0)),
+												 efac, cache, seen));
 					}
 					if (dkind == Z3_OP_UMINUS)
 						return mk<UN_MINUS> (unmarshal

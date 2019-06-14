@@ -268,7 +268,7 @@ if __name__ == "__main__":
 
   # Modify the timeout parameter here!
   timeout = 150
-  if sys.argv[1] == "screen":
+  if sys.argv[1] == "--screen":
     sys.exit(run(False, sys.argv[2:], timeout))
   else:
     sys.exit(run(True, sys.argv[1:], timeout))
