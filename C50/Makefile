@@ -15,7 +15,7 @@ LFLAGS = $(S) -static-libstdc++
 SHELL  = /bin/bash
 
 # Debug (uncomment if desired)
-CFLAGS += -DDEBUG
+CFLAGS += -DDEBUG -DUSEDOUBLE
 
 
 #	Definitions of file sets
@@ -84,7 +84,6 @@ c5.0.dt_penalty:\
 	$(src) defns.i extern.i text.i Makefile
 	$(CC) $(LFLAGS) -DPENALTY -O3 -o c5.0.dt_penalty $(src) cpp_wrapper/cpp_wrapper.a -lm -lstdc++
 	strip c5.0.dt_penalty
-
 
 
 c5.0.dt_entropy:\

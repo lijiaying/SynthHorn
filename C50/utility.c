@@ -813,7 +813,12 @@ void CValToStr(ContValue CV, Attribute Att, String DS)
     }
     else
     {
-	sprintf(DS, "%.*g", PREC, CV);
+	// sprintf(DS, "%.*g", PREC, CV);
+	// lijiaying
+	if ((ContValue)(int)CV == CV)
+		sprintf(DS, "%d", (int)CV);
+	else
+		sprintf(DS, "%lf", CV);
     }
 }
 
