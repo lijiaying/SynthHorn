@@ -949,8 +949,8 @@ namespace ufo
 
     void getCexRules (ExprVector &res)
     {
-      std::cout << "\e[1m" << "\e[37;41m" << "GET CEX CALLED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\e[0m \n";
-      /*
+//      std::cout << "\e[1m" << "\e[37;41m" << "GET CEX CALLED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\e[0m \n";
+//      /*
       z3::ast_vector rules (ctx, 
                             Z3_fixedpoint_get_rules_along_trace (ctx, fp));
       for (unsigned i = 0; i < rules.size (); ++i)
@@ -961,7 +961,7 @@ namespace ufo
           rule = z3::ast (ctx, Z3_get_quantifier_body (ctx, rule));
         res.push_back (z3.toExpr (rule));
       }
-       */
+//       */
    }
   };
 

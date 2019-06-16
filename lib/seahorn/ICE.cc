@@ -547,13 +547,13 @@ static ExprVector empty;
 		names_of << "invariant: true, false.\n";
 		names_of.close();
 		intervals_of.close();
-
+// 
 		outputFileContent(m_C5filename + ".names");
 		outputFileContent(m_C5filename + ".intervals");
 	}
 
 	std::string ptreeToString(boost::property_tree::ptree pt) {
-		return "Ignore.";
+		// return "Ignore.";
 		std::stringstream ss;
 		boost::property_tree::json_parser::write_json(ss, pt);
 		return ss.str();
@@ -868,7 +868,8 @@ static ExprVector empty;
 					return final_formula;
 				}
 			} 
-			else { // not svm
+			else 
+			{ // not svm
 				LOGIT("ice", errs() << cyan << " + not svm attr: \n" << normal);
 				Expr attr_expr;
 				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
@@ -893,6 +894,7 @@ static ExprVector empty;
 				} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 					LOGIT("ice", errs() << blue << "  --> bv const \n" << normal);
 					int cut = sub_pt.get<int>("cut");
+					// int cut = (int)sub_pt.get<double>("cut");
 					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
 					attr_expr = mk<BV2INT>(attr_expr);
 					decision_expr = mk<LEQ>(attr_expr, threshold);
@@ -1578,7 +1580,7 @@ static ExprVector empty;
 						LOGLINE ("ice", errs() << green << "Get Counter-example by solving : " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
 						// errs() << red << solver << "\n"
 
-						solver.toSmtLib(errs());
+						// solver.toSmtLib(errs());
 						boost::tribool result = solver.solve();
 						if (result == UNSAT)
 							LOGLINE("ice", errs() << bold << red << "solving result: UNSAT\n" << normal);
