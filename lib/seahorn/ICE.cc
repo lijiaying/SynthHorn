@@ -31,6 +31,7 @@ using namespace llvm;
 
 static llvm::cl::opt<std::string> ICEInvDump("horn-ice-inv-dump", llvm::cl::desc("ICE Invariants Dump File:"), llvm::cl::init(""), llvm::cl::value_desc("filename"));
 static llvm::cl::opt<std::string> C5ExecPath("horn-ice-c5-exec-path", llvm::cl::desc("C5 Executable File Path:"), llvm::cl::init(""), llvm::cl::value_desc("filename"));
+static llvm::cl::opt<std::string> Z3ExecPath("horn-ice-z3-exec-path", llvm::cl::desc("Z3 Executable File Path:"), llvm::cl::init(""), llvm::cl::value_desc("filename"));
 static llvm::cl::opt<unsigned> RuleSampleLen ("horn-rule-sample-length", cl::Hidden, cl::init (101));
 static llvm::cl::opt<unsigned> RuleSampleWidth("horn-rule-sample-width", cl::Hidden, cl::init (1));
 static llvm::cl::opt<std::string> SVMExecPath("horn-ice-svm-exec-path", llvm::cl::desc("SVM Executable File Path:"), llvm::cl::init(""), llvm::cl::value_desc("filename"));
@@ -45,6 +46,7 @@ static llvm::cl::opt<unsigned> ICECatch("horn-ice-svm-caching", cl::Hidden, cl::
 static llvm::cl::opt<unsigned> ICELocalStrengthen("horn-ice-local-strengthening", cl::Hidden, cl::init(0));
 static llvm::cl::opt<unsigned> ICEOct("horn-ice-oct", cl::Hidden, cl::init(1));
 static llvm::cl::opt<unsigned> ICEICE("horn-ice-ice", cl::Hidden, cl::init(0));
+
 
 namespace seahorn
 {
@@ -299,7 +301,6 @@ static ExprVector empty;
 			std::string svmattr_string = svm_buf.str();
 			std::vector<std::string> lines = split_string (svmattr_string, "\n");
 			LOGDP("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal << "\n");
-
 
 			// Expr zero = mkTerm<mpz_class>(0, rel->efac());
 			// mk<GEQ>(mknary<PLUS> (addargs), zero)));
@@ -1345,6 +1346,65 @@ static ExprVector empty;
 		return attr_values;
 	}
 
+	// bool ICE::callExternalZ3ToSolve(std::string smt2str)
+	boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
+	{
+		std::ostringstream oss;
+		solver.toSmtLib(oss);
+		std::string smt2_to_solve = oss.str() + "\n(get-model)";
+		errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
+		std::ofstream smt_of(m_C5filename + ".smt2");
+		smt_of << smt2_to_solve;
+		smt_of.close();
+
+		std::string command = Z3ExecPath + " " 
+				+ m_C5filename + ".smt2" + " "
+				+ "-T:2 "; // set timeout to 2s
+		m_z3_model = "";
+		std::string model = "";
+
+		LOG("ice", errs() << bblue << "Call Z3 externally: " << command << normal << "\n");
+		FILE* fp;
+		if((fp = popen(command.c_str(), "r")) == NULL) { 
+			LOG("ice", errs() << "popen error!\n"); 
+			perror("popen failed!\n"); 
+			m_z3_sat = boost::indeterminate;
+			return m_z3_sat;
+		}
+
+		char buffer[1024];
+		while (fgets(buffer, 1024, fp) != NULL) {
+        // std::cout << "Reading..." << std::endl;
+        model += buffer;
+    }
+		std::cout << red << model << normal << "\n";
+    auto returnCode = pclose(fp);
+		if (returnCode == 0) {
+			LOGLINE("ice", errs() << "RET 0 : SUCCESS\n");
+		} else {
+			LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n");
+		}
+
+		if (model.find("unsat") == -1) {
+			// sat
+			m_z3_sat = true;
+			std::ofstream sat_of(m_C5filename + ".sat.smt2");
+			sat_of << smt2_to_solve;
+			sat_of.close();
+			int start = model.find("\n") + 1;
+			model = model.substr(start);
+			m_z3_model = model;
+			LOGDP("ice", errs() << "SAT\nmodel: " << green << model << normal << "\n");
+		} else {
+			m_z3_sat = false;
+			std::ofstream sat_of(m_C5filename + ".unsat.smt2");
+			sat_of << smt2_to_solve;
+			sat_of.close();
+			LOGDP("ice", errs() << "UNSAT\n");
+		}
+		return m_z3_sat;
+	}
+
 	bool ICE::generatePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run) {
 		Expr body_app = r.head();
 		if (bind::domainSz(bind::fname(body_app)) <= 0) { LOG ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
@@ -1357,7 +1417,13 @@ static ExprVector empty;
 		solver.assertExpr(body_formula);
 		LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <-<- " << *body_formula << "\n");
 
-		//solver.toSmtLib(errs());
+		/*
+		std::ostringstream oss;
+		solver.toSmtLib(oss);
+		bool res = callExternalZ3ToSolve(oss.str());
+		*/
+		boost::tribool res = callExternalZ3ToSolve(solver);
+		// solver.toSmtLib(errs());
 		boost::tribool result = solver.solve();
 		if(result != UNSAT)
 		{
@@ -1581,6 +1647,13 @@ static ExprVector empty;
 						// errs() << red << solver << "\n"
 
 						// solver.toSmtLib(errs());
+						/*
+						std::ostringstream oss;
+						solver.toSmtLib(oss);
+						std::string z3model;
+						bool res = callExternalZ3ToSolve(oss.str(), z3model);
+						*/
+						boost::tribool res = callExternalZ3ToSolve(solver);
 						boost::tribool result = solver.solve();
 						if (result == UNSAT)
 							LOGLINE("ice", errs() << bold << red << "solving result: UNSAT\n" << normal);
