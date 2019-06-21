@@ -1,0 +1,270 @@
+(declare-fun main@entry.split () Bool)
+(declare-fun main@entry () Bool)
+(declare-fun fibo!V_4 () Int)
+(declare-fun fibo!V_2 () Bool)
+(declare-fun fibo!V_1 () Bool)
+(declare-fun fibo@_tail!V_0 () Int)
+(declare-fun verifier.error!V_2 () Bool)
+(declare-fun fibo (Bool Bool Bool Int Int) Bool)
+(declare-fun fibo@UnifiedReturnBlock.split!V_1 () Int)
+(declare-fun fibo@_tail (Int) Bool)
+(declare-fun fibo@UnifiedReturnBlock.split (Int Int) Bool)
+(declare-fun fibo!V_0 () Bool)
+(declare-fun verifier.error (Bool Bool Bool) Bool)
+(declare-fun verifier.error!V_0 () Bool)
+(declare-fun fibo!V_3 () Int)
+(declare-fun fibo@UnifiedReturnBlock.split!V_0 () Int)
+(declare-fun verifier.error!V_1 () Bool)
+
+(assert (let ((a!1 (or true
+               (and (and true (not verifier.error!V_0))
+                    (not verifier.error!V_1)
+                    (not verifier.error!V_2))
+               (and (and true (not verifier.error!V_0))
+                    verifier.error!V_1
+                    verifier.error!V_2)
+               (and (and true verifier.error!V_0)
+                    (not verifier.error!V_1)
+                    verifier.error!V_2)
+               (and (and true verifier.error!V_0)
+                    verifier.error!V_1
+                    verifier.error!V_2))))
+  (=> (verifier.error verifier.error!V_0 verifier.error!V_1 verifier.error!V_2)
+      a!1)))
+(assert (=> (fibo@_tail fibo@_tail!V_0) true))
+(assert (let ((a!1 (not (<= (+ (* 2 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 1) fibo@UnifiedReturnBlock.split!V_1))
+                    (- 1))))
+      (a!3 (not (<= (+ (* 2 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 1) fibo@UnifiedReturnBlock.split!V_1))
+                    1)))
+      (a!4 (not (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                    (- 23))))
+      (a!6 (not (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                    (- 22))))
+      (a!9 (not (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                    (- 20))))
+      (a!10 (not (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                        (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                     (- 12))))
+      (a!12 (not (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                        (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                     4))))
+(let ((a!2 (and true
+                (<= fibo@UnifiedReturnBlock.split!V_1 7)
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 (- 1)))
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    6)
+                (not (<= (- fibo@UnifiedReturnBlock.split!V_0
+                            fibo@UnifiedReturnBlock.split!V_1)
+                         (- 2)))
+                (<= (+ (* 2 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 1) fibo@UnifiedReturnBlock.split!V_1))
+                    1)
+                a!1))
+      (a!5 (and true
+                (<= fibo@UnifiedReturnBlock.split!V_1 7)
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 (- 1)))
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    6)
+                (not (<= (- fibo@UnifiedReturnBlock.split!V_0
+                            fibo@UnifiedReturnBlock.split!V_1)
+                         (- 2)))
+                a!3
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 3))
+                a!4
+                (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                       (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                    (- 22))))
+      (a!7 (and true
+                (<= fibo@UnifiedReturnBlock.split!V_1 7)
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 (- 1)))
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    6)
+                (not (<= (- fibo@UnifiedReturnBlock.split!V_0
+                            fibo@UnifiedReturnBlock.split!V_1)
+                         (- 2)))
+                a!3
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 3))
+                a!4
+                a!6
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    0)
+                (<= fibo@UnifiedReturnBlock.split!V_0 3)))
+      (a!8 (and true
+                (<= fibo@UnifiedReturnBlock.split!V_1 7)
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 (- 1)))
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    6)
+                (not (<= (- fibo@UnifiedReturnBlock.split!V_0
+                            fibo@UnifiedReturnBlock.split!V_1)
+                         (- 2)))
+                a!3
+                (not (<= fibo@UnifiedReturnBlock.split!V_1 3))
+                a!4
+                a!6
+                (<= (- fibo@UnifiedReturnBlock.split!V_0
+                       fibo@UnifiedReturnBlock.split!V_1)
+                    0)
+                (not (<= fibo@UnifiedReturnBlock.split!V_0 3))
+                (not (<= fibo@UnifiedReturnBlock.split!V_0 4))))
+      (a!11 (and true
+                 (not (<= fibo@UnifiedReturnBlock.split!V_1 7))
+                 a!9
+                 (<= fibo@UnifiedReturnBlock.split!V_1 10)
+                 (<= fibo@UnifiedReturnBlock.split!V_1 9)
+                 (not (<= fibo@UnifiedReturnBlock.split!V_1 8))
+                 (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                        (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                     (- 11))
+                 a!10))
+      (a!13 (and true
+                 (not (<= fibo@UnifiedReturnBlock.split!V_1 7))
+                 a!9
+                 (<= fibo@UnifiedReturnBlock.split!V_1 10)
+                 (not (<= fibo@UnifiedReturnBlock.split!V_1 9))
+                 (<= (+ (* 1 fibo@UnifiedReturnBlock.split!V_0)
+                        (* (- 5) fibo@UnifiedReturnBlock.split!V_1))
+                     5)
+                 a!12)))
+(let ((a!14 (or (and true
+                     (<= fibo@UnifiedReturnBlock.split!V_1 7)
+                     (<= fibo@UnifiedReturnBlock.split!V_1 (- 1)))
+                a!2
+                a!5
+                a!7
+                a!8
+                (and true
+                     (not (<= fibo@UnifiedReturnBlock.split!V_1 7))
+                     a!9
+                     (<= fibo@UnifiedReturnBlock.split!V_1 10)
+                     (<= fibo@UnifiedReturnBlock.split!V_1 9)
+                     (<= fibo@UnifiedReturnBlock.split!V_1 8)
+                     (<= (- fibo@UnifiedReturnBlock.split!V_0
+                            fibo@UnifiedReturnBlock.split!V_1)
+                         13))
+                a!11
+                a!13
+                (and true
+                     (not (<= fibo@UnifiedReturnBlock.split!V_1 7))
+                     a!9
+                     (not (<= fibo@UnifiedReturnBlock.split!V_1 10))))))
+  (=> (fibo@UnifiedReturnBlock.split
+        fibo@UnifiedReturnBlock.split!V_0
+        fibo@UnifiedReturnBlock.split!V_1)
+      a!14)))))
+(assert (let ((a!1 (not (<= (+ (* (- 1) fibo!V_3) (* 2 fibo!V_4)) (- 1))))
+      (a!4 (not (<= (+ (* (- 1) fibo!V_3) (* 2 fibo!V_4)) 2)))
+      (a!5 (not (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 14)))
+      (a!7 (not (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) (- 4))))
+      (a!8 (not (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) (- 2))))
+      (a!10 (not (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 15)))
+      (a!12 (not (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)))
+      (a!13 (not (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 4)))
+      (a!15 (not (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 1)))
+      (a!17 (not (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) (- 16)))))
+(let ((a!2 (and true
+                (not (<= fibo!V_3 (- 1)))
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)
+                (<= (- fibo!V_3 fibo!V_4) 1)
+                (<= (+ (* (- 1) fibo!V_3) (* 2 fibo!V_4)) 2)
+                a!1
+                (<= (- fibo!V_3 fibo!V_4) 0)
+                (<= fibo!V_3 1)))
+      (a!3 (and true
+                (not (<= fibo!V_3 (- 1)))
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)
+                (<= (- fibo!V_3 fibo!V_4) 1)
+                (<= (+ (* (- 1) fibo!V_3) (* 2 fibo!V_4)) 2)
+                a!1
+                (not (<= (- fibo!V_3 fibo!V_4) 0))))
+      (a!6 (and true
+                (not (<= fibo!V_3 (- 1)))
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)
+                (<= (- fibo!V_3 fibo!V_4) 1)
+                a!4
+                a!5
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 15)
+                (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) (- 4))))
+      (a!9 (and true
+                (not (<= fibo!V_3 (- 1)))
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)
+                (<= (- fibo!V_3 fibo!V_4) 1)
+                a!4
+                a!5
+                (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 15)
+                a!7
+                a!8))
+      (a!11 (and true
+                 (not (<= fibo!V_3 (- 1)))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                 (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 0)
+                 (<= (- fibo!V_3 fibo!V_4) 1)
+                 a!4
+                 a!5
+                 a!10
+                 (not (<= (- fibo!V_3 fibo!V_4) (- 4)))
+                 (<= (- fibo!V_3 fibo!V_4) (- 1))))
+      (a!14 (and true
+                 (not (<= fibo!V_3 (- 1)))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                 a!12
+                 (<= fibo!V_3 10)
+                 (not (<= fibo!V_3 7))
+                 (<= fibo!V_3 8)
+                 (<= (+ (* (- 2) fibo!V_3) (* 1 fibo!V_4)) 5)
+                 a!13))
+      (a!16 (and true
+                 (not (<= fibo!V_3 (- 1)))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                 a!12
+                 (<= fibo!V_3 10)
+                 (not (<= fibo!V_3 7))
+                 (not (<= fibo!V_3 8))
+                 (<= fibo!V_3 9)
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 2)
+                 a!15))
+      (a!18 (and true
+                 (not (<= fibo!V_3 (- 1)))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                 a!12
+                 (<= fibo!V_3 10)
+                 (not (<= fibo!V_3 7))
+                 (not (<= fibo!V_3 8))
+                 (not (<= fibo!V_3 9))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) (- 15))
+                 a!17))
+      (a!19 (and true
+                 (not (<= fibo!V_3 (- 1)))
+                 (<= (+ (* 4 fibo!V_3) (* (- 1) fibo!V_4)) 16)
+                 a!12
+                 (not (<= fibo!V_3 10)))))
+(let ((a!20 (or (and true (<= fibo!V_3 (- 1)))
+                a!2
+                a!3
+                a!6
+                a!9
+                a!11
+                a!14
+                a!16
+                a!18
+                a!19
+                (and true fibo!V_0 fibo!V_1 fibo!V_2)
+                (and (and true (not fibo!V_0)) fibo!V_1 fibo!V_2)
+                (and (and true (not fibo!V_0)) (not fibo!V_1) (not fibo!V_2)))))
+  (=> (fibo fibo!V_0 fibo!V_1 fibo!V_2 fibo!V_3 fibo!V_4) a!20)))))
+(assert (=> main@entry true))
+(assert (=> main@entry.split false))
+(check-sat)

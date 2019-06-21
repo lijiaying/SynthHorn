@@ -1,10 +1,10 @@
-; ModuleID = 'test.bc'
+; ModuleID = 'simple.pp.ms.o.bc'
 target datalayout = "e-m:o-p:32:32-f64:32:64-f80:128-n8:16:32-S128"
 target triple = "i386-apple-macosx10.14.0"
 
 @llvm.used = appending global [4 x i8*] [i8* bitcast (void (i1)* @verifier.assume to i8*), i8* bitcast (void (i1)* @verifier.assume.not to i8*), i8* bitcast (void ()* @verifier.error to i8*), i8* bitcast (void ()* @seahorn.fail to i8*)], section "llvm.metadata"
 
-declare i32 @unknown1(...) #0
+declare i32 @unknown(...) #0
 
 declare void @verifier.assume(i1)
 
@@ -21,19 +21,15 @@ declare void @seahorn.fn.enter()
 define i32 @main() #2 {
 entry:
   tail call void @seahorn.fn.enter() #3
-  br label %0
-
-; <label>:0                                       ; preds = %0, %entry
-  %a.0.i = phi i32 [ 7, %entry ], [ %3, %0 ]
-  %1 = tail call i32 bitcast (i32 (...)* @unknown1 to i32 ()*)() #3
-  %2 = icmp eq i32 %1, 0
-  %3 = add i32 %a.0.i, 1
-  br i1 %2, label %verifier.error, label %0
-
-verifier.error:                                   ; preds = %0
-  %a.0.i.lcssa = phi i32 [ %a.0.i, %0 ]
-  %4 = icmp eq i32 %a.0.i.lcssa, 0
-  tail call void @verifier.assume(i1 %4) #3
+  %0 = tail call i32 bitcast (i32 (...)* @unknown to i32 ()*)() #3
+  %.off.i = add i32 %0, -1
+  %1 = icmp ult i32 %.off.i, 19
+  tail call void @verifier.assume(i1 %1) #3
+  tail call void @llvm.assume(i1 %1), !seahorn !2
+  %2 = add nsw i32 %0, 2
+  %3 = icmp sgt i32 %2, -1
+  tail call void @verifier.assume.not(i1 %3) #3
+  %4 = xor i1 %3, true
   tail call void @llvm.assume(i1 %4), !seahorn !2
   tail call void @seahorn.fail() #3
   ret i32 42

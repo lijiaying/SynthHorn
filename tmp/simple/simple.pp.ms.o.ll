@@ -1,4 +1,4 @@
-; ModuleID = 'mytest2.bc'
+; ModuleID = 'simple.pp.ms.o.bc'
 target datalayout = "e-m:o-p:32:32-f64:32:64-f80:128-n8:16:32-S128"
 target triple = "i386-apple-macosx10.14.0"
 
@@ -21,11 +21,23 @@ declare i32 @verifier.nondet.1()
 define i32 @main() #1 {
 entry:
   %0 = tail call i32 @verifier.nondet.1() #2
+  %1 = tail call i32 @verifier.nondet.1() #2
+  %2 = tail call i32 @verifier.nondet.1() #2
+
   tail call void @seahorn.fn.enter() #2
-  %1 = icmp sgt i32 %0, 2
-  tail call void @verifier.assume.not(i1 %1) #2
-  %2 = xor i1 %1, true
-  tail call void @llvm.assume(i1 %2), !seahorn !2
+  %3 = icmp sgt i32 %2, 0
+  %4 = icmp slt i32 %1, 20
+  %or.cond.i = and i1 %4, %3
+
+  tail call void @verifier.assume(i1 %or.cond.i) #2
+  tail call void @llvm.assume(i1 %3)
+  tail call void @llvm.assume(i1 %4)
+
+  %5 = add nsw i32 %0, 2
+  %6 = icmp sgt i32 %5, -1
+  tail call void @verifier.assume.not(i1 %6) #2
+  %7 = xor i1 %6, true
+  tail call void @llvm.assume(i1 %7), !seahorn !2
   tail call void @seahorn.fail() #2
   ret i32 42
 }
