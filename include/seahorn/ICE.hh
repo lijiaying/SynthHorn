@@ -113,7 +113,10 @@ namespace seahorn
 			int n_svm_calls;
 
 			boost::tribool m_z3_sat;
-			std::string m_z3_model;
+			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
+			// std::list<Expr> m_model; // var_name: <var_type, var_value>
+			std::map<std::string, Expr> m_model;
+			std::string m_z3_model_str;
 		public:
 			void setupC5();
 			void initC5(ExprVector targets);
@@ -121,6 +124,7 @@ namespace seahorn
 			std::string DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly = false);
 			// bool callExternalZ3ToSolve(std::string smt2str);
 			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
+			bool parseModelFromString(std::string model_str);
 
 		public:
 			HornifyModule& getHornifyModule() {return m_hm;}

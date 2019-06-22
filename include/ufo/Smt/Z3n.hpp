@@ -420,8 +420,7 @@ namespace ufo
         z3::ast val (ctx, raw_val);
         ctx.check_error ();
         if (!isAsArray (val)) return z3.toExpr (val);
-          
-          
+
         Z3_func_decl fdecl = Z3_get_as_array_func_decl (ctx, val);
         z3::func_interp zfunc (ctx, Z3_model_get_func_interp (ctx, model, fdecl));
         ctx.check_error ();

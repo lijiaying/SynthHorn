@@ -11,7 +11,6 @@
 
 namespace ufo
 {
-
 	struct FailMarshal
 	{
 		template <typename C>
@@ -131,8 +130,6 @@ namespace ufo
 						else // -- for non-string named variables use address
 							svar = "E" +
 								boost::lexical_cast<std::string,void*> (edge.get());
-
-
 						res = Z3_mk_const (ctx,
 								ctx.str_symbol (svar.c_str ()),
 								ctx.bool_sort ());
@@ -150,6 +147,20 @@ namespace ufo
 								ctx.str_symbol (sname.c_str ()),
 								ctx.int_sort ());
 					}
+                    else if (bind::isBvVar (e))
+                    {
+                        Expr name = bind::name (e);
+                        std::string sname;
+                        if (isOpX<STRING> (name))
+                            sname = getTerm<std::string> (name);
+                        else
+                            sname = "B" + lexical_cast<std::string,void*> (name.get ());
+
+                        res = Z3_mk_const (ctx,
+                                           ctx.str_symbol (sname.c_str ()),
+                                           ctx.bv_sort (expr::op::bind::getWidth(e)));
+//                                           ctx.bv_sort (32));
+                    }
 					else if (bind::isRealVar (e))
 					{
 						Expr name = bind::name (e);
@@ -184,7 +195,6 @@ namespace ufo
 								(static_cast<Z3_ast>
 								 (marshal (bind::rangeTy (e), ctx, cache, seen))));
 
-
 						Expr fname = bind::fname (e);
 						std::string sname;
 						if (isOpX<STRING> (fname))
@@ -204,12 +214,10 @@ namespace ufo
 					/** function application */
 					else if (bind::isFapp (e))
 					{
-
 						z3::func_decl zfdecl (ctx,
 								reinterpret_cast<Z3_func_decl>
 								(static_cast<Z3_ast>
 								 (marshal (bind::fname (e), ctx, cache, seen))));
-
 
 						// -- marshall all arguments except for the first one
 						// -- (which is the fdecl)
@@ -328,7 +336,6 @@ namespace ufo
 						z3::ast t2 = marshal(e->right(), ctx, cache, seen);
 
 						Z3_ast args [2] = {t1, t2};
-
 
 						/** BoolOp */
 						if (isOpX<AND>(e))
@@ -452,7 +459,6 @@ namespace ufo
 							res = Z3_mk_bvlshr (ctx, t1, t2);
 						else if (isOpX<BASHR> (e))
 							res = Z3_mk_bvashr (ctx, t1, t2);
-
 						else
 							return M::marshal (e, ctx, cache, seen);
 					}
@@ -478,7 +484,6 @@ namespace ufo
 							args.push_back (a);
 							pinned.push_back (a);
 						}
-
 
 						if (isOp<ITE>(e))
 						{
@@ -517,7 +522,6 @@ namespace ufo
 					seen.insert (expr_ast_map::value_type (e, final));
 
 					return final;
-
 				}
 		};
 
@@ -535,9 +539,7 @@ namespace ufo
 					if (bVal == Z3_L_TRUE) return mk<TRUE> (efac);
 					if (bVal == Z3_L_FALSE) return mk<FALSE> (efac);
 
-
 					Z3_ast_kind kind = z.kind ();
-
 
 					if (kind == Z3_NUMERAL_AST)
 					{
@@ -550,6 +552,7 @@ namespace ufo
 							case Z3_INT_SORT:
 								return mkTerm (mpz_class (snum), efac);
 							case Z3_BV_SORT:
+								std::cout << "@@@@@@@[" << snum << "]\n";
 								return bv::bvnum (mpz_class (snum), 
 										Z3_get_bv_sort_size (ctx, sort), efac);
 							default:
@@ -654,7 +657,6 @@ namespace ufo
 						return Z3_is_quantifier_forall (ctx, z) ?
 							mknary<FORALL> (args) : mknary<EXISTS> (args);
 					}
-
 
 					if (kind != Z3_APP_AST)
 						errs () << boost::lexical_cast<std::string> (z) << "\n";
@@ -831,8 +833,7 @@ namespace ufo
 								assert (args.size () == 1);
 								Z3_sort sort = Z3_get_sort (ctx, z);
 								Expr domain = unmarshal
-									(z3::ast (ctx, Z3_sort_to_ast (ctx,
-																								 Z3_get_array_sort_domain (ctx, sort))),
+									(z3::ast (ctx, Z3_sort_to_ast (ctx, Z3_get_array_sort_domain (ctx, sort))),
 									 efac, cache, seen);
 
 								e = op::array::constArray (domain, args[0]);

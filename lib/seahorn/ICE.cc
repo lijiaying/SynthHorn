@@ -27,6 +27,9 @@
 #include <chrono>
 #include <ctime>
 
+#define USE_EXTERNAL 1
+// #define USE_EXTERNAL 0
+
 using namespace llvm;
 
 static llvm::cl::opt<std::string> ICEInvDump("horn-ice-inv-dump", llvm::cl::desc("ICE Invariants Dump File:"), llvm::cl::init(""), llvm::cl::value_desc("filename"));
@@ -443,6 +446,7 @@ static ExprVector empty;
 		{
 			if(std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 				Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
+				// m_efac = C5_rel_name->efac();
 				if(counter == targets.size()-1) { names_of << *C5_rel_name << ".\n"; }
 				else { names_of << *C5_rel_name << ","; }
 				counter ++;
@@ -1315,21 +1319,17 @@ static ExprVector empty;
 			Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
 			val = uncertain_value;
 		}
+		else if(bind::isBvConst(val))
+		{
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+			Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
+			val = uncertain_value;
+		}
 
 		//convert true/false to 1/0 in C5 data point
 		if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
 		else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
 
-		//deal with too large integer value like: -0xffffffb
-		/*
-		std::ostringstream oss; oss << val;
-		if(oss.str().find("-0x") == 0)
-		{
-			LOG("ice", errs() << "TOO LARGE VALUE, OVERFLOW: " << *val << "\n");
-			Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
-			val = uncertain_value;
-		}
-		*/
 		return val;
 	}
 
@@ -1346,12 +1346,97 @@ static ExprVector empty;
 		return attr_values;
 	}
 
+	Expr getUnknownAttrValue(Expr val) {
+		//deal with uncertain values in cexs
+		if(bind::isBoolConst(val))
+		{
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
+			Expr uncertain_value = mk<FALSE>(val->efac());
+			val = uncertain_value;
+		}
+		else if(bind::isIntConst(val))
+		{
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+			Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
+			val = uncertain_value;
+		}
+		else if(bind::isBvConst(val))
+		{
+			LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+			Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
+			val = uncertain_value;
+		}
+
+		//convert true/false to 1/0 in C5 data point
+		if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
+		else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
+		return val;
+	}
+
+	Expr constructExprFromTypeValueMap(std::pair<std::string, std::string> x, ExprFactory& efac) {
+		using namespace expr::op;
+		Expr typeE, valueE;
+		std::string xtype = x.first;
+		std::string xvalue = x.second;
+		if (xtype == "Bool") {
+			std::cerr << "type: bool.\n";
+			typeE = sort::boolTy(efac);
+			if (xvalue == "true")
+					valueE = mk<TRUE> (efac);
+			else if (xvalue == "false")
+					valueE = mk<FALSE> (efac);
+		}
+		else if (xtype == "(_ BitVec 32)") {
+			std::cerr << "type: bv32. value: " << xvalue << "\n";
+			int length = xvalue.length();
+			std::cerr << "1truncted: " << xvalue.substr(2, length-2) << ".\n";
+			int xint = std::stoul(xvalue.substr(2, length-2), nullptr, 16);
+			std::cerr << "2converted: " << xint << ".\n";
+			valueE = mkTerm (mpq_class (std::to_string(xint)), efac);
+			std::cerr << "3converted: " << xint << ".\n";
+			typeE = bv::bvsort(32, efac);
+		}
+		else if (xtype == "Int") {
+			std::cerr << "type: int.\n";
+			typeE = sort::intTy(efac);
+			valueE = mkTerm (mpq_class (xvalue), efac);
+		}
+		else if (xtype == "Real") {
+			std::cerr << "type: real.\n";
+			typeE = sort::realTy(efac);
+			valueE = mkTerm (mpq_class (xvalue), efac);
+		}
+		else
+			std::cerr << "error happens.\n";
+		Expr outE = mk<BIND>(valueE, typeE);
+		return outE;
+	}
+
+	std::list<Expr> modelToAttrValues(std::map<std::string, std::pair<std::string, std::string>> model, Expr pred) {
+		std::list<Expr> attr_values;
+		for(int i=0; i<bind::domainSz(bind::fname(pred)); i++)
+		{
+			Expr arg_i = pred->arg(i+1);
+			std::string name = arg_i->to_string();
+			Expr arg_i_value;
+			if (model.count(name))
+				arg_i_value = constructExprFromTypeValueMap(model[name], arg_i->efac());
+			else
+				arg_i_value = getUnknownAttrValue(arg_i);
+			attr_values.push_back(arg_i_value);
+		}
+		return attr_values;
+	}
+
+
 	// bool ICE::callExternalZ3ToSolve(std::string smt2str)
 	boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
 	{
+		std::cout << bblue << "[Experimental] call external Z3 to solve constraint" << normal << "\n";
 		std::ostringstream oss;
 		solver.toSmtLib(oss);
 		std::string smt2_to_solve = oss.str() + "\n(get-model)";
+		std::cout << oss.str();
 		errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
 		std::ofstream smt_of(m_C5filename + ".smt2");
 		smt_of << smt2_to_solve;
@@ -1360,7 +1445,7 @@ static ExprVector empty;
 		std::string command = Z3ExecPath + " " 
 				+ m_C5filename + ".smt2" + " "
 				+ "-T:2 "; // set timeout to 2s
-		m_z3_model = "";
+		m_z3_model_str = "";
 		std::string model = "";
 
 		LOG("ice", errs() << bblue << "Call Z3 externally: " << command << normal << "\n");
@@ -1388,21 +1473,66 @@ static ExprVector empty;
 		if (model.find("unsat") == -1) {
 			// sat
 			m_z3_sat = true;
+			/*
 			std::ofstream sat_of(m_C5filename + ".sat.smt2");
 			sat_of << smt2_to_solve;
 			sat_of.close();
+			*/
 			int start = model.find("\n") + 1;
 			model = model.substr(start);
-			m_z3_model = model;
-			LOGDP("ice", errs() << "SAT\nmodel: " << green << model << normal << "\n");
+			m_z3_model_str = model;
+			LOGDP("ice", errs() << "SAT\n");
+			LOGLINE("ice", errs() << "model: " << green << model << normal << "\n");
 		} else {
 			m_z3_sat = false;
+			/*
 			std::ofstream sat_of(m_C5filename + ".unsat.smt2");
 			sat_of << smt2_to_solve;
 			sat_of.close();
+			*/
 			LOGDP("ice", errs() << "UNSAT\n");
 		}
 		return m_z3_sat;
+	}
+
+	bool ICE::parseModelFromString(std::string model_str) {
+		std::cout << "---> [call parseModelFromString]\n";
+#include <algorithm>
+		std::replace(model_str.begin(), model_str.end(), '\n', ' ');
+		std::replace(model_str.begin(), model_str.end(), '\t', ' ');
+		m_z3_model.clear();
+		int start = 0, next = 0, end = 0;
+		next = model_str.find("(define-fun ", 0);
+		// std::map<std::string, std::pair<std::string, std::string>> model;
+		while (next != -1) {
+			start = next;
+			next = model_str.find("(define-fun ", start+1);
+			if (next == -1)
+				end = model_str.length() - 1;
+			else
+				end = model_str.rfind(")", next);
+			// the current item is located as [start, end] "(define-fun " is 12 bit
+			std::string item = model_str.substr(start, end+1-start);
+			std::cout << "---> [" << item << "]\n";
+			int vname_start = 12;
+			int vname_end = item.find(" ", vname_start);
+			std::string vname = item.substr(vname_start, vname_end-vname_start);
+			int vtype_start = item.find("() ", vname_end) + 3;
+			int vtype_end = item.find(" ", vtype_start);
+			if (item[vtype_start] == '(')
+				vtype_end = item.find(")", vtype_start) + 1;
+			std::string vtype = item.substr(vtype_start, vtype_end-vtype_start);
+			int vval_start = item.find_first_not_of(" ", vtype_end);
+			int vval_end = item.find(")", vval_start);
+			std::string vval = item.substr(vval_start, vval_end-vval_start);
+			std::pair<std::string, std::string> type_value = {vtype, vval};
+			// model[vname] = type_value;
+			m_z3_model[vname] = type_value;
+			std::cout << bblue << "name: " << normal << vname << bblue << " type:" << normal << vtype << bblue << " val:" << normal << vval << "\n";
+		}
+
+		std::cout << "<--- [return from parseModelFromString]\n";
+		return true;
 	}
 
 	bool ICE::generatePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run) {
@@ -1417,22 +1547,27 @@ static ExprVector empty;
 		solver.assertExpr(body_formula);
 		LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <-<- " << *body_formula << "\n");
 
-		/*
-		std::ostringstream oss;
-		solver.toSmtLib(oss);
-		bool res = callExternalZ3ToSolve(oss.str());
-		*/
-		boost::tribool res = callExternalZ3ToSolve(solver);
 		// solver.toSmtLib(errs());
+#if USE_EXTERNAL 
+		boost::tribool result = callExternalZ3ToSolve(solver);
+#else
 		boost::tribool result = solver.solve();
-		if(result != UNSAT)
+#endif
+		if(result != UNSAT) 
 		{
-			LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
+			LOGLINE("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 			//get cex
+#if USE_EXTERNAL 
+			parseModelFromString(m_z3_model_str);
+			for (auto &variable: m_z3_model) {
+				std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
+					<< bblue << " val:" << normal << variable.second.second << "\n";
+			}
+			std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
+#else
 			ZModel<EZ3> m = solver.getModel();
-
-			//add counterexample
 			std::list<Expr> attr_values = modelToAttrValues(m, body_app);
+#endif
 
 			//print cex
 			LOG("ice", errs() << "("); 
@@ -1444,7 +1579,7 @@ static ExprVector empty;
 			addPosCex(pos_dp);
 			if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 			{
-				if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > /*50*/ICESVMFreqPos) { LOG("ice", errs() << "SVM based Hyperlane Learning!\n"); svmLearn (NULL); }
+				if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > /*50*/ICESVMFreqPos) { LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (NULL); }
 				if (!ICEICE) {
 					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
 								[pos_dp,body_app,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
@@ -1552,7 +1687,11 @@ static ExprVector empty;
 					Expr body_formula = extractRelation(r, db, NULL, NULL);
 					LOGIT ("ice", errs() << "Verification condition: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula <<normal <<  "\n");
 					solver.assertExpr(body_formula);
+#if USE_EXTERNAL
+					boost::tribool result = callExternalZ3ToSolve(solver);
+#else
 					boost::tribool result = solver.solve();
+#endif
 					if(result != UNSAT) {
 						outs()<<"Program is buggy.\n";
 						// TO FIX
@@ -1647,57 +1786,63 @@ static ExprVector empty;
 						// errs() << red << solver << "\n"
 
 						// solver.toSmtLib(errs());
-						/*
-						std::ostringstream oss;
-						solver.toSmtLib(oss);
-						std::string z3model;
-						bool res = callExternalZ3ToSolve(oss.str(), z3model);
-						*/
 						boost::tribool res = callExternalZ3ToSolve(solver);
+						if(res != UNSAT) {
+							parseModelFromString(m_z3_model_str);
+							for (auto &variable: m_z3_model) {
+								std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
+									<< bblue << " val:" << normal << variable.second.second << "\n";
+							}
+						}
+#if USE_EXTERNAL
+						boost::tribool result = callExternalZ3ToSolve(solver);
+#else
 						boost::tribool result = solver.solve();
+#endif
 						if (result == UNSAT)
 							LOGLINE("ice", errs() << bold << red << "solving result: UNSAT\n" << normal);
 						else
 							LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
-						if(result != UNSAT)
+						if(result != UNSAT) 
 						{
-							LOGLINE("ice", errs() << "SAT, NEED TO ADD The Counterexample\n");
+							LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 							upd = true; isChanged = true;
-							//get cex
+#if USE_EXTERNAL
+							errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
+							parseModelFromString(m_z3_model_str);
+#else
 							ZModel<EZ3> m = solver.getModel();
 							errs() << "z3 original model: \n" << cyan << m << normal << "\n";
-							errs() << "get counter-example: \n";
-							int i = 0;
+#endif
 							std::set<DataPoint> negPoints;
+							//get cex
+							errs() << "get counter-example: \n";
+							/*
+							for (auto &variable: m_z3_model) {
+								std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
+									<< bblue << " val:" << normal << variable.second.second << "\n";
+							}
+							*/
+
 							//print cex
 							for (Expr body_app : body_pred_apps) {
-								i++;
 								if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
 									continue;
 
 								errs() << "{BODY}" << bgray << "[" << *body_app << "]" << normal << bred << bold << "(";
-								for(int i=0; i<bind::domainSz(bind::fname(body_app)); i++) { 
-									Expr arg_i = body_app->arg(i+1); 
-									Expr arg_i_value = m.eval(arg_i); 
-									errs() << *arg_i_value << ","; 
-								} 
-								errs() << ") " << normal;
-
 								// Presumbaly add counterexample
+#if USE_EXTERNAL
+								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
+#else
 								std::list<Expr> attr_values = modelToAttrValues(m, body_app);
+#endif
 								/*
-									std::list<Expr> modelToAttrValues(ZModel<EZ3> model, Expr pred)
-									{
-										std::list<Expr> attr_values;
-										for(int i=0; i<bind::domainSz(bind::fname(pred)); i++)
-										{
-											Expr arg_i = pred->arg(i+1);
-											Expr arg_i_value = model.eval(arg_i);
-											arg_i_value = regulateAttrValue(arg_i_value);
-											attr_values.push_back(arg_i_value);
-										}
-										return attr_values;
-									}
+								for (auto attr_val: attr_values) {
+									std::cout << bold << yellow << attr_val << normal << "\n";
+									std::cout << " |-operator: " << attr_val->op() << "\n";
+									for (int i = 0; i < attr_val->arity(); i++)
+										std::cout << "  |-args[" << i << "] = " << attr_val->arg(i) << "\n";
+								}
 								*/
 
 								// If the counterexample is already labeled positive;
@@ -1706,6 +1851,7 @@ static ExprVector empty;
 								negPoints.insert(neg_dp);
 							}
 
+							/*
 							errs() << " --> {HEAD}" << bgray << "[" << *r_head << "]" << normal << bred << bold << "(";
 							for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) { 
 								Expr arg_i = r_head->arg(i+1); 
@@ -1713,6 +1859,7 @@ static ExprVector empty;
 								errs() << *arg_i_value << ","; 
 							} 
 							errs() << ")" << normal << "\n";
+							*/
 
 							errs() << bold << green << "negPoints: " << yellow; for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp) << ", "; } errs() << "\n" << normal;
 							outputDataSetInfo();
@@ -1764,7 +1911,11 @@ static ExprVector empty;
 								// should be implication! Both sides contains predicates.
 								errs() << bold << "Should be usually here!: \n" << normal;
 								errs() << "get head cex: \n";
+#if USE_EXTERNAL
+								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, r_head);
+#else
 								std::list<Expr> attr_values = modelToAttrValues(m, r_head);
+#endif
 								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 
 								int orig_size = m_pos_data_set.size();
@@ -1837,7 +1988,11 @@ static ExprVector empty;
 								if (ICEICE && !surebad && negPoints.size() == 1) {
 									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option1, IMPLICATION %%%%%%%%%%%%%\n");
 									// Add Implication samples.
+#if USE_EXTERNAL
+									std::list<Expr> attr_values = modelToAttrValues(m_z3_model, r_head);
+#else
 									std::list<Expr> attr_values = modelToAttrValues(m, r_head);
+#endif
 									DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 									for (DataPoint neg_dp : negPoints) {
 										if (neg_dp.getPredName() != pos_dp.getPredName()) { errs() << "ICE learning is not suitable for this program.\n"; exit (-3); }
@@ -2072,7 +2227,12 @@ static ExprVector empty;
 		//solver.toSmtLib(outs());
 
 		int iteri = 0;
+#if USE_EXTERNAL
+		boost::tribool isSat = callExternalZ3ToSolve(solver);
+#else
 		boost::tribool isSat = solver.solve();
+#endif
+		// boost::tribool isSat = solver.solve();
 		while(isSat)
 		{
 			if(bind::domainSz(bind::fname(r.head())) == 0)
@@ -2190,7 +2350,11 @@ static ExprVector empty;
 			else { break; }// There is nothing to be re-sampled ?
 
 			solver.assertExpr(notagain);
+#if USE_EXTERNAL
+			isSat = callExternalZ3ToSolve(solver);
+#else
 			isSat = solver.solve();
+#endif
 		}
 		return true;
 	}

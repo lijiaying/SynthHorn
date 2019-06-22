@@ -49,6 +49,7 @@
 #include <boost/pool/pool.hpp>
 #include <boost/pool/pool_alloc.hpp>
 #include <boost/lexical_cast.hpp>
+#include <boost/core/demangle.hpp>
 
 #define mk_it_range boost::make_iterator_range
 
@@ -200,6 +201,22 @@ namespace expr
 			const Operator& op () const { return *oper; } 
 			void Print (std::ostream &OS, int depth = 0, bool brkt = true) const 
 			{ oper->Print (OS, args, depth, brkt); }
+
+			std::string to_string() const {
+			    std::ostringstream oss;
+			    this->Print(oss);
+			    return oss.str();
+			}
+//			void inspect() const {
+//			    // #define TYPE(X) boost::core::demangle(typeid(X).name())
+//			    std::cout << "Expr: "; this->Print(std::cout); std::cout << "\n";
+//			    std::cout << "  |- type: " << boost::core::demangle(typeid(*this).name()) << "\n";
+//			    std::cout << "  |- args_num: " << args.size() << "\n";
+//			    for (auto arg: args) {
+//			        std::cout << "   |-> ";
+//			        arg->Print(std::cout);
+//			        std::cout << " type:" << boost::core::demangle(typeid(*arg).name()) << "\n";
+//			}
 
 			friend struct LessENode;
 			friend class ExprFactory;
