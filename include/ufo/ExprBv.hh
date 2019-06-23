@@ -198,6 +198,7 @@ namespace expr
 			inline bool isBvVar (Expr v) { return isVar<BVSORT>(v); }
 
 			inline unsigned getWidth(Expr v) {
+				return 32;
 				// std::cout << thebold << thered << " getWidth: {" << *v << "} type: " << TYPE(*v) << " ------------------\n" << thenormal;
 				Expr s = v;
 				if (isBvConst(v)) {

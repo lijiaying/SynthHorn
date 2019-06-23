@@ -1796,6 +1796,8 @@ static ExprVector empty;
 						}
 #if USE_EXTERNAL
 						boost::tribool result = callExternalZ3ToSolve(solver);
+						// parseModelFromString(m_z3_model_str);
+						// std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
 #else
 						boost::tribool result = solver.solve();
 #endif
@@ -2249,19 +2251,47 @@ static ExprVector empty;
 				return false;
 			}
 
+#if USE_EXTERNAL
+			parseModelFromString(m_z3_model_str);
+			// std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
+#else
 			ZModel<EZ3> model = solver.getModel();
+#endif
 			ExprVector equations;
 
 			std::list<Expr> attr_values;
 			ExprVector abstractEquations; // Do not assgin concrete values to uncertainties.
+
 			for(int i=0; i<=bind::domainSz(r.head()); i++)
 			{
 				Expr var = bind::domainTy(r.head(), i);
+				bool isAbstract = false; // exist in the model
+#if !USE_EXTERNAL
 				Expr value = model.eval(var);
-
-				if(bind::isBoolConst(value)) { Expr uncertain_value = mk<FALSE>(value->efac()); value = uncertain_value; }
-				else if(bind::isIntConst(value)) { Expr uncertain_value = mkTerm<mpz_class>(0, value->efac()); value = uncertain_value; } 
-				else { abstractEquations.push_back(mk<NEQ>(var, value)); }
+				{ // for alignment
+					if(bind::isBoolConst(value)) { Expr uncertain_value = mk<FALSE>(value->efac()); value = uncertain_value; }
+					else if(bind::isIntConst(value)) { Expr uncertain_value = mkTerm<mpz_class>(0, value->efac()); value = uncertain_value; } 
+					else if(bind::isBvConst(value)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(value), value->efac()); value = uncertain_value; }
+					else { isAbstract = true; }
+				}
+#else
+				Expr value;
+				std::string name = var->to_string();
+				if (m_z3_model.count(name)) {
+					value = constructExprFromTypeValueMap(m_z3_model[name], var->efac());
+					isAbstract = true;
+				}
+				else // uncertain value
+				{
+					// arg_i_value = getUnknownAttrValue(arg_i);
+					if(bind::isBoolConst(var)) { Expr uncertain_value = mk<FALSE>(var->efac()); value = uncertain_value; }
+					else if(bind::isIntConst(var)) { Expr uncertain_value = mkTerm<mpz_class>(0, var->efac()); value = uncertain_value; } 
+					else if(bind::isBvConst(var)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(var), var->efac()); value = uncertain_value; }
+				}
+#endif
+				if (isAbstract) {
+					abstractEquations.push_back(mk<NEQ>(var, value));
+				}
 
 				LOG("ice", errs() << "VAR: " << *var << "\n");
 				LOG("ice", errs() << "VALUE: " << *value << "\n");
@@ -2270,6 +2300,7 @@ static ExprVector empty;
 				//convert true/false to 1/0 in C5 data point
 				if(isOpX<TRUE>(value)) { value = mkTerm<mpz_class>(1, value->efac()); }
 				else if(isOpX<FALSE>(value)) { value = mkTerm<mpz_class>(0, value->efac()); }
+
 				attr_values.push_back(value);
 			}
 			Expr state_assignment;
