@@ -552,7 +552,7 @@ namespace ufo
 							case Z3_INT_SORT:
 								return mkTerm (mpz_class (snum), efac);
 							case Z3_BV_SORT:
-								std::cout << "@@@@@@@[" << snum << "]\n";
+								// std::cout << "@@@@@@@[" << snum << "]\n";
 								return bv::bvnum (mpz_class (snum), 
 										Z3_get_bv_sort_size (ctx, sort), efac);
 							default:

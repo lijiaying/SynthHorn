@@ -139,7 +139,7 @@ static ExprVector empty;
 		}
 		errs() << "======================================================\n";
 		std::ofstream ofs(ICEInvDump.c_str());
-		solver.toSmtLib(errs());
+		// solver.toSmtLib(errs());
 		solver.toSmtLib(ofs);
 	}
 
@@ -1387,13 +1387,13 @@ static ExprVector empty;
 					valueE = mk<FALSE> (efac);
 		}
 		else if (xtype == "(_ BitVec 32)") {
-			std::cerr << "type: bv32. value: " << xvalue << "\n";
+			// std::cerr << "type: bv32. value: " << xvalue << "\n";
 			int length = xvalue.length();
-			std::cerr << "1truncted: " << xvalue.substr(2, length-2) << ".\n";
+			// std::cerr << "1truncted: " << xvalue.substr(2, length-2) << ".\n";
 			int xint = std::stoul(xvalue.substr(2, length-2), nullptr, 16);
-			std::cerr << "2converted: " << xint << ".\n";
+			// std::cerr << "2converted: " << xint << ".\n";
 			valueE = mkTerm (mpq_class (std::to_string(xint)), efac);
-			std::cerr << "3converted: " << xint << ".\n";
+			// std::cerr << "3converted: " << xint << ".\n";
 			typeE = bv::bvsort(32, efac);
 		}
 		else if (xtype == "Int") {
@@ -1402,7 +1402,7 @@ static ExprVector empty;
 			valueE = mkTerm (mpq_class (xvalue), efac);
 		}
 		else if (xtype == "Real") {
-			std::cerr << "type: real.\n";
+			// std::cerr << "type: real.\n";
 			typeE = sort::realTy(efac);
 			valueE = mkTerm (mpq_class (xvalue), efac);
 		}
@@ -1436,8 +1436,8 @@ static ExprVector empty;
 		std::ostringstream oss;
 		solver.toSmtLib(oss);
 		std::string smt2_to_solve = oss.str() + "\n(get-model)";
-		std::cout << oss.str();
-		errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
+		// std::cout << oss.str();
+		// errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
 		std::ofstream smt_of(m_C5filename + ".smt2");
 		smt_of << smt2_to_solve;
 		smt_of.close();
@@ -1462,7 +1462,7 @@ static ExprVector empty;
         // std::cout << "Reading..." << std::endl;
         model += buffer;
     }
-		std::cout << red << model << normal << "\n";
+		// std::cout << red << model << normal << "\n";
     auto returnCode = pclose(fp);
 		if (returnCode == 0) {
 			LOGLINE("ice", errs() << "RET 0 : SUCCESS\n");
@@ -1482,7 +1482,7 @@ static ExprVector empty;
 			model = model.substr(start);
 			m_z3_model_str = model;
 			LOGDP("ice", errs() << "SAT\n");
-			LOGLINE("ice", errs() << "model: " << green << model << normal << "\n");
+			// LOGLINE("ice", errs() << "model: " << green << model << normal << "\n");
 		} else {
 			m_z3_sat = false;
 			/*
@@ -1496,7 +1496,7 @@ static ExprVector empty;
 	}
 
 	bool ICE::parseModelFromString(std::string model_str) {
-		std::cout << "---> [call parseModelFromString]\n";
+		// std::cout << "---> [call parseModelFromString]\n";
 #include <algorithm>
 		std::replace(model_str.begin(), model_str.end(), '\n', ' ');
 		std::replace(model_str.begin(), model_str.end(), '\t', ' ');
@@ -1513,7 +1513,7 @@ static ExprVector empty;
 				end = model_str.rfind(")", next);
 			// the current item is located as [start, end] "(define-fun " is 12 bit
 			std::string item = model_str.substr(start, end+1-start);
-			std::cout << "---> [" << item << "]\n";
+			// std::cout << "---> [" << item << "]\n";
 			int vname_start = 12;
 			int vname_end = item.find(" ", vname_start);
 			std::string vname = item.substr(vname_start, vname_end-vname_start);
@@ -1528,10 +1528,10 @@ static ExprVector empty;
 			std::pair<std::string, std::string> type_value = {vtype, vval};
 			// model[vname] = type_value;
 			m_z3_model[vname] = type_value;
-			std::cout << bblue << "name: " << normal << vname << bblue << " type:" << normal << vtype << bblue << " val:" << normal << vval << "\n";
+			// std::cout << bblue << "name: " << normal << vname << bblue << " type:" << normal << vtype << bblue << " val:" << normal << vval << "\n";
 		}
 
-		std::cout << "<--- [return from parseModelFromString]\n";
+		// std::cout << "<--- [return from parseModelFromString]\n";
 		return true;
 	}
 
@@ -1559,10 +1559,12 @@ static ExprVector empty;
 			//get cex
 #if USE_EXTERNAL 
 			parseModelFromString(m_z3_model_str);
+			/*
 			for (auto &variable: m_z3_model) {
 				std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
 					<< bblue << " val:" << normal << variable.second.second << "\n";
 			}
+			*/
 			std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
 #else
 			ZModel<EZ3> m = solver.getModel();
@@ -1810,11 +1812,11 @@ static ExprVector empty;
 							LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 							upd = true; isChanged = true;
 #if USE_EXTERNAL
-							errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
+							// errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
 							parseModelFromString(m_z3_model_str);
 #else
 							ZModel<EZ3> m = solver.getModel();
-							errs() << "z3 original model: \n" << cyan << m << normal << "\n";
+							// errs() << "z3 original model: \n" << cyan << m << normal << "\n";
 #endif
 							std::set<DataPoint> negPoints;
 							//get cex
