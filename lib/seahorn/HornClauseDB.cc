@@ -156,10 +156,10 @@ namespace seahorn
     { oss << gray << p << "\n" << normal; }
     oss << green << "===== Clauses: ====\n;" << normal;
     for (auto &r : m_rules)
-    { oss << gray << r.head () << " <- " << r.body () << ".\n"; }
+    { oss << bmag << r.head () << normal << "\n <- \n" << gray << r.body () << normal << "\n---------------------------\n"; }
     oss << green << "==== Queries: ====\n;" << normal;
     for (auto &q : m_queries)
-    { oss << gray << q << "\n"; }
+    { oss << red << q << "\n---------------------------\n"; }
 #else
     oss << "===== Predicates: ====\n;";
     for (auto &p : m_rels)

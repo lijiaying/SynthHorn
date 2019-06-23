@@ -27,8 +27,6 @@
 #include <chrono>
 #include <ctime>
 
-#define USE_EXTERNAL 1
-// #define USE_EXTERNAL 0
 
 using namespace llvm;
 
@@ -50,6 +48,8 @@ static llvm::cl::opt<unsigned> ICELocalStrengthen("horn-ice-local-strengthening"
 static llvm::cl::opt<unsigned> ICEOct("horn-ice-oct", cl::Hidden, cl::init(1));
 static llvm::cl::opt<unsigned> ICEICE("horn-ice-ice", cl::Hidden, cl::init(0));
 
+#define USE_EXTERNAL 1
+// #define USE_EXTERNAL 0
 
 namespace seahorn
 {
@@ -552,7 +552,6 @@ static ExprVector empty;
 		names_of << "invariant: true, false.\n";
 		names_of.close();
 		intervals_of.close();
-// 
 		outputFileContent(m_C5filename + ".names");
 		outputFileContent(m_C5filename + ".intervals");
 	}
@@ -567,7 +566,7 @@ static ExprVector empty;
 
 	void ICE::C5learn(ExprVector targets)
 	{
-		errs() << "before C5Learn\n" << cyan << m_candidate_model << "\n" << normal;
+		// errs() << "before C5Learn\n" << cyan << m_candidate_model << "\n" << normal;
 		errs() << bblue << "-------------------------C5Learn--------------------------" << normal << "\n";
 		for (int i = 0; i < targets.size(); i++)
 			errs() << "target " << i << " : "<< bblue << *targets[i] << normal << "\n";
@@ -590,19 +589,19 @@ static ExprVector empty;
 		std::ifstream if_json(m_C5filename + ".json");
 		std::ostringstream json_buf; char ch; while(json_buf && if_json.get(ch)) { json_buf.put(ch); } if_json.close();
 		std::string json_string =  json_buf.str();
-		errs() << "json: \n" << cyan << json_string << "\n" << normal;
+		// errs() << "json: \n" << cyan << json_string << "\n" << normal;
 
-		LOGLINE("ice", errs() << " >>> convert json to ptree: \n");
+		// LOGLINE("ice", errs() << " >>> convert json to ptree: \n");
 		boost::property_tree::ptree pt;
 		std::stringstream ss(json_string);
 		try { boost::property_tree::json_parser::read_json(ss, pt); }
 		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n"); return; }
-		LOGLINE("ice", errs() << " <<< convert json to ptree (structued json format): \n" << mag << ptreeToString(pt) << "\n");
+		// LOG("ice", errs() << " <<< convert json to ptree (structued json format): \n" << mag << ptreeToString(pt) << "\n");
 
 		//parse ptree to invariant format
-		LOGLINE("ice", errs() << " >>> convert ptree to inv. \n");
+		// LOGLINE("ice", errs() << " >>> convert ptree to inv. \n");
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
-		LOGLINE("ice", errs() << " <<< convert ptree to inv. \n");
+		// LOGLINE("ice", errs() << " <<< convert ptree to inv. \n");
 		auto &db = m_hm.getHornClauseDB();
 
 		//Fixme: enforce to prove all queries are unsat.
@@ -624,6 +623,7 @@ static ExprVector empty;
 		*/
 	}
 	void ICE::outputDataSetInfo() {
+		return;
 		LOGIT("x", errs() << bgreen << "|-- POS DATA SET ------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << bgreen << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
 		LOGIT("x", errs() << bgreen << "|-- POS DATA SET done --" << normal << "\n");
@@ -651,9 +651,11 @@ static ExprVector empty;
 				if (Bounded) {
 					int start1, start2 = dpstr.find(":bv");
 					int end1, end2;
+					/*
 					if (start2 != std::string::npos) {
 						errs() << "datapoint: " << dpstr << blue << " bvdata >> convert to integer format >> " << normal;
 					}
+					*/
 					while (start2 != std::string::npos) {
 						end2 = dpstr.find(")", start2);
 						end2 = dpstr.find(")", end2)+1;
@@ -673,7 +675,7 @@ static ExprVector empty;
 						start2 = dpstr.find(":bv");
 					}
 				}
-				errs () << "datapoint: " << dpstr << "\n";
+				// errs () << "datapoint: " << dpstr << "\n";
 				data_of << dpstr << "," << label << "\n";
 				// data_of << DataPointToStr(targets, *it, true) << "," << label << "\n";
 				LOG("ice", errs() << DataPointToStr(targets, *it) << "," << label << "\n");
@@ -817,7 +819,7 @@ static ExprVector empty;
 	{
 		Expr decision_expr;
 		std::list<std::list<Expr>> final_formula;
-		LOGIT("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
+		LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
 		if (Bounded) {
 			LOGIT("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal);
 		} else {
@@ -1070,6 +1072,7 @@ static ExprVector empty;
 			}
 		}
 
+		/*
 		LOGLINE("ice", errs() << " -> Unknowns: \n");
 		for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
 			LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
@@ -1079,6 +1082,7 @@ static ExprVector empty;
 			LOGIT("ice", errs() << ">\n");
 		}
 		LOGLINE("ice", errs() << "<<< Unknown search done.\n");
+		*/
 	}
 
 	// Collect integers in the rules ...
@@ -1189,7 +1193,7 @@ static ExprVector empty;
 			}
 		}
 		// errs() << "<<<< invalidate queries \n";
-		errs() << bold << cyan << m_candidate_model << "\n" << normal;
+		// errs() << bold << cyan << m_candidate_model << "\n" << normal;
 	}
 
 	// Match wheter an example corresponds to a fact.
@@ -1379,12 +1383,13 @@ static ExprVector empty;
 		std::string xtype = x.first;
 		std::string xvalue = x.second;
 		if (xtype == "Bool") {
-			std::cerr << "type: bool.\n";
+			// std::cerr << "type: bool.\n";
 			typeE = sort::boolTy(efac);
 			if (xvalue == "true")
 					valueE = mk<TRUE> (efac);
 			else if (xvalue == "false")
 					valueE = mk<FALSE> (efac);
+			return valueE;
 		}
 		else if (xtype == "(_ BitVec 32)") {
 			// std::cerr << "type: bv32. value: " << xvalue << "\n";
@@ -1392,19 +1397,22 @@ static ExprVector empty;
 			// std::cerr << "1truncted: " << xvalue.substr(2, length-2) << ".\n";
 			int xint = std::stoul(xvalue.substr(2, length-2), nullptr, 16);
 			// std::cerr << "2converted: " << xint << ".\n";
-			valueE = mkTerm (mpq_class (std::to_string(xint)), efac);
+			valueE = mkTerm (mpz_class (std::to_string(xint)), efac);
 			// std::cerr << "3converted: " << xint << ".\n";
 			typeE = bv::bvsort(32, efac);
+			// return valueE;
 		}
 		else if (xtype == "Int") {
-			std::cerr << "type: int.\n";
+			// std::cerr << "type: int.\n";
 			typeE = sort::intTy(efac);
-			valueE = mkTerm (mpq_class (xvalue), efac);
+			valueE = mkTerm (mpz_class (xvalue), efac);
+			return valueE;
 		}
 		else if (xtype == "Real") {
 			// std::cerr << "type: real.\n";
 			typeE = sort::realTy(efac);
 			valueE = mkTerm (mpq_class (xvalue), efac);
+			return valueE;
 		}
 		else
 			std::cerr << "error happens.\n";
@@ -1464,11 +1472,13 @@ static ExprVector empty;
     }
 		// std::cout << red << model << normal << "\n";
     auto returnCode = pclose(fp);
+		/*
 		if (returnCode == 0) {
 			LOGLINE("ice", errs() << "RET 0 : SUCCESS\n");
 		} else {
 			LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n");
 		}
+		*/
 
 		if (model.find("unsat") == -1) {
 			// sat
@@ -1525,6 +1535,12 @@ static ExprVector empty;
 			int vval_start = item.find_first_not_of(" ", vtype_end);
 			int vval_end = item.find(")", vval_start);
 			std::string vval = item.substr(vval_start, vval_end-vval_start);
+			if (vval[0] == '(') {
+				// to handle the negative integer case
+				vval = vval.substr(1, vval.length()-1);
+				vval.erase(std::remove_if(vval.begin(), vval.end(), ::isspace), vval.end());
+			}
+
 			std::pair<std::string, std::string> type_value = {vtype, vval};
 			// model[vname] = type_value;
 			m_z3_model[vname] = type_value;
@@ -1734,11 +1750,11 @@ static ExprVector empty;
 							// Which predicates will be changed in this iteration of solving.
 							ExprVector changedPreds;
 							// FixMe. Bad Code.
-							//if (SVMExecPath.compare("") == 0) {
 							Expr e = bind::fname(*(db.getRelations().begin()));
 							changedPreds.push_back (e);
+							//if (SVMExecPath.compare("") == 0) {
 							// changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-							LOGLINE("ice", errs() << lred << bold << " 1. add to changed Pred: " << *e << "\n" << normal);
+							// LOGLINE("ice", errs() << lred << bold << " 1. add to changed Pred: " << *e << "\n" << normal);
 							//}
 							e = bind::fname(bind::fname(r.head()));
 							changedPreds.push_back(e);
@@ -1788,6 +1804,7 @@ static ExprVector empty;
 						// errs() << red << solver << "\n"
 
 						// solver.toSmtLib(errs());
+						/*
 						boost::tribool res = callExternalZ3ToSolve(solver);
 						if(res != UNSAT) {
 							parseModelFromString(m_z3_model_str);
@@ -1796,6 +1813,7 @@ static ExprVector empty;
 									<< bblue << " val:" << normal << variable.second.second << "\n";
 							}
 						}
+						*/
 #if USE_EXTERNAL
 						boost::tribool result = callExternalZ3ToSolve(solver);
 						// parseModelFromString(m_z3_model_str);
@@ -1833,7 +1851,7 @@ static ExprVector empty;
 								if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
 									continue;
 
-								errs() << "{BODY}" << bgray << "[" << *body_app << "]" << normal << bred << bold << "(";
+								errs() << "{BODY}" << bgray << "[" << *body_app << "]" << normal;
 								// Presumbaly add counterexample
 #if USE_EXTERNAL
 								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
@@ -1841,6 +1859,7 @@ static ExprVector empty;
 								std::list<Expr> attr_values = modelToAttrValues(m, body_app);
 #endif
 								/*
+								errs() << bred << bold << "(";
 								for (auto attr_val: attr_values) {
 									std::cout << bold << yellow << attr_val << normal << "\n";
 									std::cout << " |-operator: " << attr_val->op() << "\n";
@@ -1855,32 +1874,14 @@ static ExprVector empty;
 								negPoints.insert(neg_dp);
 							}
 
-							/*
-							errs() << " --> {HEAD}" << bgray << "[" << *r_head << "]" << normal << bred << bold << "(";
-							for(int i=0; i<bind::domainSz(bind::fname(r_head)); i++) { 
-								Expr arg_i = r_head->arg(i+1); 
-								Expr arg_i_value = m.eval(arg_i); 
-								errs() << *arg_i_value << ","; 
-							} 
-							errs() << ")" << normal << "\n";
-							*/
-
-							errs() << bold << green << "negPoints: " << yellow; for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp) << ", "; } errs() << "\n" << normal;
+							errs() << bold << green << "negPoints: " << yellow; 
+							for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp) << ", "; } 
+							errs() << "\n" << normal;
 							outputDataSetInfo();
-							// errs() << bold << green << "m_pos_data_set: " << yellow; for (DataPoint dp : m_pos_data_set) { errs() << DataPointToStr(empty, dp) << ", "; } errs() << "\n" << normal;
 
 							bool foundPos = true;
 							for (DataPoint neg_dp : negPoints) {
-								errs() << red << " search datapoint: " << DataPointToStr(empty, neg_dp) << " in m_pos_data_set: \n" << normal;
-								/*
-								auto searched = m_pos_data_set.find(neg_dp);
-								if (searched != m_pos_data_set.end() || matchFacts (db, neg_dp)) { 
-									if (searched != m_pos_data_set.end()) errs() << " result: Found \n";
-									if (matchFacts (db, neg_dp)) errs() << " result: matchFact\n";
-									// Found it in positive samples!  
-									// foundPos = true;
-								} 
-								*/
+								errs() << " search datapoint: " << red << DataPointToStr(empty, neg_dp) << normal << " in m_pos_data_set: \n";
 								if (m_pos_data_set.find(neg_dp) == m_pos_data_set.end()) 
 								{ 
 									errs() << " result: not Found \n";
@@ -1901,11 +1902,6 @@ static ExprVector empty;
 									std::list<int> preIndices;
 									for (DataPoint neg_dp : negPoints) {
 										preIndices.push_back(m_pos_index_map[neg_dp]);
-										/* auto searched = m_pos_data_set.find(neg_dp);
-										if (searched != m_pos_data_set.end()) {
-											preIndices.push_back(m_pos_index_map[neg_dp]);
-										}
-										*/
 									}
 									postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 									LOGLINE("ice", errs() << lred << bold << "=======<<< Constraint Solving of Horn Clauses \n" << normal);
@@ -1920,18 +1916,15 @@ static ExprVector empty;
 #else
 								std::list<Expr> attr_values = modelToAttrValues(m, r_head);
 #endif
+								for (auto e : attr_values)
+									errs() << mag << *e << normal << "\n";
 								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
+								errs() << " ___pos_beg___\n" << DataPointToStr(empty, pos_dp) << "\n ___pos_end___\n";
 
 								int orig_size = m_pos_data_set.size();
 								addPosCex(pos_dp);
 								if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 								{
-									/*
-									if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > ICESVMFreqPos) { // 50
-										LOG("ice", errs() << "SVM based Hyperlane Learning!\n");
-										svmLearn (NULL);
-									}
-									*/
 									if (!ICEICE) {
 										m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();}), m_cex_list.end());
 
@@ -1972,7 +1965,6 @@ static ExprVector empty;
 
 									Expr e = pos_dp.getPredName();
 									changedPreds.push_back (e); // e is head
-									// changedPreds.push_back(pos_dp.getPredName());
 									LOGLINE("ice", errs() << lred << bold << " 3.1. add to changed Pred: " << *e << "\n" << normal);
 								}
 								else //it is a duplicate data point

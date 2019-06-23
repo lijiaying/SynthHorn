@@ -877,10 +877,10 @@ namespace expr
 						end = args.end (); it != end; ++it)
 				{
 					// org 
-					// OS << "\n";
-					// space (OS, depth + 2);
+					 OS << "\n";
+					 space (OS, depth + 2);
 					// added
-					OS << " ";
+//					OS << " ";
 					(*it)->Print (OS, depth + 2, false);
 				}
 
