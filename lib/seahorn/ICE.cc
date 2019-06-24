@@ -623,16 +623,12 @@ static ExprVector empty;
 		*/
 	}
 	void ICE::outputDataSetInfo() {
-		return;
-		LOGIT("x", errs() << bgreen << "|-- POS DATA SET ------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
-		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << bgreen << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << bgreen << "|-- POS DATA SET done --" << normal << "\n");
-		LOGIT("x", errs() << bred << "|-- NEG DATA SET ---" << yellow << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
-		for (auto dp: m_neg_data_set) { LOGIT("x", errs() << bred << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << bred << "|-- NEG DATA SET done --" << normal << "\n");
-		LOGIT("x", errs() << bblue << "|-- IMPL DATA SET ---" << yellow << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
-		for (auto dp: m_impl_pair_set) { LOGIT("x", errs() << bblue << "| " << DataPointToStr(empty, dp.first) << " -> " << DataPointToStr(empty, dp.second) << normal << "\n"); } 
-		LOGIT("x", errs() << bblue << "|-- IMPL DATA SET done --" << normal << "\n");
+		LOGIT("x", errs() << green << "|--------------------- POS DATA SET ------------------------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
+		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << green << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
+		LOGIT("x", errs() << red << "|---------------------  NEG DATA SET ----------------------" << yellow << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
+		for (auto dp: m_neg_data_set) { LOGIT("x", errs() << red << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
+		LOGIT("x", errs() << blue << "|---------------------  IMPL DATA SET ----------------------" << yellow << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
+		for (auto dp: m_impl_pair_set) { LOGIT("x", errs() << blue << "| " << DataPointToStr(empty, dp.first) << " -> " << DataPointToStr(empty, dp.second) << normal << "\n"); } 
 	}
 
 	void ICE::generateC5DataAndImplicationFiles(ExprVector targets)
@@ -819,7 +815,8 @@ static ExprVector empty;
 	{
 		Expr decision_expr;
 		std::list<std::list<Expr>> final_formula;
-		LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
+		auto &db = m_hm.getHornClauseDB();
+		LOGIT("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
 		if (Bounded) {
 			LOGIT("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal);
 		} else {
@@ -888,21 +885,23 @@ static ExprVector empty;
 
 				LOGIT("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>" << normal);
 
+				int cut = sub_pt.get<int>("cut");
+				Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
 				if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
 					LOGIT("ice", errs() << blue << "  --> bool const \n" << normal);
 					decision_expr = mk<NEG>(attr_expr);
-					int cut = sub_pt.get<int>("cut");
 					assert(cut == 0);
 				} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-					LOGIT("ice", errs() << blue << "  --> int const \n" << normal);
-					int cut = sub_pt.get<int>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
+					LOGIT("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
+					// Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
 					decision_expr = mk<LEQ>(attr_expr, threshold);
 				} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-					LOGIT("ice", errs() << blue << "  --> bv const \n" << normal);
-					int cut = sub_pt.get<int>("cut");
-					// int cut = (int)sub_pt.get<double>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
+					LOGIT("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
+					// Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
+					// Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
+					// Expr threshold = mkTerm<mpz_class>(cut, db.getExprFactory());
+					LOGIT("ice", errs() << "thredhold::" << *threshold << "\n");
+
 					attr_expr = mk<BV2INT>(attr_expr);
 					decision_expr = mk<LEQ>(attr_expr, threshold);
 				} else {
@@ -1120,7 +1119,7 @@ static ExprVector empty;
 	Expr ICE::extractRelation(HornRule r, HornClauseDB &db, Expr t, Expr s)
 	{
 		Expr ruleBody = r.body();
-		LOG("ice", errs() << "target hornrule: " << blue << *ruleBody << "\n" << normal);
+		LOGIT("ice", errs() << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
 		ExprVector body_pred_apps;
 		get_all_pred_apps(ruleBody, db, std::back_inserter(body_pred_apps));
 		// for (Expr p : body_pred_apps) LOG("ice", errs() << "filtered: " << *p << "\n");
@@ -1135,7 +1134,7 @@ static ExprVector empty;
 		}
 
 		Expr body_constraints = replace(ruleBody, body_map);
-		LOG("ice", errs() << "body constraint:  " << blue << *body_constraints << "\n" << normal);
+		LOGIT("ice", errs() << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
 		return body_constraints;
 	}
 
@@ -1440,11 +1439,11 @@ static ExprVector empty;
 	// bool ICE::callExternalZ3ToSolve(std::string smt2str)
 	boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
 	{
-		std::cout << bblue << "[Experimental] call external Z3 to solve constraint" << normal << "\n";
+		outs()  << bblue << "[Experimental] call external Z3 to solve constraint" << normal << "\n";
 		std::ostringstream oss;
 		solver.toSmtLib(oss);
 		std::string smt2_to_solve = oss.str() + "\n(get-model)";
-		// std::cout << oss.str();
+		// outs()  << oss.str();
 		// errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
 		std::ofstream smt_of(m_C5filename + ".smt2");
 		smt_of << smt2_to_solve;
@@ -1467,10 +1466,10 @@ static ExprVector empty;
 
 		char buffer[1024];
 		while (fgets(buffer, 1024, fp) != NULL) {
-        // std::cout << "Reading..." << std::endl;
+        // outs()  << "Reading..." << std::endl;
         model += buffer;
     }
-		// std::cout << red << model << normal << "\n";
+		// outs()  << red << model << normal << "\n";
     auto returnCode = pclose(fp);
 		/*
 		if (returnCode == 0) {
@@ -1506,7 +1505,7 @@ static ExprVector empty;
 	}
 
 	bool ICE::parseModelFromString(std::string model_str) {
-		// std::cout << "---> [call parseModelFromString]\n";
+		// outs()  << "---> [call parseModelFromString]\n";
 #include <algorithm>
 		std::replace(model_str.begin(), model_str.end(), '\n', ' ');
 		std::replace(model_str.begin(), model_str.end(), '\t', ' ');
@@ -1523,7 +1522,7 @@ static ExprVector empty;
 				end = model_str.rfind(")", next);
 			// the current item is located as [start, end] "(define-fun " is 12 bit
 			std::string item = model_str.substr(start, end+1-start);
-			// std::cout << "---> [" << item << "]\n";
+			// outs()  << "---> [" << item << "]\n";
 			int vname_start = 12;
 			int vname_end = item.find(" ", vname_start);
 			std::string vname = item.substr(vname_start, vname_end-vname_start);
@@ -1544,24 +1543,24 @@ static ExprVector empty;
 			std::pair<std::string, std::string> type_value = {vtype, vval};
 			// model[vname] = type_value;
 			m_z3_model[vname] = type_value;
-			// std::cout << bblue << "name: " << normal << vname << bblue << " type:" << normal << vtype << bblue << " val:" << normal << vval << "\n";
+			// outs()  << bblue << "name: " << normal << vname << bblue << " type:" << normal << vtype << bblue << " val:" << normal << vval << "\n";
 		}
 
-		// std::cout << "<--- [return from parseModelFromString]\n";
+		// outs()  << "<--- [return from parseModelFromString]\n";
 		return true;
 	}
 
 	bool ICE::generatePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run) {
-		Expr body_app = r.head();
-		if (bind::domainSz(bind::fname(body_app)) <= 0) { LOG ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
+		Expr rhead = r.head();
+		if (bind::domainSz(bind::fname(rhead)) <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
-		LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
+		// LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
 		Expr r_head_cand = m_candidate_model.getDef(r.head());
 		solver.reset();
 		solver.assertExpr(mk<NEG>(r_head_cand));
 		Expr body_formula = extractRelation(r, db, NULL, NULL);
 		solver.assertExpr(body_formula);
-		LOG ("ice", errs() << "Verification condition: " << *r_head_cand << " <-<- " << *body_formula << "\n");
+		LOGIT ("ice", errs() << "Check the rule. Verification condition: " << *r_head_cand << " <-<- " << *body_formula << "\n");
 
 		// solver.toSmtLib(errs());
 #if USE_EXTERNAL 
@@ -1571,54 +1570,54 @@ static ExprVector empty;
 #endif
 		if(result != UNSAT) 
 		{
-			LOGLINE("ice", errs() << "SAT, NEED TO ADD More Examples\n");
+			LOGLINE("ice", errs() << "1.2 SAT, RULE(head) need to be refined! NEED TO ADD More Examples\n");
 			//get cex
 #if USE_EXTERNAL 
 			parseModelFromString(m_z3_model_str);
-			/*
-			for (auto &variable: m_z3_model) {
-				std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
-					<< bblue << " val:" << normal << variable.second.second << "\n";
-			}
-			*/
-			std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
+			std::list<Expr> attr_values = modelToAttrValues(m_z3_model, rhead);
 #else
 			ZModel<EZ3> m = solver.getModel();
-			std::list<Expr> attr_values = modelToAttrValues(m, body_app);
+			std::list<Expr> attr_values = modelToAttrValues(m, rhead);
 #endif
 
 			//print cex
-			LOG("ice", errs() << "("); 
-			for (auto attr : attr_values) LOG("ice", errs() << *attr << ","); 
-			LOG("ice", errs() << ")\n");
+			LOGLINE("ice", errs() << "("); 
+			for (auto attr : attr_values) 
+				LOGIT("ice", errs() << *attr << ","); 
+			LOGIT("ice", errs() << ")\n");
 
-			DataPoint pos_dp(bind::fname(bind::fname(body_app)), attr_values);
+			DataPoint pos_dp(bind::fname(bind::fname(rhead)), attr_values);
 			int orig_size = m_pos_data_set.size();
 			addPosCex(pos_dp);
 			if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 			{
 				if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > /*50*/ICESVMFreqPos) { LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (NULL); }
 				if (!ICEICE) {
+					LOGLINE("ice", errs() << " Remove all the data for rhead" << *rhead << " in cex and neg_data_list\n");
 					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
-								[pos_dp,body_app,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
+								[pos_dp,rhead,this](DataPoint p) { 
+								return p.getPredName() == bind::fname(bind::fname(rhead)) /*r.head().predicate_name*/ && m_neg_data_set.find(p) != m_neg_data_set.end(); 
+								}), 
+							m_cex_list.end());
 					for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
-						if (it->getPredName() == bind::fname(bind::fname(body_app))) { m_neg_data_set.erase (it++); } 
+						if (it->getPredName() == bind::fname(bind::fname(rhead))) { m_neg_data_set.erase (it++); } 
 						else { ++it; }
 					}
 					m_neg_data_count.erase (pos_dp.getPredName());
 				}
 				m_cex_list.push_back(pos_dp);
 				addDataPointToIndex(pos_dp, index);
-				LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
+				LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 				index++;
 
-				run = sampleLinearHornCtrs(body_app, pos_dp, index);
+				run = sampleLinearHornCtrs(rhead, pos_dp, index);
+				return run;
 			}
-			else //it is a duplicate data point
+			else // it is a duplicate data point
 			{
-				LOG("ice", errs() << "Duplicated positive points should be impossible.\n");
-				clearNegSamples (body_app, true);
-				//exit (-3);
+				LOGLINE("ice", errs() << bred << "1.2 Duplicated positive points should be impossible.\n" << normal);
+				clearNegSamples (rhead, true);
+				// exit (-3);
 			}
 			return true;
 		} else {
@@ -1697,7 +1696,7 @@ static ExprVector empty;
 
 			if (body_pred_apps.size() <= 0 || cleanBody) {
 				if (bind::domainSz(bind::fname(r.head ())) <= 0) {
-					LOGIT("ice", errs() << bblue << "1 CHECK IT. Nothing is need to be refined!" << normal << "\n");
+					LOGIT("ice", errs() << bblue << "1.1 CHECK IT. Nothing is need to be refined!" << normal << "\n");
 					LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
 					solver.reset();
 					Expr r_head_cand = m_candidate_model.getDef(r.head());
@@ -1711,7 +1710,7 @@ static ExprVector empty;
 					boost::tribool result = solver.solve();
 #endif
 					if(result != UNSAT) {
-						outs()<<"Program is buggy.\n";
+						outs() << bred << "1.1 Program is buggy.\n" << normal;
 						// TO FIX
 						// extract attr_values from the solver
 						/*
@@ -1730,40 +1729,37 @@ static ExprVector empty;
 						std::list<Expr> attr_values;
 						DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 						addPosCex(pos_dp);
-						/*
 						LOGLINE("ice", errs() << lred << bold << "=======Failed DataPoint: " << DataPointToStr(empty, pos_dp) << "\n" << normal);
-						*/
 						failurePoint = m_pos_list.size()-1;
-						LOGLINE("ice", errs() << lred << bold << "=======<<< Constraint Solving of Horn Clauses \n" << normal);
+						LOGLINE("ice", errs() << lred << bold << "1.1 =======<<< Constraint Solving of Horn Clauses \n" << normal);
 						return false;
 					}
+					else 
+					{
+						LOGIT ("ice", errs() << bgreen << "Unsat, and thus this rule passes." << normal << blue << *r_head_cand << normal << " <-<- " << red << *body_formula <<normal <<  "\n");
+					}
 				} else {
-					LOGIT("ice", errs() << bblue << "2 Head is possibly need to be refined!" << normal << "\n");
+					LOGIT("ice", errs() << bblue << "1.2 Head is possibly need to be refined!" << normal << "\n");
 					// Head is possibly need to be refined!
 					LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program State Samples." << normal << "\n");
 					do {
 						bool run = true;
 						upd = generatePostiveSamples (db, r, solver, index, run);
-						if (!run) return false;
+						errs() << "[debug] run = " << run << "\n";
+						errs() << "[debug] upd = " << upd << "\n";
+						if (!run) /* this rule is fine */ return false;
 						if (upd) {
 							isChanged = true; posUpd = true;
 							// Which predicates will be changed in this iteration of solving.
 							ExprVector changedPreds;
-							// FixMe. Bad Code.
-							Expr e = bind::fname(*(db.getRelations().begin()));
-							changedPreds.push_back (e);
-							//if (SVMExecPath.compare("") == 0) {
-							// changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-							// LOGLINE("ice", errs() << lred << bold << " 1. add to changed Pred: " << *e << "\n" << normal);
-							//}
-							e = bind::fname(bind::fname(r.head()));
+							Expr e = bind::fname(bind::fname(r.head()));
 							changedPreds.push_back(e);
-							LOGLINE("ice", errs() << lred << bold << " 2. add to changed Pred: " << *e << "\n" << normal);
 							// changedPreds.push_back(bind::fname(bind::fname(r.head())));
+							LOGLINE("ice", errs() << lred << bold << "1.2. add to changed Pred: " << *e << "\n" << normal);
 							C5learn (changedPreds);
 						}
 					} while (upd);
-					LOGLINE ("ice", errs() << bcyan << "<< Generate Initial Program State Samples." << normal << "\n");
+					LOGLINE ("ice", errs() << bcyan << "1.2 << Generate Initial Program State Samples." << normal << "\n");
 					// --- Extend work list as we just go through a strengthening loop ----
 					addUsedToWorkList (db, workList, r);
 				}
@@ -1809,7 +1805,7 @@ static ExprVector empty;
 						if(res != UNSAT) {
 							parseModelFromString(m_z3_model_str);
 							for (auto &variable: m_z3_model) {
-								std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
+								outs()  << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
 									<< bblue << " val:" << normal << variable.second.second << "\n";
 							}
 						}
@@ -1841,7 +1837,7 @@ static ExprVector empty;
 							errs() << "get counter-example: \n";
 							/*
 							for (auto &variable: m_z3_model) {
-								std::cout << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
+								outs()  << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
 									<< bblue << " val:" << normal << variable.second.second << "\n";
 							}
 							*/
@@ -1861,10 +1857,10 @@ static ExprVector empty;
 								/*
 								errs() << bred << bold << "(";
 								for (auto attr_val: attr_values) {
-									std::cout << bold << yellow << attr_val << normal << "\n";
-									std::cout << " |-operator: " << attr_val->op() << "\n";
+									outs()  << bold << yellow << attr_val << normal << "\n";
+									outs()  << " |-operator: " << attr_val->op() << "\n";
 									for (int i = 0; i < attr_val->arity(); i++)
-										std::cout << "  |-args[" << i << "] = " << attr_val->arg(i) << "\n";
+										outs()  << "  |-args[" << i << "] = " << attr_val->arg(i) << "\n";
 								}
 								*/
 
@@ -2108,10 +2104,10 @@ static ExprVector empty;
 
 		for(int i=0; i<=bind::domainSz(head); i++)
 		{
-			Expr var = bind::domainTy(head, i);
+			Expr var = bind::domainTy(head, i); // head->params[i]
 			std::list<Expr>::iterator it = p.getAttrValues().begin();
 			std::advance(it, i);
-			Expr value = *it;
+			Expr value = *it; // p->param[i]
 
 			Expr arg_i_type = bind::domainTy(bind::fname (head), i);
 			std::ostringstream oss; oss << *arg_i_type;
@@ -2143,14 +2139,16 @@ static ExprVector empty;
 		bool run = getReachableStates(transitionCount, relationToPositiveStateMap, head, p, index);
 		if (!run) return false;
 
-		LOG("ice", errs() << "THE WHOLE STATE MAP:\n");
+		LOGLINE("ice", errs() << mag << bold << "====================== THE WHOLE STATE MAP ========================" << normal << "\n");
+		int i = 0;
 		for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
-			LOG("ice", errs() << "KEY: " << *(itr->first) << "\n");
-			LOG("ice", errs() << "VALUE: [");
+			LOGIT("ice", errs() << blue << bold << "(" << i << ") ");
+			LOGIT("ice", errs() << "var:" << *(itr->first) << " = val:");
+			LOGIT("ice", errs() << "[");
 			for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
-				LOG("ice", errs() << *(*itr2) << ", ");
+				LOGIT("ice", errs() << *(*itr2) << ", ");
 			}
-			LOG("ice", errs() << "]\n");
+			LOGIT("ice", errs() << "]\n" << normal);
 		}
 		return true;
 	}
@@ -2159,12 +2157,14 @@ static ExprVector empty;
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::getReachableStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index)
 	{
+		errs() << bold << bred << "******** get Reachable States ********" << normal << "\n";
+		errs() << green << "  get reachable state from State=" << *from_pred << normal << "\n";
 		auto &db = m_hm.getHornClauseDB();
 		for(HornClauseDB::RuleVector::iterator itr = db.getRules().begin(); itr != db.getRules().end(); ++itr)
 		{
 			HornRule r = *itr;
 			std::map<HornRule, int>::iterator itc = transitionCount.find(r);
-			if (itc != transitionCount.end() && itc->second >= RuleSampleLen) {
+			if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
 				// Avoid infinitely unroll a rule!
 				// Fixme. Set maximum unrolling number to be 101 or ...
 				continue;
@@ -2174,7 +2174,9 @@ static ExprVector empty;
 			get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
 
 			if(body_preds.size() == 1 && bind::fname(body_preds[0]) == bind::fname(from_pred))
+				// r.body == from  meaning  from->***
 			{
+				errs() << green << " > found a rule to do the inference>\n" << normal << blue << *r.head() << normal << " <-" << blue << *r.body() << normal << "\n from State=" << *from_pred << normal << "\n";
 				ExprVector equations;
 				for(int i=0; i<=bind::domainSz(body_preds[0]); i++)
 				{
@@ -2192,8 +2194,8 @@ static ExprVector empty;
 						else { exit (-3); }
 					}
 
-					LOG("ice", errs() << "VAR: " << *var << "\n");
-					LOG("ice", errs() << "VALUE: " << *value << "\n");
+					LOGIT("ice", errs() << "var: " << *var << " = ");
+					LOGIT("ice", errs() << "var: " << *value << "\n");
 					equations.push_back(mk<EQ>(var, value));
 				}
 				Expr state_assignment;
@@ -2201,6 +2203,7 @@ static ExprVector empty;
 				else { state_assignment = equations[0]; }
 
 				bool run = getRuleHeadState(transitionCount, relationToPositiveStateMap, r, state_assignment, m_pos_index_map[p], index);
+				errs() << green << " < finish the rule to do the inference> from State=" << *from_pred << normal << "\n";
 				if (!run) return false;
 			}
 		}
@@ -2212,8 +2215,9 @@ static ExprVector empty;
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
 	{
-		LOG("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n");
-		LOG("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
+		LOGIT("ice", errs() << bblue << "====== get Rule Head state ========= \nrule:" << *r.head() << " <- " << *r.body() << " FromState:" << *from_pred_state << normal << "\n");
+		LOGIT("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n");
+		LOGIT("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
 
 		auto &db = m_hm.getHornClauseDB();
 		ZSolver<EZ3> solver(m_hm.getZContext());
@@ -2228,13 +2232,12 @@ static ExprVector empty;
 #else
 		boost::tribool isSat = solver.solve();
 #endif
-		// boost::tribool isSat = solver.solve();
 		while(isSat)
 		{
 			if(bind::domainSz(bind::fname(r.head())) == 0)
 			{
 				//Fixme. reach a predicate with empty signature.
-				outs()<<"Program is buggy.\n";
+				outs()<<" 1.2?? Program is buggy.\n";
 				std::list<Expr> attr_values;
 				DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 				addPosCex(pos_dp);

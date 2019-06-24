@@ -59,7 +59,8 @@
 	struct __ ## NAME { static inline std::string name () { return TEXT; } }; \
 	typedef DefOp<__ ## NAME,BASE,STYLE> NAME;
 
-
+#include "llvm/Support/CommandLine.h"
+extern llvm::cl::opt<bool> LineSplitter;
 
 namespace expr
 {
@@ -876,11 +877,13 @@ namespace expr
 				for (std::vector<ENode*>::const_iterator it = args.begin (), 
 						end = args.end (); it != end; ++it)
 				{
-					// org 
-					 OS << "\n";
+					// org
+					if (LineSplitter) {
+						OS << "\n";
+					}
 					 space (OS, depth + 2);
-					// added
-//					OS << " ";
+//					if (!LineSplitter)
+//						OS << " ";
 					(*it)->Print (OS, depth + 2, false);
 				}
 
