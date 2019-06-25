@@ -57,7 +57,18 @@ namespace seahorn
 #define UNSAT false
 
 
-static ExprVector empty;
+
+#if USE_EXTERNAL
+#define Solve(solver) callExternalZ3ToSolve(solver)
+#define GetModel(solver) parseModelFromString(m_z3_model_str)
+#define ModelToAttrValues(X) modelToAttrValues(m_z3_model, X)
+#else
+#define Solve(solver) solver.solve()
+#define GetModel(solver) ZModel<EZ3> m = solver.getModel()
+#define ModelToAttrValues(X) modelToAttrValues(m, X)
+#endif
+
+	static ExprVector empty;
 
 	/*ICEPass methods begin*/
 
@@ -66,15 +77,9 @@ static ExprVector empty;
 	bool ICEPass::runOnModule (Module &M)
 	{
 		errs() << yellow << bold;
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << "-----------------------------------------------------------------------------------------------------------------------------------------\n";
+		errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n";
+		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
+		errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n";
 		errs() << normal;
 		HornifyModule &hm = getAnalysis<HornifyModule> ();
 
@@ -101,16 +106,16 @@ static ExprVector empty;
 	/*ICE methods begin*/
 
 	ExprVector getArgListFromRel(Expr rel) {
-			ExprVector arg_list;
-			for(int i=0; i<bind::domainSz(rel); i++)
-			{
-				Expr arg_i_type = bind::domainTy(rel, i);
-				// Expr arg_i = bind::fapp(bind::constDecl(variant::tag(bind::fname(rel), variant::variant(i, mkTerm<std::string> ("V", rel->efac ()))), arg_i_type));
-				// short name
-				Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
-				arg_list.push_back(arg_i);
-			}
-			return arg_list;
+		ExprVector arg_list;
+		for(int i=0; i<bind::domainSz(rel); i++)
+		{
+			Expr arg_i_type = bind::domainTy(rel, i);
+			// Expr arg_i = bind::fapp(bind::constDecl(variant::tag(bind::fname(rel), variant::variant(i, mkTerm<std::string> ("V", rel->efac ()))), arg_i_type));
+			// short name
+			Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+			arg_list.push_back(arg_i);
+		}
+		return arg_list;
 	}
 
 	Expr getFappFromRel(Expr rel) {
@@ -505,7 +510,7 @@ static ExprVector empty;
 							if (unknowns[rel][j]) continue; // Exclude unknowns from invariant inference.
 							if((isOpX<INT_TY>(bind::domainTy(rel, i)) && isOpX<INT_TY>(bind::domainTy(rel, j))) 
 									|| (isOpX<bv::BvSort>(bind::domainTy(rel, i))))
-									// || (isOpX<BV_TY>(bind::domainTy(rel, i)) && isOpX<BV_TY>(bind::domainTy(rel, j))))
+								// || (isOpX<BV_TY>(bind::domainTy(rel, i)) && isOpX<BV_TY>(bind::domainTy(rel, j))))
 							{
 								Expr arg_type = bind::domainTy(rel, i);
 								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_type));
@@ -634,10 +639,10 @@ static ExprVector empty;
 					int start1, start2 = dpstr.find(":bv");
 					int end1, end2;
 					/*
-					if (start2 != std::string::npos) {
-						errs() << "datapoint: " << dpstr << blue << " bvdata >> convert to integer format >> " << normal;
-					}
-					*/
+						 if (start2 != std::string::npos) {
+						 errs() << "datapoint: " << dpstr << blue << " bvdata >> convert to integer format >> " << normal;
+						 }
+						 */
 					while (start2 != std::string::npos) {
 						end2 = dpstr.find(")", start2);
 						end2 = dpstr.find(")", end2)+1;
@@ -668,28 +673,28 @@ static ExprVector empty;
 
 		//generate .implications file
 		// if (ICEICE) {
-			std::ofstream implications_of(m_C5filename + ".implications");
-			if(!implications_of)return;
+		std::ofstream implications_of(m_C5filename + ".implications");
+		if(!implications_of)return;
 
-			for(std::pair<DataPoint, DataPoint> impl_pair : m_impl_pair_set) {
-				DataPoint start_point = impl_pair.first;
-				if (std::find(targets.begin(), targets.end(), start_point.getPredName()) != targets.end()) {
-					std::map<DataPoint, int>::iterator it = m_data_point_to_index_map.find(start_point);
-					assert(it != m_data_point_to_index_map.end());
-					int start_index = it->second;
+		for(std::pair<DataPoint, DataPoint> impl_pair : m_impl_pair_set) {
+			DataPoint start_point = impl_pair.first;
+			if (std::find(targets.begin(), targets.end(), start_point.getPredName()) != targets.end()) {
+				std::map<DataPoint, int>::iterator it = m_data_point_to_index_map.find(start_point);
+				assert(it != m_data_point_to_index_map.end());
+				int start_index = it->second;
 
-					DataPoint end_point = impl_pair.second;
-					std::map<DataPoint, int>::iterator itr = m_data_point_to_index_map.find(end_point);
-					assert(itr != m_data_point_to_index_map.end());
-					int end_index = itr->second;
+				DataPoint end_point = impl_pair.second;
+				std::map<DataPoint, int>::iterator itr = m_data_point_to_index_map.find(end_point);
+				assert(itr != m_data_point_to_index_map.end());
+				int end_index = itr->second;
 
-					implications_of << start_index << " " << end_index << "\n";
-					LOG("ice", errs()<< "implication: " <<  start_index << " " << end_index << "\n");
-				}
+				implications_of << start_index << " " << end_index << "\n";
+				LOG("ice", errs()<< "implication: " <<  start_index << " " << end_index << "\n");
 			}
+		}
 
-			implications_of.close();
-			outputFileContent(m_C5filename + ".implications"); 
+		implications_of.close();
+		outputFileContent(m_C5filename + ".implications"); 
 		// }
 	}
 
@@ -1054,16 +1059,16 @@ static ExprVector empty;
 		}
 
 		/*
-		LOGLINE("ice", errs() << " -> Unknowns: \n");
-		for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
-			LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
-			for (int i = 0; i < itr->second.size(); i++) {
-				LOGIT("ice", errs() << itr->second[i] << ", ");
-			}
-			LOGIT("ice", errs() << ">\n");
-		}
-		LOGLINE("ice", errs() << "<<< Unknown search done.\n");
-		*/
+			 LOGLINE("ice", errs() << " -> Unknowns: \n");
+			 for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
+			 LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
+			 for (int i = 0; i < itr->second.size(); i++) {
+			 LOGIT("ice", errs() << itr->second[i] << ", ");
+			 }
+			 LOGIT("ice", errs() << ">\n");
+			 }
+			 LOGLINE("ice", errs() << "<<< Unknown search done.\n");
+			 */
 	}
 
 	// Collect integers in the rules ...
@@ -1208,9 +1213,9 @@ static ExprVector empty;
 					else if(bind::isIntConst(arg_i_value)) { errs() << "  ::match int const "; }
 					else if(bind::isBvConst(arg_i_value)) { errs() << "  ::match bv const "; }
 					else { /* Other kind of constructs in fact rules not implemented yet ...*/
-							errs() << bold << yellow << "Not Implemented yet.\n " << normal; 
-							matched = false;
-							break;
+						errs() << bold << yellow << "Not Implemented yet.\n " << normal; 
+						matched = false;
+						break;
 					}
 				}
 				LOGIT("ice", errs() << "]");
@@ -1280,7 +1285,7 @@ static ExprVector empty;
 	}
 
 	int ICE::countSamples (Expr pred, bool positive) {
-	  std::set<DataPoint>& data_set = m_neg_data_set; if (positive) { data_set = m_pos_data_set; }
+		std::set<DataPoint>& data_set = m_neg_data_set; if (positive) { data_set = m_pos_data_set; }
 		int count = 0;
 		for (auto it = data_set.begin(); it != data_set.end(); ++it) {
 			if (it->getPredName() == pred) { count++; }
@@ -1367,9 +1372,9 @@ static ExprVector empty;
 			// std::cerr << "type: bool.\n";
 			typeE = sort::boolTy(efac);
 			if (xvalue == "true")
-					valueE = mk<TRUE> (efac);
+				valueE = mk<TRUE> (efac);
 			else if (xvalue == "false")
-					valueE = mk<FALSE> (efac);
+				valueE = mk<FALSE> (efac);
 			return valueE;
 		}
 		else if (xtype == "(_ BitVec 32)") {
@@ -1431,8 +1436,8 @@ static ExprVector empty;
 		smt_of.close();
 
 		std::string command = Z3ExecPath + " " 
-				+ m_C5filename + ".smt2" + " "
-				+ "-T:2 "; // set timeout to 2s
+			+ m_C5filename + ".smt2" + " "
+			+ "-T:2 "; // set timeout to 2s
 		m_z3_model_str = "";
 		std::string model = "";
 
@@ -1447,18 +1452,18 @@ static ExprVector empty;
 
 		char buffer[1024];
 		while (fgets(buffer, 1024, fp) != NULL) {
-        // outs()  << "Reading..." << std::endl;
-        model += buffer;
-    }
-		// outs()  << red << model << normal << "\n";
-    auto returnCode = pclose(fp);
-		/*
-		if (returnCode == 0) {
-			LOGLINE("ice", errs() << "RET 0 : SUCCESS\n");
-		} else {
-			LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n");
+			// outs()  << "Reading..." << std::endl;
+			model += buffer;
 		}
-		*/
+		// outs()  << red << model << normal << "\n";
+		auto returnCode = pclose(fp);
+		/*
+			 if (returnCode == 0) {
+			 LOGLINE("ice", errs() << "RET 0 : SUCCESS\n");
+			 } else {
+			 LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n");
+			 }
+			 */
 
 		if (model.find("unsat") == -1) {
 			// sat
@@ -1525,13 +1530,8 @@ static ExprVector empty;
 
 		LOGLINE("ice", errs() << "1.2 SAT, RULE(head) need to be refined! NEED TO ADD More Examples\n");
 		//get cex
-#if USE_EXTERNAL 
-		parseModelFromString(m_z3_model_str);
-		std::list<Expr> attr_values = modelToAttrValues(m_z3_model, rhead);
-#else
-		ZModel<EZ3> m = solver.getModel();
-		std::list<Expr> attr_values = modelToAttrValues(m, rhead);
-#endif
+		GetModel(solver);
+		std::list<Expr> attr_values = ModelToAttrValues(rhead);
 
 		//print cex
 		LOGLINE("ice", errs() << "("); 
@@ -1653,11 +1653,7 @@ static ExprVector empty;
 			solver.assertExpr(body_formula);
 			LOGLINE ("ice", errs() << green << "replace with candidate: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
 
-#if USE_EXTERNAL
-			boost::tribool result = callExternalZ3ToSolve(solver);
-#else
-			boost::tribool result = solver.solve();
-#endif
+			boost::tribool result = Solve(solver);
 			if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
 			else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
 			if (result == UNSAT) continue;
@@ -1703,291 +1699,206 @@ static ExprVector empty;
 				}
 			} else {
 				LOGIT("ice", errs() << bred << bold << " [2] BODY IS DIRTY. Might Both Head and Body are possibly need to be refined!" << normal << "\n");
-				//Expr body_app = body_pred_apps[0];
-				//Expr preSolve = m_candidate_model.getDef(body_app);
-				if (!ICELocalStrengthen) {
-					bool first_time = true;
-					do {
-						counter ++;
+				bool first_time = true;
+				do {
+					counter ++;
 
-						LOGLINE("ice", errs() << "Rule Verification Round " << counter << "\n");
-						// Which predicates will be changed in this iteration of solving.
-						ExprVector changedPreds;
-						// FixMe. Bad Code.
-						//if (SVMExecPath.compare("") == 0)
-						Expr e = bind::fname(*(db.getRelations().begin()));
-						changedPreds.push_back (e);
-						// changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-						LOGLINE("ice", errs() << lred << bold << " [?? don't know why] add to changed Pred: " << *e << "\n" << normal);
-						//if (curSolve != preSolve)
-						//   m_candidate_model.addDef(body_app, mk<AND>(preSolve, curSolve));
+					LOGLINE("ice", errs() << "Rule Verification Round " << counter << "\n");
+					if (first_time) { 
+						// the constraint has been solved before the loop
+						first_time = false;
+					} else {
+						solver.reset();
+						r_head_cand = m_candidate_model.getDef(r_head); solver.assertExpr(mk<NEG>(r_head_cand));
+						body_formula = extractRelation(r, db, NULL, NULL); solver.assertExpr(body_formula);
+						LOGIT("ice", errs() << cyan << "[not 1st] check: " << blue << *r_head_cand << normal << " <- " << red << *body_formula << "\n" << normal);
+						result = Solve(solver);
+					}
 
-						upd = false;
-						LOGLINE("ice", errs() << "TRYING TO ADD some CounterExample.\n");
+					if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
+					else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
 
-						if (first_time) {
-							// the constraint has been solved before the loop
-							first_time = false;
-						} else {
-							// r_head = r.head();
-							solver.reset();
-							r_head_cand = m_candidate_model.getDef(r_head);
-							solver.assertExpr(mk<NEG>(r_head_cand));
-							body_formula = extractRelation(r, db, NULL, NULL);
-							solver.assertExpr(body_formula);
-							LOGLINE ("ice", errs() << cyan << "[not first time]replace with candidate: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
+					// Which predicates will be changed in this iteration of solving.
+					ExprVector changedPreds;
+					// FixMe. Bad Code.
+					changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
+					Expr e = bind::fname(*(db.getRelations().begin()));
+					LOGLINE("ice", errs() << lred << bold << " [?? don't know why] add to changed Pred: " << *e << "\n" << normal);
+					upd = false;
 
-#if USE_EXTERNAL
-							result = callExternalZ3ToSolve(solver);
-#else
-							result = solver.solve();
-#endif
-							if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
-							else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
+					if(result != UNSAT) 
+					{
+						GetModel(solver);
+						LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
+						upd = true; isChanged = true;
+						std::set<DataPoint> negPoints;
+
+						//print cex
+						errs() << cyan << "get candidate for each body_predicate that has parameters: " << normal << "\n";
+						int body_index = 0;
+						for (Expr body_app : body_pred_apps) {
+							body_index++;
+							errs() << "BODY{" << body_index << "}" << bgray << *body_app << normal;
+							if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
+							{ errs() << " xxx \n"; continue; }
+
+							std::list<Expr> attr_values = ModelToAttrValues(body_app);
+							// Presumbaly add counterexample
+							DataPoint neg_dp(bind::fname(bind::fname(body_app)), attr_values);
+							negPoints.insert(neg_dp);
+							errs() << " -instance-> " << blue << DataPointToStr(empty, neg_dp) << normal << "\n";
 						}
 
-						if(result != UNSAT) 
-						{
-							LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
-							upd = true; isChanged = true;
-#if USE_EXTERNAL
-							parseModelFromString(m_z3_model_str);
-							// errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
-#else
-							ZModel<EZ3> m = solver.getModel();
-							// errs() << "z3 original model: \n" << cyan << m << normal << "\n";
-#endif
-							std::set<DataPoint> negPoints;
+						errs() << bold << green << "negPoints: " << yellow; 
+						for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp) << ", "; } 
+						errs() << "\n" << normal;
+						outputDataSetInfo();
 
-							//print cex
-							errs() << cyan << "get candidate for each body_predicate that has parameters: " << normal << "\n";
-							int body_index = 0;
-							for (Expr body_app : body_pred_apps) {
-								body_index++;
-								errs() << "BODY{" << body_index << "}" << bgray << *body_app << normal;
-								if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
-								{
-									errs() << " xxx \n";
-									continue;
-								}
-
-#if USE_EXTERNAL
-								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
-#else
-								std::list<Expr> attr_values = modelToAttrValues(m, body_app);
-#endif
-								// Presumbaly add counterexample
-								DataPoint neg_dp(bind::fname(bind::fname(body_app)), attr_values);
-								negPoints.insert(neg_dp);
-								errs() << " -instance-> " << blue << DataPointToStr(empty, neg_dp) << normal << "\n";
-								// errs() << "{BODY}" << bgray << *body_app << normal << " -instance-> " << blue << DataPointToStr(empty, neg_dp) << normal << "\n";
-							}
-
-							errs() << bold << green << "negPoints: " << yellow; 
-							for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp) << ", "; } 
-							errs() << "\n" << normal;
-							outputDataSetInfo();
-
-							// If the counterexample is already labeled positive;
-							// Add its successive (aka. state transition) to positives instead.
-							bool foundPos = true;
-							for (DataPoint neg_dp : negPoints) {
-								errs() << " search datapoint: " << red << DataPointToStr(empty, neg_dp) << normal << " in m_pos_data_set: \n";
-								if (m_pos_data_set.find(neg_dp) == m_pos_data_set.end()) 
-								{ 
-									errs() << " result: not Found \n";
-									foundPos = false; break; 
-								}
-								else { errs() << " result: Found \n"; }
-							}
-							if (foundPos) {
-								LOGLINE("diff", errs() << red << bold << "!! Found solved negPoints (a sample to a rule body) in Positives (m_pos_data_set) !! \n" << normal);
-								if (bind::domainSz(bind::fname(r_head)) <= 0) {
-									LOGLINE("diff", errs() << red << bold << "&& head contains no predicate !! (ERROR)\n" << normal);
-									outs()<<"Program is buggy.\n";
-									LOGLINE("ice", errs() << red << "Collect the buggy implication (body_model -> head_model(empty)).\n" << normal);
-									std::list<Expr> attr_values; // should be empty
-									DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
-									addPosCex(pos_dp);
-									failurePoint = m_pos_list.size()-1;
-									std::list<int> preIndices;
-									for (DataPoint neg_dp : negPoints) {
-										preIndices.push_back(m_pos_index_map[neg_dp]);
-									}
-									postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-									LOGLINE("ice", errs() << lred << bold << "=======<<< Constraint Solving of Horn Clauses \n" << normal);
-									return false;
-								}
-
-								// should be implication! Both sides contains predicates.
-								errs() << bold << "Should be usually here!: \n" << normal;
-								errs() << "get head cex: \n";
-#if USE_EXTERNAL
-								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, r_head);
-#else
-								std::list<Expr> attr_values = modelToAttrValues(m, r_head);
-#endif
-								for (auto e : attr_values)
-									errs() << mag << *e << normal << "\n";
+						// If the counterexample is already labeled positive;
+						// Add its successive (aka. state transition) to positives instead.
+						bool foundPos = true;
+						for (DataPoint neg_dp : negPoints) {
+							errs() << " search datapoint: " << red << DataPointToStr(empty, neg_dp) << normal << " in m_pos_data_set: ";
+							if (m_pos_data_set.find(neg_dp) != m_pos_data_set.end()) { errs() << bold << green << " Found " << normal << "\n"; }
+							else { foundPos = false; errs() << bold << red << " not Found " << normal << "\n"; break; }
+						}
+						if (foundPos) { /* the whole negPoints */
+							errs() << bred << "  [2.yPos] body instance is in Pos!" << normal << "\n";
+							// if the body datapoint found in Positive, then head must be refined!
+							LOGLINE("diff", errs() << red << bold << "[IMPLICATION]!! Body=/=>Head, and the body model is found to be positive (in m_pos_data_set) then the Head must be refined !! \n" << normal);
+							if (bind::domainSz(bind::fname(r_head)) <= 0) 
+							{
+								LOGLINE("diff", errs() << bred << bold << "&& head contains no predicate !! (ERROR)\n" << normal);
+								outs()<<" [2].1 Program is buggy.\n";
+								LOGLINE("ice", errs() << red << "Collect the buggy implication (body_model -> head_model(empty)).\n" << normal);
+								std::list<Expr> attr_values; // should be empty
 								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-								errs() << " ___pos_beg___\n" << DataPointToStr(empty, pos_dp) << "\n ___pos_end___\n";
-
-								int orig_size = m_pos_data_set.size();
 								addPosCex(pos_dp);
-								if(m_pos_data_set.size() == orig_size + 1) //no duplicate
-								{
-									if (!ICEICE) {
-										m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();}), m_cex_list.end());
-
-										for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(r_head))) { m_neg_data_set.erase (it++); } else { ++it; } }
-										m_neg_data_count.erase (pos_dp.getPredName());
-
-										// ---- Clean negative samples for body apps as well
-										for (Expr body_app : body_pred_apps) {
-											if (bind::domainSz(bind::fname(body_app)) <= 0) continue;
-
-											m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [body_app,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
-											for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(body_app))) { m_neg_data_set.erase (it++); } else { ++it; } }
-											m_neg_data_count.erase (bind::fname(bind::fname(body_app)));
-										}
-										// ---- Doubly check if the above code is necessary
-									}
-									m_cex_list.push_back(pos_dp);
-									addDataPointToIndex(pos_dp, index);
-
-									std::list<int> preIndices;
-									for (DataPoint neg_dp : negPoints) {
-										preIndices.push_back(m_pos_index_map[neg_dp]);
-									/*
-										auto searched = m_pos_data_set.find(neg_dp);
-										if (searched != m_pos_data_set.end()) {
-											preIndices.push_back(m_pos_index_map[neg_dp]);
-										}
-									*/
-									}
-									postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-
-									LOGDP("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
-									index++;
-									posUpd = true;
-
-									bool run = sampleLinearHornCtrs(r_head, pos_dp, index);
-									if (!run) return false;
-
-									Expr e = pos_dp.getPredName();
-									changedPreds.push_back (e); // e is head
-									LOGLINE("ice", errs() << lred << bold << " 3.1. add to changed Pred: " << *e << "\n" << normal);
+								failurePoint = m_pos_list.size()-1;
+								std::list<int> preIndices;
+								for (DataPoint neg_dp : negPoints) {
+									preIndices.push_back(m_pos_index_map[neg_dp]);
 								}
-								else //it is a duplicate data point
-								{
-									LOG("ice", errs() << red << bold << "[head should be classified correct on this sample] Duplicated positive points should be impossible.\n" << normal);
-									clearNegSamples (r_head, true);
-									LOGLINE("ice", errs() << lred << bold << "=======<<< Constraint Solving of Horn Clauses \n" << normal);
-									//exit (-3);
-								}
-							} else {
-								LOGLINE("diff", errs() << "!! NOT Found Pos !! \n");
-								bool surebad = false;
-								if (ICEICE) {
-									if (negPoints.size() > 1) { errs() << "ICE learning is not suitable for this program.\n"; exit (-3); }
-									if (bind::domainSz(bind::fname(r_head)) <= 0) surebad = true;
-								}
-								if (ICEICE && !surebad && negPoints.size() == 1) {
-									LOGLINE("ice", errs() << bgreen << " %%%%%%%%%%% mark option1, NOT SUREBAD, implication %%%%%%%%%%%%%" << normal << "\n");
-									// Add Implication samples.
-#if USE_EXTERNAL
-									std::list<Expr> attr_values = modelToAttrValues(m_z3_model, r_head);
-#else
-									std::list<Expr> attr_values = modelToAttrValues(m, r_head);
-#endif
-									DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-									for (DataPoint neg_dp : negPoints) {
-										if (neg_dp.getPredName() != pos_dp.getPredName()) { errs() << "ICE learning is not suitable for this program.\n"; exit (-3); }
-										if(m_impl_cex_set.count(neg_dp) == 0)
-										{
-											addImplCex(neg_dp);
-											m_cex_list.push_back(neg_dp);
-											addDataPointToIndex(neg_dp, index);
-											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n");
-											index++;
-										}
-										if(m_impl_cex_set.count(pos_dp) == 0)
-										{
-											addImplCex(pos_dp);
-											m_cex_list.push_back(pos_dp);
-											addDataPointToIndex(pos_dp, index);
-											LOGLINE("ice", errs() << "IMPL CEX, INDEX IS " << index << "\n");
-											index++;
-										}
-										LOGLINE("ice", errs() << red << "Add implication pair: (" << DataPointToStr(empty, neg_dp) << "->" << DataPointToStr(empty, pos_dp) << ")\n" << normal);
+								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+								return false;
+							}
 
-										addImplPair(std::make_pair(neg_dp, pos_dp));
-										LOGLINE("ice", errs() << "change predicate.pushback " << neg_dp.getPredName() << "\n");
-										Expr e = neg_dp.getPredName();
-										changedPreds.push_back (e);
-										// changedPreds.push_back(pos_dp.getPredName());
-										LOGLINE("ice", errs() << lred << bold << " 3.2. add to changed Pred: " << *e << "\n" << normal);
-									}
+							// should be implication! Both sides contains predicates.
+							errs() << bold << "Head should be fixed!: \n" << normal;
+							errs() << "get head cex (positive): \n";
+							std::list<Expr> attr_values = ModelToAttrValues(r_head);
+							for (auto e : attr_values) errs() << mag << "  " << *e << normal << "\n";
+
+							int orig_size = m_pos_data_set.size();
+							DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
+							errs() << " ___pos_beg___\n" << DataPointToStr(empty, pos_dp) << "\n ___pos_end___\n";
+							addPosCex(pos_dp);
+
+							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
+							{
+								m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();}), m_cex_list.end());
+
+								for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(r_head))) { m_neg_data_set.erase (it++); } else { ++it; } }
+								m_neg_data_count.erase (pos_dp.getPredName());
+
+								// ---- Clean negative samples for body apps as well
+								for (Expr body_app : body_pred_apps) {
+									if (bind::domainSz(bind::fname(body_app)) <= 0) continue;
+									m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [body_app,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
+									for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(body_app))) { m_neg_data_set.erase (it++); } else { ++it; } }
+									m_neg_data_count.erase (bind::fname(bind::fname(body_app)));
 								}
-								else 
+
+								// ---- Doubly check if the above code is necessary
+								m_cex_list.push_back(pos_dp);
+								addDataPointToIndex(pos_dp, index);
+
+								std::list<int> preIndices;
+								for (DataPoint neg_dp : negPoints) {
+									preIndices.push_back(m_pos_index_map[neg_dp]);
+								}
+								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+
+								LOGDP("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
+								index++;
+								posUpd = true;
+
+								bool run = sampleLinearHornCtrs(r_head, pos_dp, index);
+								if (!run) return false;
+
+								Expr e = pos_dp.getPredName();
+								changedPreds.push_back (e); // e is head
+								LOGLINE("ice", errs() << lred << bold << " 3.1. add to changed Pred: " << *e << "\n" << normal);
+							}
+							else //it is a duplicate data point
+							{
+								LOG("ice", errs() << bred << bold << "[2].2 ERROR. Head should have classified correct on this sample] Duplicated positive points should be impossible.\n" << normal);
+								clearNegSamples (r_head, true);
+								exit (-3);
+							}
+						} else {
+							LOGLINE("diff", errs() << "!! NOT Found the (whole) Body instance in Positive Data!! \n");
+							errs() << bred << "  [2.xPos] body instance is not in Pos!" << normal << "\n";
+							// outputDataSetInfo();
+							int i = -1;
+							for (DataPoint neg_dp : negPoints) {
+								i++;
+								LOGLINE("ice", errs() << "  > on negDataPoint[" << i << "] " << red << DataPointToStr(empty, neg_dp) << normal << "\n");
+								if (m_pos_data_set.find(neg_dp) != m_pos_data_set.end()) /* Found this in positive set. */ 
 								{ 
-									LOGLINE("ice", errs() << bgreen << " %%%%%%%%%%% mark option2, SUREBAD, head is known %%%%%%%%%%%%%" << normal << "\n");
-									outputDataSetInfo();
-									for (DataPoint neg_dp : negPoints) {
-										LOGLINE("ice", errs() << " - on negDataPoint " << red << DataPointToStr(empty, neg_dp) << normal << "\n");
-										if (m_pos_data_set.find(neg_dp) != m_pos_data_set.end()) 
-										/* Found this in positive set. */ 
-										{ 
-											errs() << "/* Found this in positive set. */\n"; 
-											errs() << lred << bold << "!! Error !! inconsistency." << normal << "\n";
-										} 
-										else 
+									errs() << "/* Found this in positive set. */\n"; 
+									errs() << lred << bold << "[do not know why] !! Error !! inconsistency." << normal << "\n";
+								} 
+								else 
+								{
+									errs() << bred << "  [2.xPos--] body instance is not in Pos!" << normal << "\n";
+									errs() << "/* not Found this in positive set. add it to negative data set */\n";
+
+									int org_size = m_neg_data_set.size();
+									addNegCex(neg_dp);
+									// outputDataSetInfo();
+
+									if(m_neg_data_set.size() == org_size + 1) //no duplicate
+									{
+										errs() << bred << "    [2.xPos.xNeg] body instance is not in Pos and not in Neg!" << normal << "\n";
+										LOGLINE("neg", errs() << "++ add new neg sample: " << DataPointToStr(empty, neg_dp) << "\n");
+
+										m_cex_list.push_back(neg_dp);
+										addDataPointToIndex(neg_dp, index);
+										// LOGLINE("ice", errs() << "NEG CEX, INDEX IS " << index << "\n");
+										index++;
+
+										if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
 										{
-											errs() << "/* not Found this in positive set. add it to negative data set */\n";
-
-											int org_size = m_neg_data_set.size();
-											LOGLINE("neg", errs() << "++ add new neg sample: " << DataPointToStr(empty, neg_dp) << "\n");
-											addNegCex(neg_dp);
-											outputDataSetInfo();
-
-											if(m_neg_data_set.size() == org_size + 1) //no duplicate
-											{
-												m_cex_list.push_back(neg_dp);
-												addDataPointToIndex(neg_dp, index);
-												// LOGLINE("ice", errs() << "NEG CEX, INDEX IS " << index << "\n");
-												index++;
-
-												if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
-												{
-													Expr e = neg_dp.getPredName();
-													changedPreds.push_back (e);
-													// changedPreds.push_back(pos_dp.getPredName());
-													LOGLINE("ice", errs() << lred << bold << " 3.3. add to changed Pred: " << *e << "\n" << normal);
-												}
-
-												std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
-												if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
-													LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (neg_dp.getPredName());
-												}
-											}
-											else //it is a duplicate data point
-											{ 
-												LOGLINE("ice", errs() << lred << bold << "(This should be a new Negative point) Duplicated negative points should be impossible." << normal << "\n"); 
-												clearNegSamples (neg_dp.getPredName(), false); 
-											}
+											Expr e = neg_dp.getPredName();
+											changedPreds.push_back (e);
+											// changedPreds.push_back(pos_dp.getPredName());
+											LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
 										}
+
+										std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
+										if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
+											LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (neg_dp.getPredName());
+										}
+									}
+									else //it is a duplicate data point
+									{ 
+										LOGLINE("ice", errs() << lred << "    [2.xPos.yNeg] body instance [not belong to Pos][belongs to Neg](but it should be a new Negative point) Duplicated negative points should be impossible." << normal << "\n"); 
+										clearNegSamples (neg_dp.getPredName(), false); 
+										errs() << bold << bmag << " possibly added the point is added [due to not sure]...." << normal << "\n";
 									}
 								}
 							}
 						}
+					}
 
-						if (upd) {
-							// Ask machine learning for a new invariant for body_app.
-							// Expr pre = m_candidate_model.getDef(body_app);
-							C5learn (changedPreds);
-						}
-					} while (upd);
-				}
+					if (upd) {
+						// Ask machine learning for a new invariant for body_app.
+						// Expr pre = m_candidate_model.getDef(body_app);
+						C5learn (changedPreds);
+					}
+				} while (upd);
+
 				// --- Extend worklist as we just go through a strengthening loop ----
 				if (counter > 1) {
 					if (posUpd) addUsedToWorkList (db, workList, r);
@@ -2130,7 +2041,7 @@ static ExprVector empty;
 	bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
 	{
 		LOGIT("ice", errs() << bblue << "====== get Rule Head state ========= " << normal << "\n");
-				// "rule:" << *r.head() << " <- " << *r.body() << " FromState:" << *from_pred_state << normal << "\n");
+		// "rule:" << *r.head() << " <- " << *r.body() << " FromState:" << *from_pred_state << normal << "\n");
 		LOGIT("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n");
 		LOGIT("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
 
@@ -2142,11 +2053,7 @@ static ExprVector empty;
 		//solver.toSmtLib(outs());
 
 		int iteri = 0;
-#if USE_EXTERNAL
-		boost::tribool isSat = callExternalZ3ToSolve(solver);
-#else
-		boost::tribool isSat = solver.solve();
-#endif
+		boost::tribool isSat = Solve(solver);
 		while(isSat)
 		{
 			if(bind::domainSz(bind::fname(r.head())) == 0)
@@ -2163,12 +2070,7 @@ static ExprVector empty;
 				return false;
 			}
 
-#if USE_EXTERNAL
-			parseModelFromString(m_z3_model_str);
-			// std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
-#else
-			ZModel<EZ3> model = solver.getModel();
-#endif
+			GetModel(solver);
 			ExprVector equations;
 
 			std::list<Expr> attr_values;
@@ -2293,11 +2195,7 @@ static ExprVector empty;
 			else { break; }// There is nothing to be re-sampled ?
 
 			solver.assertExpr(notagain);
-#if USE_EXTERNAL
-			isSat = callExternalZ3ToSolve(solver);
-#else
-			isSat = solver.solve();
-#endif
+			boost::tribool isSat = Solve(solver);
 		}
 		return true;
 	}
