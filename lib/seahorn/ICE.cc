@@ -609,11 +609,11 @@ static ExprVector empty;
 		}
 	}
 	void ICE::outputDataSetInfo() {
-		LOGIT("x", errs() << green << "|---------------------  POS DATA SET -----------------------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << green << "|---------------------  POS DATA SET -----------------------" << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << green << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << red <<   "|---------------------  NEG DATA SET -----------------------" << yellow << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << red <<   "|---------------------  NEG DATA SET -----------------------" << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_neg_data_set) { LOGIT("x", errs() << red << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << blue <<  "|---------------------  IMPL DATA SET ----------------------" << yellow << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << blue <<  "|---------------------  IMPL DATA SET ----------------------" << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_impl_pair_set) { LOGIT("x", errs() << blue << "| " << DataPointToStr(empty, dp.first) << " -> " << DataPointToStr(empty, dp.second) << normal << "\n"); } 
 	}
 
@@ -749,7 +749,7 @@ static ExprVector empty;
 			Expr rel = *rels_it;
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::ostringstream oss; oss << C5_rel_name;
-			LOGLINE("ice", errs() << "TAG: " << oss.str() << "\n");
+			LOGLINE("ice", errs() << "target: " << oss.str() << "\n");
 
 			boost::property_tree::ptree sub_pt = child_it.second;
 			// LOGLINE("ice", errs() << "working on ptree-----------------------------\n " << cyan << ptreeToString(sub_pt) << "\n" << normal);
@@ -760,35 +760,31 @@ static ExprVector empty;
 				if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False")
 					candidate = mk<FALSE>(db.getExprFactory());
 			} else {
-				// errs() << bold << red << "branch 1\n" << normal;
 				std::list<Expr> stack;
 				stack.push_back(mk<TRUE>(db.getExprFactory()));
-				// errs() << red << ">> before construct Formula\n" << normal;
 				std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
-				// errs() << red << "<< after construct Formula\n" << normal;
 				ExprVector disjunctions;
 				int i = 0;
-				// errs() << ">>>>>BIG LOOP\n";
 				for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
-					errs() << "  >>>" << i << "    final_formula[" << i << "]\n";
+					// errs() << "  >>>" << i << "    final_formula[" << i << "]\n";
 					ExprVector conjunctions;
 					int j = 0;
 					for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
 					{
-						errs() << "    >>>" << j << "   final_formula[" << i << "][" << j << "] = " << **conj_it << "\n";
+						// errs() << "    >>>" << j << "   final_formula[" << i << "][" << j << "] = " << **conj_it << "\n";
 						conjunctions.push_back(*conj_it);
 						j++;
 					}
 					Expr disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
-					errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
+					// errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
 					disjunctions.push_back(disjunct);
 					i++;
 				}
 				if(disjunctions.size() == 1) candidate = disjunctions[0];
 				else candidate = mknary<OR>(disjunctions.begin(), disjunctions.end());
-				errs() << "condidate: " << *candidate << "\n";
+				// errs() << "condidate: " << *candidate << "\n";
 			}
-			LOGLINE("ice", errs() << "NEW CANDIDATE: " << *candidate << "\n");
+			LOGLINE("ice", errs() << " ---CANDIDATE---> " << *candidate << "\n");
 
 			Expr fapp = getFappFromRel(rel);
 			m_candidate_model.addDef(fapp, candidate);
@@ -1105,7 +1101,7 @@ static ExprVector empty;
 	Expr ICE::extractRelation(HornRule r, HornClauseDB &db, Expr t, Expr s)
 	{
 		Expr ruleBody = r.body();
-		LOGIT("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
+		LOG("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
 		ExprVector body_pred_apps;
 		get_all_pred_apps(ruleBody, db, std::back_inserter(body_pred_apps));
 		// for (Expr p : body_pred_apps) LOG("ice", errs() << "filtered: " << *p << "\n");
@@ -1120,7 +1116,7 @@ static ExprVector empty;
 		}
 
 		Expr body_constraints = replace(ruleBody, body_map);
-		LOGIT("ice", errs() << cyan << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
+		LOG("ice", errs() << cyan << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
 		return body_constraints;
 	}
 
@@ -1440,7 +1436,7 @@ static ExprVector empty;
 		m_z3_model_str = "";
 		std::string model = "";
 
-		LOG("ice", errs() << bblue << "Call Z3 externally: " << command << normal << "\n");
+		LOG("ice", errs() << bgreen << "Call Z3 externally: " << command << normal << "\n");
 		FILE* fp;
 		if((fp = popen(command.c_str(), "r")) == NULL) { 
 			LOG("ice", errs() << "popen error!\n"); 
@@ -1470,11 +1466,11 @@ static ExprVector empty;
 			int start = model.find("\n") + 1;
 			model = model.substr(start);
 			m_z3_model_str = model;
-			LOGDP("ice", errs() << "SAT\n");
+			LOGIT("ice", errs() << "SAT\n");
 			// LOGLINE("ice", errs() << "model: " << green << model << normal << "\n");
 		} else {
 			m_z3_sat = false;
-			LOGDP("ice", errs() << "UNSAT\n");
+			LOGIT("ice", errs() << "UNSAT\n");
 		}
 		return m_z3_sat;
 	}
@@ -1527,75 +1523,56 @@ static ExprVector empty;
 		Expr rhead = r.head();
 		if (bind::domainSz(bind::fname(rhead)) <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
-		// LOG("ice", errs() << "TRYING TO ADD some CounterExample.\n");
-		Expr r_head_cand = m_candidate_model.getDef(r.head());
-		solver.reset();
-		solver.assertExpr(mk<NEG>(r_head_cand));
-		Expr body_formula = extractRelation(r, db, NULL, NULL);
-		solver.assertExpr(body_formula);
-		LOGIT ("ice", errs() << "Check the rule. Verification condition: " << *r_head_cand << " <-<- " << *body_formula << "\n");
-
-		// solver.toSmtLib(errs());
+		LOGLINE("ice", errs() << "1.2 SAT, RULE(head) need to be refined! NEED TO ADD More Examples\n");
+		//get cex
 #if USE_EXTERNAL 
-		boost::tribool result = callExternalZ3ToSolve(solver);
+		parseModelFromString(m_z3_model_str);
+		std::list<Expr> attr_values = modelToAttrValues(m_z3_model, rhead);
 #else
-		boost::tribool result = solver.solve();
+		ZModel<EZ3> m = solver.getModel();
+		std::list<Expr> attr_values = modelToAttrValues(m, rhead);
 #endif
-		if(result != UNSAT) 
+
+		//print cex
+		LOGLINE("ice", errs() << "("); 
+		for (auto attr : attr_values) 
+			LOGIT("ice", errs() << *attr << ","); 
+		LOGIT("ice", errs() << ")\n");
+
+		DataPoint pos_dp(bind::fname(bind::fname(rhead)), attr_values);
+		int orig_size = m_pos_data_set.size();
+		addPosCex(pos_dp);
+		if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 		{
-			LOGLINE("ice", errs() << "1.2 SAT, RULE(head) need to be refined! NEED TO ADD More Examples\n");
-			//get cex
-#if USE_EXTERNAL 
-			parseModelFromString(m_z3_model_str);
-			std::list<Expr> attr_values = modelToAttrValues(m_z3_model, rhead);
-#else
-			ZModel<EZ3> m = solver.getModel();
-			std::list<Expr> attr_values = modelToAttrValues(m, rhead);
-#endif
-
-			//print cex
-			LOGLINE("ice", errs() << "("); 
-			for (auto attr : attr_values) 
-				LOGIT("ice", errs() << *attr << ","); 
-			LOGIT("ice", errs() << ")\n");
-
-			DataPoint pos_dp(bind::fname(bind::fname(rhead)), attr_values);
-			int orig_size = m_pos_data_set.size();
-			addPosCex(pos_dp);
-			if(m_pos_data_set.size() == orig_size + 1) //no duplicate
-			{
-				if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > /*50*/ICESVMFreqPos) { LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (NULL); }
-				if (!ICEICE) {
-					LOGLINE("ice", errs() << " Remove all the data for rhead" << *rhead << " in cex and neg_data_list\n");
-					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
-								[pos_dp,rhead,this](DataPoint p) { 
-								return p.getPredName() == bind::fname(bind::fname(rhead)) /*r.head().predicate_name*/ && m_neg_data_set.find(p) != m_neg_data_set.end(); 
-								}), 
-							m_cex_list.end());
-					for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
-						if (it->getPredName() == bind::fname(bind::fname(rhead))) { m_neg_data_set.erase (it++); } 
-						else { ++it; }
-					}
-					m_neg_data_count.erase (pos_dp.getPredName());
+			if (SVMExecPath.compare("") != 0 && m_neg_data_set.size() > /*50*/ICESVMFreqPos) { LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (NULL); }
+			if (!ICEICE) {
+				LOGLINE("ice", errs() << " Remove all the data for rhead" << *rhead << " in cex and neg_data_list\n");
+				m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
+							[pos_dp,rhead,this](DataPoint p) { 
+							return p.getPredName() == bind::fname(bind::fname(rhead)) /*r.head().predicate_name*/ && m_neg_data_set.find(p) != m_neg_data_set.end(); 
+							}), 
+						m_cex_list.end());
+				for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
+					if (it->getPredName() == bind::fname(bind::fname(rhead))) { m_neg_data_set.erase (it++); } 
+					else { ++it; }
 				}
-				m_cex_list.push_back(pos_dp);
-				addDataPointToIndex(pos_dp, index);
-				LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
-				index++;
+				m_neg_data_count.erase (pos_dp.getPredName());
+			}
+			m_cex_list.push_back(pos_dp);
+			addDataPointToIndex(pos_dp, index);
+			LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
+			index++;
 
-				run = sampleLinearHornCtrs(rhead, pos_dp, index);
-				return run;
-			}
-			else // it is a duplicate data point
-			{
-				LOGLINE("ice", errs() << bred << "1.2 Duplicated positive points should be impossible." << normal << "\n");
-				clearNegSamples (rhead, true);
-				// exit (-3);
-			}
-			return true;
-		} else {
-			return false;
+			run = sampleLinearHornCtrs(rhead, pos_dp, index);
+			return run;
 		}
+		else // it is a duplicate data point
+		{
+			LOGLINE("ice", errs() << bred << "1.2 Duplicated positive points should be impossible." << normal << "\n");
+			clearNegSamples (rhead, true);
+			// exit (-3);
+		}
+		return true;
 	}
 
 	// Given a rule head, extract all rules using it in body, then add all such rules to the beginning of workList
@@ -1650,6 +1627,7 @@ static ExprVector empty;
 		int loopi = 0;
 		while (!workList.empty())
 		{
+			errs() << "----------------------------------------------------------------------------------------------------------------------\n";
 			LOGIT ("ice", errs() << bold << green << " solveConstraint #" << solveConstraintTime << " --- LOOP #" << ++loopi << " times ---\n" << normal);
 			HornRule r = workList.front();
 			workList.pop_front();
@@ -1658,6 +1636,7 @@ static ExprVector empty;
 			bool upd = false; int counter = 0; bool posUpd = false;
 
 			Expr r_body = r.body();
+			Expr r_head = r.head();
 			ExprVector body_pred_apps;
 			get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
 
@@ -1667,52 +1646,38 @@ static ExprVector empty;
 				} else { cleanBody = false; break; }
 			}
 
-			if (body_pred_apps.size() <= 0 || cleanBody) {
-				if (bind::domainSz(bind::fname(r.head ())) <= 0) {
-					LOGIT("ice", errs() << bblue << "1.1 CHECK IT. Nothing is need to be refined!" << normal << "\n");
-					LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
-					solver.reset();
-					Expr r_head_cand = m_candidate_model.getDef(r.head());
-					solver.assertExpr(mk<NEG>(r_head_cand));
-					Expr body_formula = extractRelation(r, db, NULL, NULL);
-					LOGIT ("ice", errs() << "Verification condition: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula <<normal <<  "\n");
-					solver.assertExpr(body_formula);
+			solver.reset();
+			Expr r_head_cand = m_candidate_model.getDef(r_head);
+			solver.assertExpr(mk<NEG>(r_head_cand));
+			Expr body_formula = extractRelation(r, db, NULL, NULL);
+			solver.assertExpr(body_formula);
+			LOGLINE ("ice", errs() << green << "replace with candidate: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
+
 #if USE_EXTERNAL
-					boost::tribool result = callExternalZ3ToSolve(solver);
+			boost::tribool result = callExternalZ3ToSolve(solver);
 #else
-					boost::tribool result = solver.solve();
+			boost::tribool result = solver.solve();
 #endif
-					if(result != UNSAT) {
-						outs() << bred << "1.1 Program is buggy.\n" << normal;
-						// TO FIX
-						// extract attr_values from the solver
-						/*
-						ZModel<EZ3> m = solver.getModel();
-						LOGLINE("ice", errs() << lred << bold << "======= Sat Model: " << m << "\n" << normal);
-						if (body_pred_apps.size() > 0) {
-							for (auto pred: body_pred_apps) {
-								std::list<Expr> attr_values = modelToAttrValues(m, pred);
-								errs() << *pred << " : (";
-								for (auto e: attr_values)
-									errs() << lred << bold << *e << "," << normal;
-								errs() << ")\n";
-							}
-						}
-						*/
-						std::list<Expr> attr_values;
-						DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
-						addPosCex(pos_dp);
-						LOGLINE("ice", errs() << lred << bold << "=======Failed DataPoint: " << DataPointToStr(empty, pos_dp) << "\n" << normal);
-						failurePoint = m_pos_list.size()-1;
-						LOGLINE("ice", errs() << lred << bold << "1.1 =======<<< Constraint Solving of Horn Clauses \n" << normal);
-						return false;
-					}
-					else 
-					{
-						LOGIT ("ice", errs() << bgreen << "Unsat, and thus this rule passes." << normal << blue << *r_head_cand << normal << " <-<- " << red << *body_formula <<normal <<  "\n");
-					}
+			if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
+			else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
+			if (result == UNSAT) continue;
+
+
+			if (body_pred_apps.size() <= 0 || cleanBody) {
+				LOGIT("ice", errs() << bred << bold << "[1] BODY is clean" << normal << "\n");
+				if (bind::domainSz(bind::fname(r.head ())) <= 0) {
+					LOGIT("ice", errs() << bred << " [1].1 HEAD is clearn. CHECK IT. Nothing is need to be refined!" << normal << "\n");
+					LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
+					outs() << bred << "1.1 Program is buggy.\n" << normal;
+					std::list<Expr> attr_values;
+					DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
+					addPosCex(pos_dp);
+					LOGLINE("ice", errs() << lred << bold << "=======Failed DataPoint: " << DataPointToStr(empty, pos_dp) << "\n" << normal);
+					failurePoint = m_pos_list.size()-1;
+					LOGLINE("ice", errs() << lred << bold << "1.1 =======<<< Constraint Solving of Horn Clauses \n" << normal);
+					return false;
 				} else {
-					LOGIT("ice", errs() << bblue << "1.2 Head is possibly need to be refined!" << normal << "\n");
+					LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
 					// Head is possibly need to be refined!
 					LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program State Samples." << normal << "\n");
 					do {
@@ -1737,10 +1702,11 @@ static ExprVector empty;
 					addUsedToWorkList (db, workList, r);
 				}
 			} else {
-				LOGIT("ice", errs() << bblue << "3 Both Head and Body are possibly need to be refined!" << normal << "\n");
+				LOGIT("ice", errs() << bred << bold << " [2] BODY IS DIRTY. Might Both Head and Body are possibly need to be refined!" << normal << "\n");
 				//Expr body_app = body_pred_apps[0];
 				//Expr preSolve = m_candidate_model.getDef(body_app);
 				if (!ICELocalStrengthen) {
+					bool first_time = true;
 					do {
 						counter ++;
 
@@ -1752,95 +1718,69 @@ static ExprVector empty;
 						Expr e = bind::fname(*(db.getRelations().begin()));
 						changedPreds.push_back (e);
 						// changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
-						LOGLINE("ice", errs() << lred << bold << " 3. add to changed Pred: " << *e << "\n" << normal);
+						LOGLINE("ice", errs() << lred << bold << " [?? don't know why] add to changed Pred: " << *e << "\n" << normal);
 						//if (curSolve != preSolve)
 						//   m_candidate_model.addDef(body_app, mk<AND>(preSolve, curSolve));
 
 						upd = false;
-						Expr r_head = r.head();
-						Expr r_head_cand = m_candidate_model.getDef(r_head);
-
 						LOGLINE("ice", errs() << "TRYING TO ADD some CounterExample.\n");
-						solver.reset();
-						// LOGLINE("ice", errs() << "\n");
-						solver.assertExpr(mk<NEG>(r_head_cand));
-						// LOGLINE("ice", errs() << "\n");
-						Expr body_formula = extractRelation(r, db, NULL, NULL);
-						// LOGLINE("ice", errs() << "body_formula: " << *body_formula << "\n");
-						solver.assertExpr(body_formula);
-						errs() << "----------------------------------------------------------\n";
-						LOGLINE ("ice", errs() << green << "Get Counter-example by solving : " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
-						// errs() << red << solver << "\n"
 
-						// solver.toSmtLib(errs());
-						/*
-						boost::tribool res = callExternalZ3ToSolve(solver);
-						if(res != UNSAT) {
-							parseModelFromString(m_z3_model_str);
-							for (auto &variable: m_z3_model) {
-								outs()  << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
-									<< bblue << " val:" << normal << variable.second.second << "\n";
-							}
-						}
-						*/
+						if (first_time) {
+							// the constraint has been solved before the loop
+							first_time = false;
+						} else {
+							// r_head = r.head();
+							solver.reset();
+							r_head_cand = m_candidate_model.getDef(r_head);
+							solver.assertExpr(mk<NEG>(r_head_cand));
+							body_formula = extractRelation(r, db, NULL, NULL);
+							solver.assertExpr(body_formula);
+							LOGLINE ("ice", errs() << cyan << "[not first time]replace with candidate: " << blue << *r_head_cand << normal << " <-<- " << red << *body_formula << "\n" << normal);
+
 #if USE_EXTERNAL
-						boost::tribool result = callExternalZ3ToSolve(solver);
-						// parseModelFromString(m_z3_model_str);
-						// std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
+							result = callExternalZ3ToSolve(solver);
 #else
-						boost::tribool result = solver.solve();
+							result = solver.solve();
 #endif
-						if (result == UNSAT)
-							LOGLINE("ice", errs() << bold << red << "solving result: UNSAT\n" << normal);
-						else
-							LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
+							if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
+							else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
+						}
+
 						if(result != UNSAT) 
 						{
 							LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 							upd = true; isChanged = true;
 #if USE_EXTERNAL
-							// errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
 							parseModelFromString(m_z3_model_str);
+							// errs() << "z3 original model: \n" << cyan << m_z3_model_str << normal << "\n";
 #else
 							ZModel<EZ3> m = solver.getModel();
 							// errs() << "z3 original model: \n" << cyan << m << normal << "\n";
 #endif
 							std::set<DataPoint> negPoints;
-							//get cex
-							errs() << "get counter-example: \n";
-							/*
-							for (auto &variable: m_z3_model) {
-								outs()  << bblue << "name: " << normal << variable.first << bblue << " type:" << normal << variable.second.first 
-									<< bblue << " val:" << normal << variable.second.second << "\n";
-							}
-							*/
 
 							//print cex
+							errs() << cyan << "get candidate for each body_predicate that has parameters: " << normal << "\n";
+							int body_index = 0;
 							for (Expr body_app : body_pred_apps) {
+								body_index++;
+								errs() << "BODY{" << body_index << "}" << bgray << *body_app << normal;
 								if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
+								{
+									errs() << " xxx \n";
 									continue;
+								}
 
-								errs() << "{BODY}" << bgray << "[" << *body_app << "]" << normal;
-								// Presumbaly add counterexample
 #if USE_EXTERNAL
 								std::list<Expr> attr_values = modelToAttrValues(m_z3_model, body_app);
 #else
 								std::list<Expr> attr_values = modelToAttrValues(m, body_app);
 #endif
-								/*
-								errs() << bred << bold << "(";
-								for (auto attr_val: attr_values) {
-									outs()  << bold << yellow << attr_val << normal << "\n";
-									outs()  << " |-operator: " << attr_val->op() << "\n";
-									for (int i = 0; i < attr_val->arity(); i++)
-										outs()  << "  |-args[" << i << "] = " << attr_val->arg(i) << "\n";
-								}
-								*/
-
-								// If the counterexample is already labeled positive;
-								// Add its successive (aka. state transition) to positives instead.
+								// Presumbaly add counterexample
 								DataPoint neg_dp(bind::fname(bind::fname(body_app)), attr_values);
 								negPoints.insert(neg_dp);
+								errs() << " -instance-> " << blue << DataPointToStr(empty, neg_dp) << normal << "\n";
+								// errs() << "{BODY}" << bgray << *body_app << normal << " -instance-> " << blue << DataPointToStr(empty, neg_dp) << normal << "\n";
 							}
 
 							errs() << bold << green << "negPoints: " << yellow; 
@@ -1848,6 +1788,8 @@ static ExprVector empty;
 							errs() << "\n" << normal;
 							outputDataSetInfo();
 
+							// If the counterexample is already labeled positive;
+							// Add its successive (aka. state transition) to positives instead.
 							bool foundPos = true;
 							for (DataPoint neg_dp : negPoints) {
 								errs() << " search datapoint: " << red << DataPointToStr(empty, neg_dp) << normal << " in m_pos_data_set: \n";
@@ -1951,7 +1893,7 @@ static ExprVector empty;
 									if (bind::domainSz(bind::fname(r_head)) <= 0) surebad = true;
 								}
 								if (ICEICE && !surebad && negPoints.size() == 1) {
-									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option1, IMPLICATION %%%%%%%%%%%%%\n");
+									LOGLINE("ice", errs() << bgreen << " %%%%%%%%%%% mark option1, NOT SUREBAD, implication %%%%%%%%%%%%%" << normal << "\n");
 									// Add Implication samples.
 #if USE_EXTERNAL
 									std::list<Expr> attr_values = modelToAttrValues(m_z3_model, r_head);
@@ -1989,14 +1931,10 @@ static ExprVector empty;
 								}
 								else 
 								{ 
-									LOGLINE("ice", errs() << " %%%%%%%%%%% mark option2, SUREBAD, head is known %%%%%%%%%%%%%\n");
+									LOGLINE("ice", errs() << bgreen << " %%%%%%%%%%% mark option2, SUREBAD, head is known %%%%%%%%%%%%%" << normal << "\n");
 									outputDataSetInfo();
 									for (DataPoint neg_dp : negPoints) {
 										LOGLINE("ice", errs() << " - on negDataPoint " << red << DataPointToStr(empty, neg_dp) << normal << "\n");
-										/*
-										auto searched = m_pos_data_set.find(neg_dp);
-										if (searched != m_pos_data_set.end() || matchFacts (db, neg_dp)) 
-										*/
 										if (m_pos_data_set.find(neg_dp) != m_pos_data_set.end()) 
 										/* Found this in positive set. */ 
 										{ 
@@ -2006,8 +1944,6 @@ static ExprVector empty;
 										else 
 										{
 											errs() << "/* not Found this in positive set. add it to negative data set */\n";
-											// LOGIT("neg", errs() << "-- NEG DATA SET --\n"); for (auto dp: m_neg_data_set) { LOGIT("neg", errs() << lblue << DataPointToStr(empty, dp) << normal << "\n"); } LOGIT("neg", errs() << "-- NEG DATA SET done --\n");
-											// LOGLINE("neg", errs() << "neg size: " << m_neg_data_set.size() << "\n");
 
 											int org_size = m_neg_data_set.size();
 											LOGLINE("neg", errs() << "++ add new neg sample: " << DataPointToStr(empty, neg_dp) << "\n");
@@ -2029,12 +1965,9 @@ static ExprVector empty;
 													LOGLINE("ice", errs() << lred << bold << " 3.3. add to changed Pred: " << *e << "\n" << normal);
 												}
 
-												if (SVMExecPath.compare("") != 0) //&& m_neg_data_set.size() > 100 && m_neg_data_set.size() % 100 == 0)
-												{
-													std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
-													if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
-														LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (neg_dp.getPredName());
-													}
+												std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
+												if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
+													LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (neg_dp.getPredName());
 												}
 											}
 											else //it is a duplicate data point
@@ -2131,7 +2064,7 @@ static ExprVector empty;
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::getReachableStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index)
 	{
-		errs() << bold << bred << "******** get Reachable States ********" << normal << "\n";
+		errs() << bblue << "******** get Reachable States ********" << normal << "\n";
 		errs() << green << "  get reachable state from State=" << *from_pred << normal << "\n";
 		auto &db = m_hm.getHornClauseDB();
 		int count = 0;

@@ -137,12 +137,16 @@ static std::string line;
 	CODE; \
 	llvm::errs().flush();\
 } while (0)
-#define _LOCT_LOG(TAG, CODE) do { \
+
+#define _LOCT_LOG_OLD(TAG, CODE) do { \
 	if (__FUNCTION__ != function) { \
 		llvm::errs() << blue << "<<< ****** function: " << function << " ****** <<<\n\n" << normal; \
 		function = __FUNCTION__;\
 		llvm::errs() << green << ">>> ****** function: " << function << " ****** >>>\n" << normal; \
 	} \
+} while (0)
+
+#define _LOCT_LOG(TAG, CODE) do { \
 	std::string filestr = __FILE__;\
 	int loc = filestr.rfind("/");\
 	loc = filestr.rfind("/", loc-1);\

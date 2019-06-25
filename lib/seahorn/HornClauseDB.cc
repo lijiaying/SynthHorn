@@ -151,13 +151,13 @@ namespace seahorn
   {
     std::ostringstream oss;
 #if 1
-    oss << green << "===== Predicates: ====\n;" << normal;
+    oss << green << "===== Predicates: ====\n" << normal;
     for (auto &p : m_rels)
     { oss << gray << p << "\n" << normal; }
-    oss << green << "===== Clauses: ====\n;" << normal;
+    oss << green << "===== Clauses: ====\n" << normal;
     for (auto &r : m_rules)
     { oss << bmag << r.head () << normal << " <- " << gray << r.body () << normal << "\n"; }
-    oss << green << "==== Queries: ====\n;" << normal;
+    oss << green << "==== Queries: ====\n" << normal;
     for (auto &q : m_queries)
     { oss << red << q << "\n"; }
 #else
