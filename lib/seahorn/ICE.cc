@@ -56,6 +56,7 @@ namespace seahorn
 #define SAT_OR_INDETERMIN true
 #define UNSAT false
 
+
 static ExprVector empty;
 
 	/*ICEPass methods begin*/
@@ -283,18 +284,9 @@ static ExprVector empty;
 
 			LOG("ice", errs() << "Call SVM: " << command << "\n");
 			if((fp = popen(command.c_str(), "r")) == NULL) { LOG("ice", errs() << "popen error!\n"); perror("popen failed!\n"); return; }
-			// LOG("ice", errs() << "call svm returns!\n");
-			n_svm_calls ++;
-
-			// char buf[1024];
-			// size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-			// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n"); return; }
+			LOG("ice", errs() << "call svm returns!\n");
 			pclose(fp);
-
-			// FILE *wp = fopen("SVM_temp","w+");
-			// fwrite(buf, 1, sizeof(buf), wp);
-			// fclose(wp);
-			// LOGDP("ice", errs() << "buf: " << yellow << buf << normal << "\n");
+			n_svm_calls ++;
 
 			std::ifstream if_svm(m_C5filename + ".attr");
 			std::ostringstream svm_buf;
@@ -303,7 +295,7 @@ static ExprVector empty;
 			if_svm.close();
 			std::string svmattr_string = svm_buf.str();
 			std::vector<std::string> lines = split_string (svmattr_string, "\n");
-			LOGDP("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal << "\n");
+			LOGDP("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal);
 
 			// Expr zero = mkTerm<mpz_class>(0, rel->efac());
 			// mk<GEQ>(mknary<PLUS> (addargs), zero)));
@@ -411,12 +403,14 @@ static ExprVector empty;
 			last_endlpos = str.find("\n", endlpos);
 			endlpos = str.find("\n", last_endlpos+1);
 		}
-		errs() << bold << mag << "|------------- " << filename << " --------------";
+		// errs() << bold << mag << "|------------- " << filename << " --------------";
+		errs() << bold << mag << "-------------- " << filename << " --------------";
 		int len = filename.size() + 32;
-		while (len++<54)
-			errs() << "-";
-		errs() << "|\n" << str;
-		errs() << "|--------------------- END -------------------------|\n" << normal;
+		while (len++<54) errs() << "-";
+		// errs() << "|\n" << str;
+		errs() << "-\n" << str;
+		errs() << "-----------------------------------------------------\n" << normal;
+		//errs() << "|--------------------- END -------------------------|\n" << normal;
 	}
 
 	//Set .names file and .interval file
@@ -463,16 +457,13 @@ static ExprVector empty;
 					Expr arg_i_type = bind::domainTy(rel, i);
 					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
 					Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
-					LOGLINE("ice", errs() << "check --" << *arg_i_type << " " << *attr_name_i << ": ");
-					// errs() << "check --" << *arg_i_type << " " << *attr_name_i << ": ";
-					// if(isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
-					// if(isOpX<BV_TY>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
+					LOG("ice", errs() << "check --" << *arg_i_type << " " << *attr_name_i << ": ");
 					if(isOpX<BVSORT>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
 					{
-						LOGIT("ice", errs() << green << "GOOD, in int/bv/bool TYPE!\n" << normal);
+						LOG("ice", errs() << green << "GOOD, in int/bv/bool TYPE!\n" << normal);
 						if (unknowns[rel][i]) // Exclude unknowns from invariant inference.
 						{
-							errs() << red "        --> unknown, thus skip\n" << normal;
+							LOG("ice", errs() << red "        --> unknown, thus skip\n" << normal);
 							continue;
 						}
 						Expr arg_i_type = bind::domainTy(rel, i);
@@ -483,7 +474,7 @@ static ExprVector empty;
 						upperInterval ++;
 					}
 					else { 
-						LOGIT("ice", errs() << red << "BAD, not in int/bv/bool TYPE!\n" << normal);
+						LOG("ice", errs() << red << "BAD, not in int/bv/bool TYPE!\n" << normal);
 					}
 				}
 				//implicit attributes which have the form x % n.
@@ -552,8 +543,8 @@ static ExprVector empty;
 		names_of << "invariant: true, false.\n";
 		names_of.close();
 		intervals_of.close();
-		outputFileContent(m_C5filename + ".names");
-		outputFileContent(m_C5filename + ".intervals");
+		// outputFileContent(m_C5filename + ".names");
+		// outputFileContent(m_C5filename + ".intervals");
 	}
 
 	std::string ptreeToString(boost::property_tree::ptree pt) {
@@ -567,9 +558,10 @@ static ExprVector empty;
 	void ICE::C5learn(ExprVector targets)
 	{
 		// errs() << "before C5Learn\n" << cyan << m_candidate_model << "\n" << normal;
-		errs() << bblue << "-------------------------C5Learn--------------------------" << normal << "\n";
+		errs() << bblue << "-------------------------C5Learn--------------------------" << normal << " targets (" << targets.size() << ")\n";
 		for (int i = 0; i < targets.size(); i++)
-			errs() << "target " << i << " : "<< bblue << *targets[i] << normal << "\n";
+			errs() << bold << blue << *targets[i] << normal << " ";
+		errs() << normal << "\n";
 		initC5 (targets); // Set .names file and .interval file
 		generateC5DataAndImplicationFiles(targets);
 		LOG("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n");
@@ -579,55 +571,49 @@ static ExprVector empty;
 		std::string command = C5ExecPath + " -I 1 -m 1 -f " + m_C5filename;
 		//std::string command = "/home/chenguang/Desktop/C50-ICE/C50/c5.0dbg -I 1 -m 1 -f " + m_C5filename;
 		if((fp = popen(command.c_str(), "r")) == NULL) { perror("popen failed!\n"); return; }
-		// char buf[1024];
-		// size_t status = fread(buf, sizeof(char), sizeof(buf), fp);
-		// if(status == 0) { LOG("ice", errs() << "read from popen failed!\n"); return; }
 		pclose(fp);
-		// FILE *wp = fopen("C5_temp","w+"); fwrite(buf, 1, sizeof(buf), wp); fclose(wp);
 
 		//parse the .json file to ptree
 		std::ifstream if_json(m_C5filename + ".json");
 		std::ostringstream json_buf; char ch; while(json_buf && if_json.get(ch)) { json_buf.put(ch); } if_json.close();
 		std::string json_string =  json_buf.str();
-		// errs() << "json: \n" << cyan << json_string << "\n" << normal;
+		errs() << "json: " << cyan << json_string << "\n" << normal;
 
-		// LOGLINE("ice", errs() << " >>> convert json to ptree: \n");
+		LOG("ice", errs() << " >>> convert json to ptree: \n");
 		boost::property_tree::ptree pt;
 		std::stringstream ss(json_string);
 		try { boost::property_tree::json_parser::read_json(ss, pt); }
 		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n"); return; }
-		// LOG("ice", errs() << " <<< convert json to ptree (structued json format): \n" << mag << ptreeToString(pt) << "\n");
+		LOG("ice", errs() << " <<< convert json to ptree (structued json format): \n" << mag << ptreeToString(pt) << "\n");
 
 		//parse ptree to invariant format
-		// LOGLINE("ice", errs() << " >>> convert ptree to inv. \n");
+		LOG("ice", errs() << " >>> convert ptree to inv. \n");
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
-		// LOGLINE("ice", errs() << " <<< convert ptree to inv. \n");
+		LOG("ice", errs() << " <<< convert ptree to inv. \n");
 		auto &db = m_hm.getHornClauseDB();
 
 		//Fixme: enforce to prove all queries are unsat.
 		// every predicate is set to be False
-		// LOGLINE("ice", errs() << " >>> invalididate queries \n");
+		LOG("ice", errs() << " >>> invalididate queries \n");
 		/* m_candidate_model = */ invalidateQueries(db);
-		// LOGLINE("ice", errs() << " <<< invalididate queries \n");
+		LOG("ice", errs() << " <<< invalididate queries \n");
 		extractFacts(db, targets);
 
 		//print the invariant map after this learning round
-		/*
-		LOGLINE("ice", errs() << "NEW CANDIDATES MAP:\n");
+		LOGLINE("ice", errs() << yellow << "NEW CANDIDATES MAP:\n");
 		for(Expr rel : db.getRelations()) {
-			LOGLINE("ice", errs() << red << " relation : " << *rel << "\n" << normal);
+			LOGIT("ice", errs() << red << " relation : " << *rel << "\n" << normal);
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
 			errs() << green << *fapp << normal << " : " << *cand_app << "\n";
 		}
-		*/
 	}
 	void ICE::outputDataSetInfo() {
-		LOGIT("x", errs() << green << "|--------------------- POS DATA SET ------------------------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << green << "|---------------------  POS DATA SET -----------------------" << yellow << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << green << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << red << "|---------------------  NEG DATA SET ----------------------" << yellow << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << red <<   "|---------------------  NEG DATA SET -----------------------" << yellow << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_neg_data_set) { LOGIT("x", errs() << red << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
-		LOGIT("x", errs() << blue << "|---------------------  IMPL DATA SET ----------------------" << yellow << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
+		LOGIT("x", errs() << blue <<  "|---------------------  IMPL DATA SET ----------------------" << yellow << "(" << m_impl_pair_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_impl_pair_set) { LOGIT("x", errs() << blue << "| " << DataPointToStr(empty, dp.first) << " -> " << DataPointToStr(empty, dp.second) << normal << "\n"); } 
 	}
 
@@ -659,12 +645,12 @@ static ExprVector empty;
 						end1 = start1+1;
 						// errs() << red << "bv data: " << bold << dpstr << normal << " range [" << start1 << ", " << end1 << "], [" << start2 << ", " << end2 << "] ---> ";
 						std::string bvstr = dpstr.substr(end1, start2-end1);
-						// errs() << red << "bv value: " << bold << bvstr << "\n" << normal;
 						if (bvstr.find("0x") != -1) {
+							errs() << red << "bv value: " << bold << bvstr << "\n" << normal;
 							int bvint = std::stol (bvstr,nullptr,16);
-							// errs() << red << bold << " -> int:" << bvint; 
+							errs() << red << bold << " -> int:" << bvint; 
 							bvstr = std::to_string(bvint);
-							// errs() << " str:" << bvstr << "\n" << normal;
+							errs() << " str:" << bvstr << "\n" << normal;
 						}
 						dpstr = dpstr.replace(start1, end2 + 1 - start1, bvstr); 
 						// errs() << " --> " << dpstr << "\n";
@@ -681,7 +667,7 @@ static ExprVector empty;
 		outputFileContent(m_C5filename + ".data"); 
 
 		//generate .implications file
-		if (ICEICE) {
+		// if (ICEICE) {
 			std::ofstream implications_of(m_C5filename + ".implications");
 			if(!implications_of)return;
 
@@ -704,7 +690,7 @@ static ExprVector empty;
 
 			implications_of.close();
 			outputFileContent(m_C5filename + ".implications"); 
-		}
+		// }
 	}
 
 	std::string ICE::DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly)
@@ -1119,7 +1105,7 @@ static ExprVector empty;
 	Expr ICE::extractRelation(HornRule r, HornClauseDB &db, Expr t, Expr s)
 	{
 		Expr ruleBody = r.body();
-		LOGIT("ice", errs() << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
+		LOGIT("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
 		ExprVector body_pred_apps;
 		get_all_pred_apps(ruleBody, db, std::back_inserter(body_pred_apps));
 		// for (Expr p : body_pred_apps) LOG("ice", errs() << "filtered: " << *p << "\n");
@@ -1134,7 +1120,7 @@ static ExprVector empty;
 		}
 
 		Expr body_constraints = replace(ruleBody, body_map);
-		LOGIT("ice", errs() << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
+		LOGIT("ice", errs() << cyan << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
 		return body_constraints;
 	}
 
@@ -1183,7 +1169,7 @@ static ExprVector empty;
 				if (bind::fname (query) == rel) {
 					// errs() << green << bold << "match\n" << normal;
 					m_candidate_model.addDef(fapp, False);
-					errs() << " +++ add def " << *fapp << " -> False\n";
+					errs() << " +++ add def " << blue << *fapp << " -> False" << normal << "\n";
 				}
 				else 
 				{
@@ -1436,7 +1422,6 @@ static ExprVector empty;
 	}
 
 
-	// bool ICE::callExternalZ3ToSolve(std::string smt2str)
 	boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
 	{
 		outs()  << bblue << "[Experimental] call external Z3 to solve constraint" << normal << "\n";
@@ -1482,11 +1467,6 @@ static ExprVector empty;
 		if (model.find("unsat") == -1) {
 			// sat
 			m_z3_sat = true;
-			/*
-			std::ofstream sat_of(m_C5filename + ".sat.smt2");
-			sat_of << smt2_to_solve;
-			sat_of.close();
-			*/
 			int start = model.find("\n") + 1;
 			model = model.substr(start);
 			m_z3_model_str = model;
@@ -1494,19 +1474,12 @@ static ExprVector empty;
 			// LOGLINE("ice", errs() << "model: " << green << model << normal << "\n");
 		} else {
 			m_z3_sat = false;
-			/*
-			std::ofstream sat_of(m_C5filename + ".unsat.smt2");
-			sat_of << smt2_to_solve;
-			sat_of.close();
-			*/
 			LOGDP("ice", errs() << "UNSAT\n");
 		}
 		return m_z3_sat;
 	}
 
 	bool ICE::parseModelFromString(std::string model_str) {
-		// outs()  << "---> [call parseModelFromString]\n";
-#include <algorithm>
 		std::replace(model_str.begin(), model_str.end(), '\n', ' ');
 		std::replace(model_str.begin(), model_str.end(), '\t', ' ');
 		m_z3_model.clear();
@@ -1615,7 +1588,7 @@ static ExprVector empty;
 			}
 			else // it is a duplicate data point
 			{
-				LOGLINE("ice", errs() << bred << "1.2 Duplicated positive points should be impossible.\n" << normal);
+				LOGLINE("ice", errs() << bred << "1.2 Duplicated positive points should be impossible." << normal << "\n");
 				clearNegSamples (rhead, true);
 				// exit (-3);
 			}
@@ -2142,13 +2115,14 @@ static ExprVector empty;
 		LOGLINE("ice", errs() << mag << bold << "====================== THE WHOLE STATE MAP ========================" << normal << "\n");
 		int i = 0;
 		for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
-			LOGIT("ice", errs() << blue << bold << "(" << i << ") ");
-			LOGIT("ice", errs() << "var:" << *(itr->first) << " = val:");
-			LOGIT("ice", errs() << "[");
+			LOGIT("ice", errs() << blue << "[" << i << "] ");
+			LOGIT("ice", errs() << "" << *(itr->first) << " = ");
+			LOGIT("ice", errs() << "(");
 			for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
 				LOGIT("ice", errs() << *(*itr2) << ", ");
 			}
-			LOGIT("ice", errs() << "]\n" << normal);
+			LOGIT("ice", errs() << ")\n" << normal);
+			i++;
 		}
 		return true;
 	}
@@ -2160,6 +2134,7 @@ static ExprVector empty;
 		errs() << bold << bred << "******** get Reachable States ********" << normal << "\n";
 		errs() << green << "  get reachable state from State=" << *from_pred << normal << "\n";
 		auto &db = m_hm.getHornClauseDB();
+		int count = 0;
 		for(HornClauseDB::RuleVector::iterator itr = db.getRules().begin(); itr != db.getRules().end(); ++itr)
 		{
 			HornRule r = *itr;
@@ -2176,8 +2151,11 @@ static ExprVector empty;
 			if(body_preds.size() == 1 && bind::fname(body_preds[0]) == bind::fname(from_pred))
 				// r.body == from  meaning  from->***
 			{
-				errs() << green << " > found a rule to do the inference>\n" << normal << blue << *r.head() << normal << " <-" << blue << *r.body() << normal << "\n from State=" << *from_pred << normal << "\n";
+				errs() << green << " > found a rule to do the inference> from State=" << normal << *from_pred << normal
+					<< blue << *r.head() << normal << " <-" << blue << *r.body() << normal << "\n";
+				count++;
 				ExprVector equations;
+				LOGIT("ice", errs() << "  Inferred: \n");
 				for(int i=0; i<=bind::domainSz(body_preds[0]); i++)
 				{
 					Expr var = bind::domainTy(body_preds[0], i);
@@ -2194,8 +2172,8 @@ static ExprVector empty;
 						else { exit (-3); }
 					}
 
-					LOGIT("ice", errs() << "var: " << *var << " = ");
-					LOGIT("ice", errs() << "var: " << *value << "\n");
+					LOGIT("ice", errs() << "    [" << i << "] " << *var << " = ");
+					LOGIT("ice", errs() << *value << "\n");
 					equations.push_back(mk<EQ>(var, value));
 				}
 				Expr state_assignment;
@@ -2203,10 +2181,13 @@ static ExprVector empty;
 				else { state_assignment = equations[0]; }
 
 				bool run = getRuleHeadState(transitionCount, relationToPositiveStateMap, r, state_assignment, m_pos_index_map[p], index);
-				errs() << green << " < finish the rule to do the inference> from State=" << *from_pred << normal << "\n";
-				if (!run) return false;
+				if (!run) {
+					LOGLINE("ice", errs() << red << " < run == false. from State=" << *from_pred << normal << "\n");
+					return false;
+				}
 			}
 		}
+		errs() << green << " < finish the inference from State=" << normal << *from_pred << "  Count=" << count << "\n";
 		return true;
 	}
 
@@ -2215,7 +2196,8 @@ static ExprVector empty;
 	// Fixme. Not suitable for non-linear Horn Constraint System.
 	bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
 	{
-		LOGIT("ice", errs() << bblue << "====== get Rule Head state ========= \nrule:" << *r.head() << " <- " << *r.body() << " FromState:" << *from_pred_state << normal << "\n");
+		LOGIT("ice", errs() << bblue << "====== get Rule Head state ========= " << normal << "\n");
+				// "rule:" << *r.head() << " <- " << *r.body() << " FromState:" << *from_pred_state << normal << "\n");
 		LOGIT("ice", errs() << "RULE HEAD: " << *(r.head()) << "\n");
 		LOGIT("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
 

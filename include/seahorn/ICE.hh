@@ -167,15 +167,6 @@ namespace seahorn
 					m_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
 			}
 
-			//      void addImplCex(DataPoint dp) {
-			//    	  m_impl_data_set.insert(dp);
-			//		  std::map<Expr, int>::iterator it = m_impl_data_count.find(dp.getPredName());
-			//		  if (it != m_impl_data_count.end())
-			//			  it->second ++;
-			//		  else
-			//			  m_impl_data_count.insert (std::make_pair(dp.getPredName(), 1));
-			//      }
-
 			void drawDataPoint(DataPoint& dp, std::string ending = "") {
 				Expr pred_cname = dp.getPredName();
 				outs() << *pred_cname << "(";
