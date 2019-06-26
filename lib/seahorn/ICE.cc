@@ -202,7 +202,7 @@ namespace seahorn
 		}
 
 		for (Expr rel : db.getRelations()) {
-			LOGDP("ice", errs() << "SVM on predicate: " << cyan << bold << *rel << normal << " --> ");
+			LOGDP("ice", errs() << "SVM on predicate: " << cyan << bold << *rel << normal << " -->\n");
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::stringstream oss; oss << C5_rel_name;
 			// oss = rel.C5_name
@@ -276,7 +276,7 @@ namespace seahorn
 									errs() << bred << "type error." << DataPointToStr(empty, dp, false) << " -> " << attr_str << " -> " << hex << normal << "\n";
 									exit(-4);
 								}
-								if (n>100000000 || n<-100000000)
+								if (n>500000000 || n<-500000000)
 									is_proper = false;
 								attr_str = std::to_string(n);
 							}
@@ -1472,7 +1472,7 @@ namespace seahorn
 
 		std::string command = Z3ExecPath + " " 
 			+ m_C5filename + ".smt2" + " "
-			+ "-T:2 "; // set timeout to 2s
+			+ "-T:10 "; // set timeout to 10s
 		m_z3_model_str = "";
 		std::string model = "";
 
