@@ -805,23 +805,33 @@ namespace seahorn
 				stack.push_back(mk<TRUE>(db.getExprFactory()));
 				std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
 				ExprVector disjunctions;
-				int i = 0;
+				// int i = 0;
 				for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
 					// errs() << "  >>>" << i << "    final_formula[" << i << "]\n";
 					ExprVector conjunctions;
-					int j = 0;
+					// int j = 0;
 					for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
 					{
 						// errs() << "    >>>" << j << "   final_formula[" << i << "][" << j << "] = " << **conj_it << "\n";
+						if (isOpX<TRUE>(*conj_it))
+							continue;
+						if (isOpX<FALSE>(*conj_it)) {
+							conjunctions.clear();
+							break;
+						}
 						conjunctions.push_back(*conj_it);
-						j++;
+						// j++;
 					}
-					Expr disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
-					// errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
+					Expr disjunct;
+					if (conjunctions.size() <= 0) continue;
+					else if (conjunctions.size() == 1)  disjunct = conjunctions[0];
+					else disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
 					disjunctions.push_back(disjunct);
-					i++;
+					// errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
+					// i++;
 				}
-				if(disjunctions.size() == 1) candidate = disjunctions[0];
+				if(disjunctions.size() <= 0) candidate = mk<TRUE>(db.getExprFactory());
+				else if(disjunctions.size() == 1) candidate = disjunctions[0];
 				else candidate = mknary<OR>(disjunctions.begin(), disjunctions.end());
 				// errs() << "condidate: " << *candidate << "\n";
 			}
