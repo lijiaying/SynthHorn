@@ -202,7 +202,7 @@ namespace seahorn
 		}
 
 		for (Expr rel : db.getRelations()) {
-			LOGDP("ice", errs() << "SVM on predicate: " << cyan << bold << *rel << normal << " -->\n");
+			LOG("ice", errs() << "SVM on predicate: " << cyan << bold << *rel << normal << " -->\n");
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::stringstream oss; oss << C5_rel_name;
 			// oss = rel.C5_name
@@ -321,7 +321,7 @@ namespace seahorn
 			if_svm.close();
 			std::string svmattr_string = svm_buf.str();
 			std::vector<std::string> lines = split_string (svmattr_string, "\n");
-			LOGIT("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal);
+			LOG("ice", errs() << "svmattr_string: " << yellow << svmattr_string << normal);
 
 			// Expr zero = mkTerm<mpz_class>(0, rel->efac());
 			// mk<GEQ>(mknary<PLUS> (addargs), zero)));
@@ -1821,7 +1821,7 @@ namespace seahorn
 					// changedPreds.push_back (bind::fname(*(db.getRelations().begin())));
 					Expr e = bind::fname(*(db.getRelations().begin()));
 					changedPreds.push_back(e);
-					LOGLINE("ice", errs() << lred << bold << " [?? don't know why] add to changed Pred: " << *e << "\n" << normal);
+					// LOGLINE("ice", errs() << lred << bold << " [?? don't know why] add to changed Pred: " << *e << "\n" << normal);
 					upd = false;
 
 					if(result != UNSAT) 
