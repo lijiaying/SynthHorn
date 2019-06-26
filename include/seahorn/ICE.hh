@@ -13,6 +13,8 @@
 #include "ufo/Smt/EZ3.hh"
 #include "seahorn/HornClauseDBWto.hh"
 
+#include "color.hh"
+
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
@@ -117,11 +119,25 @@ namespace seahorn
 			// std::list<Expr> m_model; // var_name: <var_type, var_value>
 			std::map<std::string, Expr> m_model;
 			std::string m_z3_model_str;
+
+			std::map<HornRule, int> ruleIndex;
+			std::string HornRuleToStr(HornRule& r, bool rulecontent = false) {
+				std::ostringstream oss; 
+				int index = ruleIndex[r];
+				oss << "[R" << index << "]";
+				if (rulecontent) {
+					oss << "\n";
+					oss << "{HEAD}: " << *r.head() << "\n";
+					oss << "{BODY}: " << *r.body() << "\n";
+				}
+				return oss.str();
+			}
+
 		public:
 			void setupC5();
 			void initC5(ExprVector targets);
 			void C5learn(ExprVector targets);
-			std::string DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly = false);
+			std::string DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly = true);
 			// bool callExternalZ3ToSolve(std::string smt2str);
 			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
 			bool parseModelFromString(std::string model_str);
