@@ -805,14 +805,10 @@ namespace seahorn
 				stack.push_back(mk<TRUE>(db.getExprFactory()));
 				std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
 				ExprVector disjunctions;
-				// int i = 0;
 				for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
-					// errs() << "  >>>" << i << "    final_formula[" << i << "]\n";
 					ExprVector conjunctions;
-					// int j = 0;
 					for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
 					{
-						// errs() << "    >>>" << j << "   final_formula[" << i << "][" << j << "] = " << **conj_it << "\n";
 						if (isOpX<TRUE>(*conj_it))
 							continue;
 						if (isOpX<FALSE>(*conj_it)) {
@@ -820,15 +816,12 @@ namespace seahorn
 							break;
 						}
 						conjunctions.push_back(*conj_it);
-						// j++;
 					}
 					Expr disjunct;
 					if (conjunctions.size() <= 0) continue;
 					else if (conjunctions.size() == 1)  disjunct = conjunctions[0];
 					else disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
 					disjunctions.push_back(disjunct);
-					// errs() << "  <<<" << i << "    disjunct = " << *disjunct << "\n";
-					// i++;
 				}
 				if(disjunctions.size() <= 0) candidate = mk<TRUE>(db.getExprFactory());
 				else if(disjunctions.size() == 1) candidate = disjunctions[0];
@@ -874,6 +867,8 @@ namespace seahorn
 			LOG("ice", errs() << "INTERNAL NODE\n");
 			std::string attr_name = sub_pt.get<std::string>("attribute");
 			LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
+			int cut = sub_pt.get<int>("cut");
+			Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
 
 			if(attr_name.find("+") != -1) { 
 				LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
@@ -884,67 +879,50 @@ namespace seahorn
 			else if (attr_name.find("mod") != -1) { 
 				LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
 				decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
-			else if (attr_name.find("SVM") != -1) {
-				LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
-				Expr attr_expr;
-				for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
-					std::ostringstream oss; oss << *(it->first); 
-					if(oss.str() == attr_name) attr_expr = it->second;
-				}
+			else
+			{
+				bool is_svm_attr = (attr_name.find("SVM") != -1);
+				if (is_svm_attr) LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
+				else LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
 
-				if (isOpX<GEQ>(attr_expr)) {
-					decision_expr = mk<NEG>(attr_expr);
-					int cut = sub_pt.get<int>("cut");
-					assert(cut == 0);
-				} else if (isOpX<PLUS>(attr_expr)) {
-					int cut = sub_pt.get<int>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
-					decision_expr = mk<LEQ>(attr_expr, threshold);
-				} else {
-					LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
-					return final_formula;
-				}
-			} 
-			else 
-			{ // not svm
-				LOG("ice", errs() << cyan << " + not svm attr: \n" << normal);
 				Expr attr_expr;
-				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+				ExprMap attr_name_to_expr_map = (is_svm_attr)?  m_attr_name_to_expr_map : m_svmattr_name_to_expr_map;
+				for(ExprMap::iterator it = attr_name_to_expr_map.begin(); it!= attr_name_to_expr_map.end(); ++it) {
 					std::ostringstream oss; oss << *(it->first);
-					if(oss.str() == attr_name) {
-						attr_expr = it->second;
+					if(oss.str() == attr_name) { attr_expr = it->second; break; }
+				}
+				LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>" << normal);
+				if (is_svm_attr) {
+					LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
+					if(isOpX<GEQ>(attr_expr)) {
+						decision_expr = mk<NEG>(attr_expr);
+						assert(cut == 0);
+					} else if(isOpX<PLUS>(attr_expr)) {
+						decision_expr = mk<LEQ>(attr_expr, threshold);
 					}
 				}
-
-				LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>" << normal);
-
-				int cut = sub_pt.get<int>("cut");
-				Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
-				if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
-					LOG("ice", errs() << blue << "  --> bool const \n" << normal);
-					decision_expr = mk<NEG>(attr_expr);
-					assert(cut == 0);
-				} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-					LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
-					// Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
-					decision_expr = mk<LEQ>(attr_expr, threshold);
-				} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-					LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
-					// Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
-					// Expr threshold = mkTerm<mpz_class>(cut, attr_expr->efac());
-					// Expr threshold = mkTerm<mpz_class>(cut, db.getExprFactory());
-					LOG("ice", errs() << "thredhold::" << *threshold << "\n");
-
-					attr_expr = mk<BV2INT>(attr_expr);
-					decision_expr = mk<LEQ>(attr_expr, threshold);
-				} else {
-					LOGIT("ice", errs() << "DECISION NODE TYPE WRONG!\n");
-					return final_formula;
+				else 
+				{
+					if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> bool const \n" << normal);
+						decision_expr = mk<NEG>(attr_expr);
+						assert(cut == 0);
+					} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
+						decision_expr = mk<LEQ>(attr_expr, threshold);
+					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
+						attr_expr = mk<BV2INT>(attr_expr);
+						decision_expr = mk<LEQ>(attr_expr, threshold);
+					} else {
+						LOGIT("ice", errs() << "DECISION NODE TYPE WRONG!\n");
+						return final_formula;
+					}
 				}
 			}
 			LOG("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
-			stack.push_back(decision_expr);
 			//assert(sub_pt.children().size() == 2);
+			stack.push_back(decision_expr);
 			boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
 			std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second);
 			stack.pop_back();
@@ -954,6 +932,9 @@ namespace seahorn
 			final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
 			return final_formula_left;
 		}
+		// should not be here.
+		LOGLINE("ice", errs() << bred << "should not be here." << normal << "\n");
+		exit(-4);
 		return final_formula;
 	}
 
