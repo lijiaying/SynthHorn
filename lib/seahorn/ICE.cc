@@ -878,45 +878,44 @@ namespace seahorn
 			else if (attr_name.find("mod") != -1) { 
 				LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
 				decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
+			else if (attr_name.find("SVM") != -1) {
+				LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
+				Expr attr_expr;
+				for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
+					std::ostringstream oss; oss << *(it->first);
+					if(oss.str() == attr_name) { attr_expr = it->second; }
+				}
+				if(isOpX<GEQ>(attr_expr)) {
+					decision_expr = mk<NEG>(attr_expr);
+					assert(cut == 0);
+				} else if(isOpX<PLUS>(attr_expr)) {
+					decision_expr = mk<LEQ>(attr_expr, threshold);
+				}
+			}
 			else
-			{
-				bool is_svm_attr = (attr_name.find("SVM") != -1);
-				if (is_svm_attr) LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
-				else LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
+			{ // not svm
+				LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
 
 				Expr attr_expr;
-				ExprMap attr_name_to_expr_map = (is_svm_attr)?  m_attr_name_to_expr_map : m_svmattr_name_to_expr_map;
-				for(ExprMap::iterator it = attr_name_to_expr_map.begin(); it!= attr_name_to_expr_map.end(); ++it) {
+				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
 					std::ostringstream oss; oss << *(it->first);
 					if(oss.str() == attr_name) { attr_expr = it->second; break; }
 				}
 				LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>" << normal);
-				if (is_svm_attr) {
-					LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
-					if(isOpX<GEQ>(attr_expr)) {
-						decision_expr = mk<NEG>(attr_expr);
-						assert(cut == 0);
-					} else if(isOpX<PLUS>(attr_expr)) {
-						decision_expr = mk<LEQ>(attr_expr, threshold);
-					}
-				}
-				else 
-				{
-					if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
-						LOG("ice", errs() << blue << "  --> bool const \n" << normal);
-						decision_expr = mk<NEG>(attr_expr);
-						assert(cut == 0);
-					} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-						LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
-						decision_expr = mk<LEQ>(attr_expr, threshold);
-					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
-						attr_expr = mk<BV2INT>(attr_expr);
-						decision_expr = mk<LEQ>(attr_expr, threshold);
-					} else {
-						LOGIT("ice", errs() << "DECISION NODE TYPE WRONG!\n");
-						return final_formula;
-					}
+				if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
+					LOG("ice", errs() << blue << "  --> bool const \n" << normal);
+					decision_expr = mk<NEG>(attr_expr);
+					assert(cut == 0);
+				} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+					LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
+					decision_expr = mk<LEQ>(attr_expr, threshold);
+				} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+					LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
+					attr_expr = mk<BV2INT>(attr_expr);
+					decision_expr = mk<LEQ>(attr_expr, threshold);
+				} else {
+					LOGIT("ice", errs() << "DECISION NODE TYPE WRONG!\n");
+					return final_formula;
 				}
 			}
 			LOG("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
@@ -1450,7 +1449,7 @@ namespace seahorn
 	boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
 	{
 		// outs() << "  " << bblue << "[Experimental] call external Z3 to solve constraint" << normal;
-		LOGIT("ice", errs() << "  " << yellow << "Z3 solve ");
+		LOGIT("ice", errs() << "  " << yellow << "Z3 solve ...... ");
 		std::ostringstream oss;
 		solver.toSmtLib(oss);
 		std::string smt2_to_solve = oss.str() + "\n(get-model)";
@@ -1477,7 +1476,6 @@ namespace seahorn
 
 		char buffer[1024];
 		while (fgets(buffer, 1024, fp) != NULL) {
-			// outs()  << "Reading..." << std::endl;
 			model += buffer;
 		}
 		// outs()  << red << model << normal << "\n";
