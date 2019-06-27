@@ -34,10 +34,11 @@
 
 #define	 RELEASE	"2.07 GPL Edition"
 
-				/*  Uncomment following line to enable
-				    sample estimates for large datasets.
-				    This can lead to some variablility,
-				    especially when used with SMP  */
+#define USEDOUBLE
+/*  Uncomment following line to enable
+    sample estimates for large datasets.
+    This can lead to some variablility,
+    especially when used with SMP  */
 //#define	SAMPLE_ESTIMATES
 
 #include <stdio.h>
@@ -52,7 +53,7 @@
 #include "text.i"
 
 // Pranav
-#include "cpp_wrapper/cmap.h"
+#include "cmap.h"
 
 
 /*************************************************************************/
@@ -81,7 +82,7 @@
 /* Pranav: Redefine AltRandom
 #define AltRandom		drand48()
 #define	AltSeed(x)		srand48(x)
-*/
+ */
 #define AltRandom		(double)((rand()%RAND_MAX)/RAND_MAX)
 
 #define Free(x)			{free(x); x=0;}
@@ -115,9 +116,9 @@
 #define	 CMINFO	   1		/* generate confusion matrix */
 #define	 USAGEINFO 2		/* print usage information */
 
-				/* unknown and N/A values are represented by
-				   unlikely floating-point numbers
-				   (octal 01600000000 and 01) */
+/* unknown and N/A values are represented by
+   unlikely floating-point numbers
+   (octal 01600000000 and 01) */
 #define	 UNKNOWN   01600000000	/* 1.5777218104420236e-30 */
 #define	 NA	   01		/* 1.4012984643248171e-45 */
 
@@ -174,13 +175,13 @@
 #define	 EmptyNA(T)	(T->Branch[1]->Cases < 0.01)
 
 #define  Before(n1,n2)  (n1->Tested < n2->Tested ||\
-			n1->Tested == n2->Tested && n1->Cut < n2->Cut)
+                n1->Tested == n2->Tested && n1->Cut < n2->Cut)
 
 #define	 SwapWithImplications(a,b)	{DataRec xab;\
-			                assert(a >= 0 && a <= MaxCase &&\
-			                b >= 0 && b <= MaxCase);\
-			                xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
-                                        }
+        assert(a >= 0 && a <= MaxCase &&\
+                        b >= 0 && b <= MaxCase);\
+        xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
+}
 
 #define	 Swap(a,b)	{assert (false);}
 
@@ -246,8 +247,8 @@ typedef  int	CaseNo;		/* data case number */
 typedef  float	CaseCount;	/* count of (partial) cases */
 
 typedef  int	ClassNo,	/* class number, 1..MaxClass */
-		DiscrValue,	/* discrete attribute value */
-		Attribute;	/* attribute number, 1..MaxAtt */
+         DiscrValue,	/* discrete attribute value */
+         Attribute;	/* attribute number, 1..MaxAtt */
 
 #ifdef USEDOUBLE
 typedef	 double	ContValue;	/* continuous attribute value */
@@ -259,26 +260,26 @@ typedef	 float	ContValue;	/* continuous attribute value */
 
 
 typedef  union	 _def_val
-	 {
-	    String	_s_val;		/* att val for comparison */
-	    ContValue	_n_val;		/* number for arith */
-	 }
-	 DefVal;
+{
+        String	_s_val;		/* att val for comparison */
+        ContValue	_n_val;		/* number for arith */
+}
+DefVal;
 
 typedef  struct  _def_elt
-	 {
-	    short	_op_code;	/* type of element */
-	    DefVal	_operand;	/* string or numeric value */
-	 }
-	 DefElt, *Definition;
+{
+        short	_op_code;	/* type of element */
+        DefVal	_operand;	/* string or numeric value */
+}
+DefElt, *Definition;
 
 typedef  struct  _elt_rec
-	 {
-	    int		Fi,		/* index of first char of element */
-			Li;		/* last ditto */
-	    char	Type;		/* 'B', 'S', or 'N' */
-	 }
-	 EltRec;
+{
+        int		Fi,		/* index of first char of element */
+                        Li;		/* last ditto */
+        char	Type;		/* 'B', 'S', or 'N' */
+}
+EltRec;
 
 #define	 DefOp(DE)	DE._op_code
 #define	 DefSVal(DE)	DE._operand._s_val
@@ -315,19 +316,19 @@ typedef  struct  _elt_rec
 
 
 typedef  union  _attribute_value
-	 {
-	    DiscrValue	_discr_val;
-	    ContValue	_cont_val;
-	 }
-	 AttValue, *DataRec;
+{
+        DiscrValue	_discr_val;
+        ContValue	_cont_val;
+}
+AttValue, *DataRec;
 
 typedef	 struct _sort_rec
-	 {
-	    ContValue	V;
-	    ClassNo	C;
-	    float	W;
-	 }
-	 SortRec;
+{
+        ContValue	V;
+        ClassNo	C;
+        float	W;
+}
+SortRec;
 
 #define  CVal(Case,Att)		Case[Att]._cont_val
 #define  DVal(Case,Att)		Case[Att]._discr_val
@@ -342,116 +343,116 @@ typedef	 struct _sort_rec
 #define	 NotApplicVal(AV)	(AV._discr_val==NA)
 
 #define	 RelCWt(Case)		( Unknown(Case,CWtAtt)||\
-				  NotApplic(Case,CWtAtt)||\
-			  	  CVal(Case,CWtAtt)<=0 ? 1 :\
-				  CVal(Case,CWtAtt)/AvCWt )
+                NotApplic(Case,CWtAtt)||\
+                CVal(Case,CWtAtt)<=0 ? 1 :\
+                CVal(Case,CWtAtt)/AvCWt )
 
 typedef  struct _treerec	*Tree;
 typedef  struct _treerec
-	 {
-	    BranchType	NodeType;
-	    ClassNo	Leaf;		/* best class at this node */
-	    CaseCount	Cases,		/* no of cases at this node */
-			*ClassDist,	/* class distribution of cases */
-	    		Errors;		/* est or resub errors at this node */
-	    Attribute	Tested; 	/* attribute referenced in test */
-	    int		Forks,		/* number of branches at this node */
-			Leaves;		/* number of non-empty leaves in tree */
-	    ContValue	Cut,		/* threshold for continuous attribute */
-		  	Lower,		/* lower limit of soft threshold */
-		  	Upper,		/* upper limit ditto */
-			Mid;		/* midpoint for soft threshold */
-	    Set         *Subset;	/* subsets of discrete values  */
-	    Tree	*Branch,	/* Branch[x] = subtree for outcome x */
-			Parent;		/* node above this one */
-	 }
-	 TreeRec;
+{
+        BranchType	NodeType;
+        ClassNo	Leaf;		/* best class at this node */
+        CaseCount	Cases,		/* no of cases at this node */
+                        *ClassDist,	/* class distribution of cases */
+                        Errors;		/* est or resub errors at this node */
+        Attribute	Tested; 	/* attribute referenced in test */
+        int		Forks,		/* number of branches at this node */
+                        Leaves;		/* number of non-empty leaves in tree */
+        ContValue	Cut,		/* threshold for continuous attribute */
+                        Lower,		/* lower limit of soft threshold */
+                        Upper,		/* upper limit ditto */
+                        Mid;		/* midpoint for soft threshold */
+        Set         *Subset;	/* subsets of discrete values  */
+        Tree	*Branch,	/* Branch[x] = subtree for outcome x */
+                Parent;		/* node above this one */
+}
+TreeRec;
 
 
 typedef	 struct _environment
-	 {
-	    CaseNo	Xp, Ep;			/* start and end of scan  */
-	    double	Cases,			/* total cases */
-			KnownCases,		/* ditto less missing values */
-			ApplicCases,		/* cases with numeric values */
-			HighCases, LowCases,	/* cases above/below cut */
-			NAInfo,			/* info for N/A values */
-			FixedSplitInfo,		/* split info for ?, N/A */
-			BaseInfo,		/* info before split */
-			UnknownRate,		/* proportion of ? values */
-			MinSplit,		/* min cases before/after cut */
-			**Freq,			/* local Freq[4][class] */
-			*ClassFreq,		/* local class frequencies */
-			*ValFreq;		/* cases with val i */
-	    ClassNo	HighClass, LowClass;	/* class after/before cut */
-	    ContValue	HighVal, LowVal;	/* values after/before cut */
-	    SortRec	*SRec;			/* for Cachesort() */
-	    Set		**Subset,		/* Subset[att][number] */
-			*WSubset;		/* working subsets */
-	    int		*Subsets,		/* no of subsets for att */
-			Blocks,			/* intermediate no of subsets */
-			Bytes,			/* size of each subset */
-			ReasonableSubsets;
-	    double	*SubsetInfo,		/* subset info */
-			*SubsetEntr,		/* subset entropy */
-			**MergeInfo,		/* info of merged subsets i,j */
-			**MergeEntr;		/* entropy ditto */
+{
+        CaseNo	Xp, Ep;			/* start and end of scan  */
+        double	Cases,			/* total cases */
+                KnownCases,		/* ditto less missing values */
+                ApplicCases,		/* cases with numeric values */
+                HighCases, LowCases,	/* cases above/below cut */
+                NAInfo,			/* info for N/A values */
+                FixedSplitInfo,		/* split info for ?, N/A */
+                BaseInfo,		/* info before split */
+                UnknownRate,		/* proportion of ? values */
+                MinSplit,		/* min cases before/after cut */
+                **Freq,			/* local Freq[4][class] */
+                *ClassFreq,		/* local class frequencies */
+                *ValFreq;		/* cases with val i */
+        ClassNo	HighClass, LowClass;	/* class after/before cut */
+        ContValue	HighVal, LowVal;	/* values after/before cut */
+        SortRec	*SRec;			/* for Cachesort() */
+        Set		**Subset,		/* Subset[att][number] */
+                        *WSubset;		/* working subsets */
+        int		*Subsets,		/* no of subsets for att */
+                        Blocks,			/* intermediate no of subsets */
+                        Bytes,			/* size of each subset */
+                        ReasonableSubsets;
+        double	*SubsetInfo,		/* subset info */
+                *SubsetEntr,		/* subset entropy */
+                **MergeInfo,		/* info of merged subsets i,j */
+                **MergeEntr;		/* entropy ditto */
 
-            struct cmap     *Implications;
-            struct array    *permutation;
-            struct array    *classAttr;
-	 }
-	 EnvRec;
+        struct cmap     *Implications;
+        struct array    *permutation;
+        struct array    *classAttr;
+}
+EnvRec;
 
 
 typedef  int	RuleNo;			/* rule number */
 
 typedef  struct _condrec
-	 {
-	    BranchType	NodeType;	/* test type (see tree nodes) */
-	    Attribute	Tested;		/* attribute tested */
-	    ContValue	Cut;		/* threshold (if relevant) */
-	    Set		Subset;		/* subset (if relevant) */
-	    int		TestValue,	/* specified outcome of test */
-			TestI;		/* rule tree index of this test */
-	 }
-	 CondRec, *Condition;
+{
+        BranchType	NodeType;	/* test type (see tree nodes) */
+        Attribute	Tested;		/* attribute tested */
+        ContValue	Cut;		/* threshold (if relevant) */
+        Set		Subset;		/* subset (if relevant) */
+        int		TestValue,	/* specified outcome of test */
+                        TestI;		/* rule tree index of this test */
+}
+CondRec, *Condition;
 
 
 typedef  struct _rulerec
-	 {
-	    RuleNo	RNo;		/* rule number */
-	    int		TNo,		/* trial number */
-	    		Size;		/* number of conditions */
-	    Condition	*Lhs;		/* conditions themselves */
-	    ClassNo	Rhs;		/* class given by rule */
-	    CaseCount	Cover,		/* number of cases covered by rule */
-			Correct;	/* number on which correct */
-	    float	Prior;		/* prior probability of RHS */
-	    int		Vote;		/* unit = 0.001 */
-	 }
-	 RuleRec, *CRule;
+{
+        RuleNo	RNo;		/* rule number */
+        int		TNo,		/* trial number */
+                        Size;		/* number of conditions */
+        Condition	*Lhs;		/* conditions themselves */
+        ClassNo	Rhs;		/* class given by rule */
+        CaseCount	Cover,		/* number of cases covered by rule */
+                        Correct;	/* number on which correct */
+        float	Prior;		/* prior probability of RHS */
+        int		Vote;		/* unit = 0.001 */
+}
+RuleRec, *CRule;
 
 
 typedef  struct _ruletreerec *RuleTree;
 typedef  struct _ruletreerec
-	 {
-	    RuleNo	*Fire;		/* rules matched at this node */
-	    Condition	CondTest;	/* new test */
-	    int		Forks;		/* number of branches */
-	    RuleTree	*Branch;	/* subtrees */
-	 }
-	 RuleTreeRec;
+{
+        RuleNo	*Fire;		/* rules matched at this node */
+        Condition	CondTest;	/* new test */
+        int		Forks;		/* number of branches */
+        RuleTree	*Branch;	/* subtrees */
+}
+RuleTreeRec;
 
 
 typedef struct _rulesetrec
-	 {
-	    RuleNo	SNRules;	/* number of rules */
-	    CRule	*SRule;		/* rules */
-	    ClassNo	SDefault;	/* default class for this ruleset */
-	    RuleTree	RT;		/* rule tree (see ruletree.c) */
-	 }
-	 RuleSetRec, *CRuleSet;
+{
+        RuleNo	SNRules;	/* number of rules */
+        CRule	*SRule;		/* rules */
+        ClassNo	SDefault;	/* default class for this ruleset */
+        RuleTree	RT;		/* rule tree (see ruletree.c) */
+}
+RuleSetRec, *CRuleSet;
 
 
 /*************************************************************************/
@@ -460,12 +461,12 @@ typedef struct _rulesetrec
 /*									 */
 /*************************************************************************/
 
-	/* c50.c */
+/* c50.c */
 
 int	    main(int, char *[]);
 void	    FreeClassifier(int Trial);
 
-	/* construct.c */
+/* construct.c */
 
 void	    ConstructClassifiers(void);
 void	    InitialiseWeights(void);
@@ -475,7 +476,7 @@ void	    EvaluateSingle(int Flags);
 void	    EvaluateBoost(int Flags);
 void	    RecordAttUsage(DataRec Case, int *Usage);
 
-	/* getnames.c */
+/* getnames.c */
 
 Boolean	    ReadName(FILE *f, String s, int n, char ColonOpt);
 void	    GetNames(FILE *Nf);
@@ -485,7 +486,7 @@ void	    ListAttsUsed(void);
 void	    FreeNames(void);
 int	    InChar(FILE *f);
 
-	/* implicitatt.c */
+/* implicitatt.c */
 
 void	    ImplicitAtt(FILE *Nf);
 void	    ReadDefinition(FILE *f);
@@ -508,7 +509,7 @@ void	    DumpOp(char OpCode, int Fi);
 Boolean	    UpdateTStack(char OpCode, ContValue F, String S, int Fi);
 AttValue    EvaluateDef(Definition D, DataRec Case);
 
-	/* getdata.c */
+/* getdata.c */
 
 void	    GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass);
 DataRec	    GetDataRec(FILE *Df, Boolean Train);
@@ -519,18 +520,18 @@ void	    CheckValue(DataRec Case, Attribute Att);
 void 		GetImplications(const char * extension); // Daniel
 void		GetIntervals(const char * extension); // Daniel
 
-	/* mcost.c */
+/* mcost.c */
 
 void	    GetMCosts(FILE *f);
 
-	/* attwinnow.c */
+/* attwinnow.c */
 
 void	    WinnowAtts(void);
 float	    TrialTreeCost(Boolean FirstTime);
 float	    ErrCost(Tree T, CaseNo Fp, CaseNo Lp);
 void	    ScanTree(Tree T, Boolean *Used);
 
-	/* formtree.c */
+/* formtree.c */
 
 void	    InitialiseTreeData(void);
 void	    FreeTreeData(void);
@@ -560,7 +561,7 @@ void	    FindAllFreq(CaseNo, CaseNo);
 int         assignClass(int caseNo, int classValue);
 
 
-	/* discr.c */
+/* discr.c */
 
 void	    EvalDiscreteAtt(Attribute Att, CaseCount Cases);
 void	    EvalOrderedAtt(Attribute Att, CaseCount Cases);
@@ -568,7 +569,7 @@ void	    SetDiscrFreq(Attribute Att);
 double	    DiscrKnownBaseInfo(CaseCount KnownCases, DiscrValue MaxVal);
 void	    DiscreteTest(Tree Node, Attribute Att);
 
-	/* contin.c */
+/* contin.c */
 
 void	    EvalContinuousAtt(Attribute Att, CaseNo Fp, CaseNo Lp);
 void	    EvalContinuousAttAlg1(Attribute Att, CaseNo Fp, CaseNo Lp);
@@ -587,18 +588,19 @@ void	    ContinTest(Tree Node, Attribute Att);
 void	    AdjustAllThresholds(Tree T);
 void	    AdjustThresholds(Tree T, Attribute Att, CaseNo *Ep);
 ContValue   GreatestValueBelow(ContValue Th, CaseNo *Ep);
+ContValue   LeastValueAbove(ContValue Th, CaseNo *Ep);
 
-	/* info.c */
+/* info.c */
 
 double	    ComputeGain(double BaseInfo, float UnknFrac, DiscrValue MaxVal,
-			CaseCount TotalCases);
+                CaseCount TotalCases);
 double	    TotalInfo(double V[], DiscrValue MinVal, DiscrValue MaxVal);
 double	    ImplicationInfo(double pos, double neg, double implications);
 void	    PrintDistribution(Attribute Att, DiscrValue MinVal,
-			DiscrValue MaxVal, double **Freq, double *ValFreq,
-			Boolean ShowNames);
+                DiscrValue MaxVal, double **Freq, double *ValFreq,
+                Boolean ShowNames);
 
-	/* subset.c */
+/* subset.c */
 
 void	    InitialiseBellNumbers(void);
 void	    EvalSubset(Attribute Att, CaseCount Cases);
@@ -611,7 +613,7 @@ void	    AddBlock(DiscrValue V1, DiscrValue V2);
 void	    AddBlock(DiscrValue V1, DiscrValue V2);
 void	    MoveBlock(DiscrValue V1, DiscrValue V2);
 
-	/* prune.c */
+/* prune.c */
 
 void	    Prune(Tree T);
 void	    EstimateErrs(Tree T, CaseNo Fp, CaseNo Lp, int Sh, int Flags);
@@ -626,13 +628,13 @@ void	    RestoreDistribs(Tree T);
 void	    CompressBranches(Tree T);
 void	    SetGlobalUnitWeights(int LocalFlag);
 
-	/* p-thresh.c */
+/* p-thresh.c */
 
 void	    SoftenThresh(Tree T);
 void	    ResubErrs(Tree T, CaseNo Fp, CaseNo Lp);
 void	    FindBounds(Tree T, CaseNo Fp, CaseNo Lp);
 
-	/* classify.c */
+/* classify.c */
 
 ClassNo	    TreeClassify(DataRec Case, Tree DecisionTree);
 void	    FollowAllBranches(DataRec Case, Tree T, float Fraction);
@@ -648,18 +650,18 @@ ClassNo	    SelectClass(ClassNo Default, Boolean UseCosts);
 ClassNo	    Classify(DataRec Case);
 float	    Interpolate(Tree T, ContValue Val);
 
-	/* special case for dual-purpose routines  */
+/* special case for dual-purpose routines  */
 
 void	    FindLeaf(DataRec Case, Tree T, Tree PT, float Wt);
 Boolean	    Satisfies(DataRec Case, Condition OneCond);
 
-	/* sort.c */
+/* sort.c */
 
 void	    Quicksort(CaseNo Fp, CaseNo Lp, Attribute Att);
 void 		QuicksortWithImplications(CaseNo Fp, CaseNo Lp, Attribute Att, struct array * permutation); // Daniel
 void	    Cachesort(CaseNo Fp, CaseNo Lp, SortRec *SRec);
 
-	/* trees.c */
+/* trees.c */
 
 void	    FindDepth(Tree T);
 void	    PrintTree(Tree T, String Title);
@@ -670,7 +672,7 @@ int	    MaxLine(Tree SubTree);
 void	    Indent(int Sh, int BrNo);
 void	    FreeTree(Tree T);
 Tree	    Leaf(double *Freq, ClassNo NodeClass, CaseCount Cases,
-		 CaseCount Errors);
+                CaseCount Errors);
 void	    Sprout(Tree T, DiscrValue Branches);
 void	    UnSprout(Tree T);
 int	    TreeSize(Tree T);
@@ -678,7 +680,7 @@ int	    ExpandedLeafCount(Tree T);
 int	    TreeDepth(Tree T);
 Tree	    CopyTree(Tree T);
 
-	/* utility.c */
+/* utility.c */
 
 void	    PrintHeader(String Title);
 char	    ProcessOption(int Argc, char **Argv, char *Str);
@@ -713,13 +715,13 @@ int	    wcwidth(wchar_t ucs);
 int	    wcswidth(const wchar_t *pwcs, size_t n);
 #endif
 
-	/* confmat.c */
+/* confmat.c */
 
 void	    PrintConfusionMatrix(CaseNo *ConfusionMat);
 void	    PrintErrorBreakdown(CaseNo *ConfusionMat);
 void	    PrintUsageInfo(CaseNo *Usage);
 
-	/* formrules.c */
+/* formrules.c */
 
 CRuleSet    FormRules(Tree T);
 void	    Scan(Tree T);
@@ -734,23 +736,23 @@ int	    SingleFail(CaseNo i);
 void	    Increment(int d, CaseNo i, double *Total, double *Errors);
 void	    FreeFormRuleData(void);
 
-	/* rules.c */
+/* rules.c */
 
 Boolean	    NewRule(Condition Cond[], int NConds, ClassNo TargetClass,
-		    Boolean *Deleted, CRule Existing,
-		    CaseCount Cover, CaseCount Correct, float Prior);
+                Boolean *Deleted, CRule Existing,
+                CaseCount Cover, CaseCount Correct, float Prior);
 void	    ListSort(int *L, int Fp, int Lp);
 Byte	    *Compress(int *L);
 void	    Uncompress(Byte *CL, int *UCL);
 Boolean	    SameRule(RuleNo r, Condition Cond[], int NConds,
-		     ClassNo TargetClass);
+                ClassNo TargetClass);
 void	    FreeRule(CRule R);
 void	    FreeRules(CRuleSet RS);
 void	    PrintRules(CRuleSet, String);
 void	    PrintRule(CRule R);
 void	    PrintCondition(Condition C);
 
-	/* siftrules.c */
+/* siftrules.c */
 
 void	    SiftRules(float EstErrRate);
 void	    InvertFires(void);
@@ -773,7 +775,7 @@ void	    OrderRules(void);
 void	    GenerateLogs(int MaxN);
 void	    FreeSiftRuleData(void);
 
-	/* ruletree.c */
+/* ruletree.c */
 
 void	    ConstructRuleTree(CRuleSet RS);
 void	    SetTestIndex(Condition C);
@@ -782,7 +784,7 @@ int	    DesiredOutcome(CRule R, int TI);
 int	    SelectTest(RuleNo *RR, int RRN, CRule *Rule);
 void	    FreeRuleTree(RuleTree RT);
 
-	/* modelfiles.c */
+/* modelfiles.c */
 
 void	    CheckFile(String Extension, Boolean Write);
 void	    WriteFilePrefix(String Extension);
@@ -804,12 +806,12 @@ String	    RemoveQuotes(String S);
 Set	    MakeSubset(Attribute Att);
 void	    StreamIn(String S, int n);
 
-	/* update.c (Unix) or winmain.c (WIN32) */
+/* update.c (Unix) or winmain.c (WIN32) */
 
 void	    NotifyStage(int);
 void	    Progress(float);
 
-	/* xval.c */
+/* xval.c */
 
 void	    CrossVal(void);
 void	    Prepare(void);
@@ -817,7 +819,7 @@ void	    Shuffle(int *Vec);
 void	    Summary(void);
 float	    SE(float sum, float sumsq, int no);
 
-	/* Daniel: debug.c */
+/* Daniel: debug.c */
 int verify (Tree, DataRec *, struct cmap *, int);
 
 int are_equal (DataRec *, DataRec *, int, int);

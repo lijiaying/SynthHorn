@@ -35,8 +35,8 @@
 #include "defns.i"
 #include "extern.i"
 
-#include "cpp_wrapper/clist.h" // Daniel
-#include "cpp_wrapper/file_tools.h" // Daniel
+#include "clist.h" // Daniel
+#include "file_tools.h" // Daniel
 
 #define Inc 2048
 
@@ -55,11 +55,7 @@ CaseNo	SampleFrom;		/* file count for sampling */
 /*	number of data cases.						 */
 /*									 */
 /*************************************************************************/
-
-
-void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
-/*   -------  */
-{
+void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass) /*   -------  */ {
     DataRec	DVec;
     CaseNo	CaseSpace, WantTrain, LeftTrain, WantTest, LeftTest;
     Boolean	FirstIgnore=true, SelectTrain;
@@ -68,94 +64,26 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
     SuppressErrorMessages = SAMPLE && ! Train;
 
     /*  Don't reset case count if appending data for xval  */
-
-    if ( Train || ! Case )
-    {
+    if ( Train || ! Case ) {
 	MaxCase = MaxLabel = CaseSpace = 0;
 	Case = Alloc(1, DataRec);	/* for error reporting */
     }
-    else
-    {
-	assert (false);
 
-	CaseSpace = MaxCase + 1;
-	MaxCase++;
-    }
-
-    if ( SAMPLE )
-    {
-	assert (false);
-
-	if ( Train )
-	{
-	    SampleFrom = CountData(Df);
-	    ResetKR(KRInit);		/* initialise KRandom() */
-	}
-	else
-	{
-	    ResetKR(KRInit);		/* restore  KRandom() */
-	}
-
-	WantTrain = SampleFrom * SAMPLE + 0.5;
-	LeftTrain = SampleFrom;
-
-	WantTest  = ( SAMPLE < 0.5 ? WantTrain : SampleFrom - WantTrain );
-	LeftTest  = SampleFrom - WantTrain;
-    }
 
     while ( (DVec = GetDataRec(Df, Train)) )
     {
-	/*  Check whether to include if we are sampling */
-
-	if ( SAMPLE )
-	{
-	    assert (false);
-
-	    SelectTrain = KRandom() < WantTrain / (float) LeftTrain--;
-
-	    /*  Include if
-		 * Select and this is the training set
-		 * ! Select and this is the test set and sub-select
-	 	NB: Must use different random number generator for
-		sub-selection since cannot disturb random number sequence  */
-
-	    if ( SelectTrain )
-	    {
-		WantTrain--;
-	    }
-
-	    if ( SelectTrain != Train ||
-		 ( ! Train && AltRandom >= WantTest / (float) LeftTest-- ) )
-	    {
-		FreeLastCase(DVec);
-		continue;
-	    }
-
-	    if ( ! Train )
-	    {
-		WantTest--;
-	    }
-	}
-
 	/*  Make sure there is room for another case  */
-
-	if ( MaxCase >= CaseSpace )
-	{
+	if ( MaxCase >= CaseSpace ) {
 	    CaseSpace += Inc;
 	    Realloc(Case, CaseSpace+1, DataRec);
 	}
 
 	/*  Ignore cases with unknown class  */
-
-	if ( AllowUnknownClass || (Class(DVec) & 077777777) > 0 )
-	{
+	if ( AllowUnknownClass || (Class(DVec) & 077777777) > 0 ) {
 	    Case[MaxCase] = DVec;
 	    MaxCase++;
-	}
-	else
-	{
-	    if ( FirstIgnore && Of )
-	    {
+	} else {
+	    if ( FirstIgnore && Of ) {
 		fprintf(Of, T_IgnoreBadClass);
 		FirstIgnore = false;
 	    }
@@ -166,7 +94,6 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
 
     fclose(Df);
     MaxCase--;
-
 }
 
 
@@ -183,11 +110,7 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
 /*	values).							 */
 /*									 */
 /*************************************************************************/
-
-
-DataRec GetDataRec(FILE *Df, Boolean Train)
-/*      ----------  */
-{
+DataRec GetDataRec(FILE *Df, Boolean Train) /*      ----------  */ {
     Attribute	Att;
     char	Name[1000], *EndName;
     int		Dv, Chars;
@@ -195,23 +118,17 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
     ContValue	Cv;
     Boolean	FirstValue=true;
 
-
-    if ( ReadName(Df, Name, 1000, '\00') )
-    {
+    if ( ReadName(Df, Name, 1000, '\00') ) {
 	Case[MaxCase] = DVec = NewCase();
-	ForEach(Att, 1, MaxAtt)
-	{
-	    if ( AttDef[Att] )
-	    {
+	ForEach(Att, 1, MaxAtt) {
+	    if ( AttDef[Att] ) {
 		DVec[Att] = EvaluateDef(AttDef[Att], DVec);
 
-		if ( Continuous(Att) )
-		{
+		if ( Continuous(Att) ) {
 		    CheckValue(DVec, Att);
 		}
 
-		if ( SomeMiss )
-		{
+		if ( SomeMiss ) {
 		    SomeMiss[Att] |= Unknown(DVec, Att);
 		    SomeNA[Att]   |= NotApplic(DVec, Att);
 		}
@@ -220,21 +137,17 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    }
 
 	    /*  Get the attribute value if don't already have it  */
-
-	    if ( ! FirstValue && ! ReadName(Df, Name, 1000, '\00') )
-	    {
+	    if ( ! FirstValue && ! ReadName(Df, Name, 1000, '\00') ) {
 		XError(HITEOF, AttName[Att], "");
 		FreeLastCase(DVec);
 		return Nil;
 	    }
 	    FirstValue = false;
 
-	    if ( Exclude(Att) )
-	    {
-		if ( Att == LabelAtt )
-		{
+            // printf("@%s ", Name);
+	    if ( Exclude(Att) ) {
+		if ( Att == LabelAtt ) {
 		    /*  Record the value as a string  */
-
 		    SVal(DVec,Att) = StoreIVal(Name);
 		}
 	    }
@@ -270,66 +183,23 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    if ( Discrete(Att) )
 	    {
 		/*  Discrete attribute  */
-
 		Dv = Which(Name, AttValName[Att], 1, MaxAttVal[Att]);
-		if ( ! Dv )
-		{
-		    if ( StatBit(Att, DISCRETE) )
-		    {
-			assert (false);
-
-			if ( Train || XVAL )
-			{
-			    /*  Add value to list  */
-
-			    if ( MaxAttVal[Att] >= (long) AttValName[Att][0] )
-			    {
-				XError(TOOMANYVALS, AttName[Att],
-					 (char *) AttValName[Att][0] - 1);
-				Dv = MaxAttVal[Att];
-			    }
-			    else
-			    {
-				Dv = ++MaxAttVal[Att];
-				AttValName[Att][Dv]   = strdup(Name);
-				AttValName[Att][Dv+1] = "<other>"; /* no free */
-			    }
-			    if ( Dv > MaxDiscrVal )
-			    {
-				MaxDiscrVal = Dv;
-			    }
-			}
-			else
-			{
-			    /*  Set value to "<other>"  */
-
-			    Dv = MaxAttVal[Att] + 1;
-			}
-		    }
-		    else
-		    {
+		if ( ! Dv ) {
 			XError(BADATTVAL, AttName[Att], Name);
 			Dv = UNKNOWN;
-		    }
 		}
 		DVal(DVec, Att) = Dv;
-	    }
-	    else
-	    {
+	    } else {
 		/*  Continuous value  */
-
-		if ( TStampVal(Att) )
-		{
+		if ( TStampVal(Att) ) {
 		    CVal(DVec, Att) = Cv = TStampToMins(Name);
-		    if ( Cv >= 1E9 )	/* long time in future */
-		    {
+		    if ( Cv >= 1E9 )	/* long time in future */ {
 			XError(BADTSTMP, AttName[Att], Name);
 			DVal(DVec, Att) = UNKNOWN;
 		    }
 		}
 		else
-		if ( DateVal(Att) )
-		{
+		if ( DateVal(Att) ) {
 		    CVal(DVec, Att) = Cv = DateToDay(Name);
 		    if ( Cv < 1 )
 		    {
@@ -338,11 +208,9 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 		    }
 		}
 		else
-		if ( TimeVal(Att) )
-		{
+		if ( TimeVal(Att) ) {
 		    CVal(DVec, Att) = Cv = TimeToSecs(Name);
-		    if ( Cv < 0 )
-		    {
+		    if ( Cv < 0 ) {
 			XError(BADTIME, AttName[Att], Name);
 			DVal(DVec, Att) = UNKNOWN;
 		    }
@@ -350,6 +218,7 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 		else
 		{
 		    CVal(DVec, Att) = strtod(Name, &EndName);
+                    // printf(" -> [%s] => %lf\n", Name, CVal(DVec, Att));
 		    if ( EndName == Name || *EndName != '\0' )
 		    {
 			XError(BADATTVAL, AttName[Att], Name);
@@ -361,30 +230,14 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    }
 	}
 
-	if ( ClassAtt )
-	{
-	    if ( Discrete(ClassAtt) )
-	    {
+	if ( ClassAtt ) {
+	    if ( Discrete(ClassAtt) ) {
 		Class(DVec) = XDVal(DVec, ClassAtt);
-		if (Unknown (DVec, ClassAtt))
-		{
-		    // DVal(DVec, ClassAtt) is now already assigned to 0.
-		    assert (false);
-		    assert (Class(DVec) == 0);
-		}
-	    }
-	    else
-	    if ( Unknown(DVec, ClassAtt) || NotApplic(DVec, ClassAtt) )
-	    {
-		assert (false);
-		Class(DVec) = 0;
 	    }
 	    else
 	    {
 		/*  Find appropriate segment using class thresholds  */
-
 		Cv = CVal(DVec, ClassAtt);
-
 		for ( Dv = 1 ; Dv < MaxClass && Cv > ClassThresh[Dv] ; Dv++ )
 		    ;
 
