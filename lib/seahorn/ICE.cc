@@ -638,7 +638,6 @@ namespace seahorn
 		}
 	}
 	void ICE::outputDataSetInfo() {
-		return;
 		LOGIT("x", errs() << green << "|---------------------  POS DATA SET -----------------------" << "(" << m_pos_data_set.size() << ")" << normal << "\n"); 
 		for (auto dp: m_pos_data_set) { LOGIT("x", errs() << green << "| " << DataPointToStr(empty, dp) << normal << "\n"); } 
 		LOGIT("x", errs() << red <<   "|---------------------  NEG DATA SET -----------------------" << "(" << m_neg_data_set.size() << ")" << normal << "\n"); 
@@ -1572,14 +1571,17 @@ namespace seahorn
 				LOGLINE("ice", errs() << "SVM based Hyperplane Learning!\n"); 
 				svmLearn (NULL); 
 			}
-			LOGLINE("ice", errs() << " Remove all the data for rhead" << *rhead << " in cex and neg_data_list\n");
+			LOGLINE("ice", errs() << red << bold << "> Remove all the data for rhead " << *rhead << " in cex and neg_data_list\n" << normal);
 			m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
 						[pos_dp,rhead,this](DataPoint p) { 
 						return p.getPredName() == bind::fname(bind::fname(rhead)) /*r.head().predicate_name*/ && m_neg_data_set.find(p) != m_neg_data_set.end(); 
 						}), 
 					m_cex_list.end());
 			for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
-				if (it->getPredName() == bind::fname(bind::fname(rhead))) { m_neg_data_set.erase (it++); } 
+				if (it->getPredName() == bind::fname(bind::fname(rhead))) { 
+					LOGLINE("ice", errs() << red << bold << "  > erase data from NEG_DATASET: " << DataPointToStr(empty, *it, false) << "\n");
+					m_neg_data_set.erase (it++); 
+				} 
 				else { ++it; }
 			}
 			m_neg_data_count.erase (pos_dp.getPredName());
@@ -1608,12 +1610,14 @@ namespace seahorn
 			if(*it == r) continue;
 			HornRule rule = *it;
 			Expr r_body = rule.body();
-			ExprVector body_pred_apps;
-			get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
+			ExprVector body_apps;
+			get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
 
-			for (Expr body_pred_app : body_pred_apps) {
-				if (bind::fname(body_pred_app) == bind::fname(r.head())) {
-					if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { workList.push_front(*it); }
+			for (Expr body_app : body_apps) {
+				if (bind::fname(body_app) == bind::fname(r.head())) {
+					if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { 
+						workList.push_front(*it); 
+					}
 					break;
 				}
 			}
@@ -1623,14 +1627,14 @@ namespace seahorn
 	// Given a rule, extract all rules using its body_apps in head, then add all such rules to the end of workList
 	void addNewToWorkList (HornClauseDB &db, std::list<HornRule> &workList, HornRule r) {
 		Expr r_body = r.body();
-		ExprVector body_pred_apps;
-		get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
+		ExprVector body_apps;
+		get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
 
 		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
 			if(*it == r) continue;
 			HornRule rule = *it;
-			for (Expr body_pred_app : body_pred_apps) {
-				if (bind::fname(body_pred_app) == bind::fname(rule.head())) {
+			for (Expr body_app : body_apps) {
+				if (bind::fname(body_app) == bind::fname(rule.head())) {
 					if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { workList.push_back(*it); }
 					break;
 				}
@@ -1872,16 +1876,34 @@ namespace seahorn
 
 							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 							{
-								m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();}), m_cex_list.end());
+								LOGLINE("ice", errs() << red << bold << "> Remove all the data for rhead " << *r_head << " in cex and neg_data_list\n" << normal);
+								m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { 
+											return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();
+											}), 
+										m_cex_list.end());
 
-								for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(r_head))) { m_neg_data_set.erase (it++); } else { ++it; } }
+								for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
+									if (it->getPredName() == bind::fname(bind::fname(r_head))) {
+										LOGLINE("ice", errs() << red << bold << "  > erase data from NEG_DATASET: " << DataPointToStr(empty, *it, false) << "\n");
+										m_neg_data_set.erase (it++); 
+									} else { ++it; } 
+								}
 								m_neg_data_count.erase (pos_dp.getPredName());
 
 								// ---- Clean negative samples for body apps as well
 								for (Expr body_app : body_pred_apps) {
 									if (bind::domainSz(bind::fname(body_app)) <= 0) continue;
-									m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [body_app,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
-									for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { if (it->getPredName() == bind::fname(bind::fname(body_app))) { m_neg_data_set.erase (it++); } else { ++it; } }
+									LOGLINE("ice", errs() << red << bold << "> Remove all the data for body " << *body_app << " in cex and neg_data_list\n" << normal);
+									m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [body_app,this](DataPoint p) { 
+												return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); 
+												}), 
+											m_cex_list.end());
+									for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) { 
+										if (it->getPredName() == bind::fname(bind::fname(body_app))) { 
+											LOGLINE("ice", errs() << red << bold << "  > erase data from NEG_DATASET: " << DataPointToStr(empty, *it, false) << "\n");
+											m_neg_data_set.erase (it++); 
+										} else { ++it; } 
+									}
 									m_neg_data_count.erase (bind::fname(bind::fname(body_app)));
 								}
 
@@ -2208,10 +2230,14 @@ namespace seahorn
 				Expr r_head = r.head();
 				if (!ICEICE) 
 				{
+					LOGLINE("ice", errs() << red << bold << "> Remove all the data for head " << *r_head << " in cex and neg_data_list\n" << normal);
 					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end(); }), m_cex_list.end());
 
 					for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
-						if (it->getPredName() == bind::fname(bind::fname(r_head))) { m_neg_data_set.erase (it++); } 
+						if (it->getPredName() == bind::fname(bind::fname(r_head))) { 
+							LOGLINE("ice", errs() << red << bold << "  > erase data from NEG_DATASET: " << DataPointToStr(empty, *it, false) << "\n");
+							m_neg_data_set.erase (it++); 
+						} 
 						else { ++it; }
 					}
 					m_neg_data_count.erase (pos_dp.getPredName());
