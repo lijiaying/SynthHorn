@@ -76,11 +76,10 @@ namespace seahorn
 
 	bool ICEPass::runOnModule (Module &M)
 	{
-		errs() << green << bold;
-		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-		errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-		// errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n";
-		errs() << normal;
+		LOG("ice", errs() << green << bold);
+		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		LOG("ice", errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n");
+		LOG("ice", errs() << normal);
 		HornifyModule &hm = getAnalysis<HornifyModule> ();
 
 		LOG("ice-res", errs() << "Start ICE Pass\n");
@@ -151,7 +150,7 @@ namespace seahorn
 
 	void ICE::addInvarCandsToProgramSolver()
 	{
-		errs() << green << "========================== add inv cand to solver ===========================\n" << normal;
+		LOG("ice", errs() << green << "========================== add inv cand to solver ===========================\n" << normal);
 		auto &db = m_hm.getHornClauseDB();
 		LOG("test", errs() << "pre_db---\n" << cyan << db << "\n" << normal);
 		for(Expr rel : db.getRelations())
@@ -161,14 +160,14 @@ namespace seahorn
 			LOG("candidates", errs() << bold << red << "HEAD: " << normal << blue << *fapp << "\n" << normal);
 			LOG("candidates", errs() << bold << red << "CAND: " << normal << green << *cand_app << "\n" << normal);
 			if(!isOpX<TRUE>(cand_app)) { 
-				LOGLINE("candidates", errs() << bold << green << "ADD CONSTRAINT\n" << normal); 
-				LOGIT("candidates", errs() << "HEAD: " << blue << *fapp << "\n" << normal);
-				LOGIT("candidates", errs() << "CAND: " << green << *cand_app << "\n" << normal);
+				LOG("candidates", errs() << bold << green << "ADD CONSTRAINT\n" << normal); 
+				LOG("candidates", errs() << "HEAD: " << blue << *fapp << "\n" << normal);
+				LOG("candidates", errs() << "CAND: " << green << *cand_app << "\n" << normal);
 				db.addConstraint(fapp, cand_app); 
 			}
 		}
 		LOG("test", errs() << "post_db---\n" << cyan << db << "\n" << normal);
-		errs() << green << "========================== added inv cand to solver ===========================\n" << normal;
+		LOG("ice", errs() << green << "========================== added inv cand to solver ===========================\n" << normal);
 	}
 
 	// Fixme. Helper function should be put into a util file
