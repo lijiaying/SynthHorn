@@ -808,6 +808,9 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--bounded',
                          help='use Bounded datatype',
                          dest='bounded', default=False, action='store_true')
+        ap.add_argument ('--debug-level',
+                         help='debug information level',
+                         dest='debug_level', type=int, default=5)
         return ap
 
     def run (self, args, extra):
@@ -816,6 +819,8 @@ class Seahorn(sea.LimitedCmd):
         self.seahornCmd = sea.ExtCmd (cmd_name)
 
         argv = list()
+
+        argv.append('--debug-level=' + str(args.debug_level))
 
         if args.bounded:
             argv.append('--bounded=true')
@@ -828,7 +833,6 @@ class Seahorn(sea.LimitedCmd):
 
         if args.solve or args.out_file is not None:
             argv.append ('--keep-shadows=true')
-
             
         if args.dsa != 'llvm':
             if "--dsa-stats" in extra:

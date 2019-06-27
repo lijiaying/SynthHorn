@@ -275,7 +275,7 @@ namespace seahorn
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
 
-			void outputDataSetInfo();
+			void outputDataSetInfo(bool mustprint = false);
 	};
 }
 

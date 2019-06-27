@@ -880,10 +880,10 @@ namespace expr
 					// org
 					if (LineSplitter) {
 						OS << "\n";
+                        space (OS, depth + 2);
+					} else {
+                        OS << " ";
 					}
-					 space (OS, depth + 2);
-//					if (!LineSplitter)
-//						OS << " ";
 					(*it)->Print (OS, depth + 2, false);
 				}
 

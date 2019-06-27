@@ -81,7 +81,7 @@ def setupExperiments (path, flags):
     return set_default_Experiments(arguments)
 
 def set_hola_Experiments(path, arguments):
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=10"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=30"])
   # Benchmarks need invariants involving mod (%) operation 
@@ -98,8 +98,8 @@ def set_hola_Experiments(path, arguments):
   return arguments
 
 def set_dillig_TACAS13_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=1"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=10"])
   arguments.extend(["--horn-ice-local-strengthening=1"])
@@ -109,8 +109,8 @@ def set_dillig_TACAS13_Experiments(path, arguments):
   return arguments
 
 def set_ICE_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=1"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=30"])
   # Make verification converge fast by using local-strengthening. See the above comment.
@@ -119,8 +119,8 @@ def set_ICE_Experiments(path, arguments):
   return arguments
 
 def set_invgen_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5"])
   # For programs with multiple loops, it is a good idea to unroll CHCs a small nubmer of steps to accerlate
   # sampling positive data. For instance, the mergesort aglorithm.
@@ -137,8 +137,8 @@ def set_invgen_Experiments(path, arguments):
   return arguments
 
 def set_recursvie_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=10"])
   if (path.find("Add") != -1 or path.find("sum") != -1):
@@ -159,8 +159,8 @@ def set_recursvie_Experiments(path, arguments):
   return arguments
 
 def set_sharma_splitter_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   # For programs with multiple loops, it is a good idea to unroll CHCs a small nubmer of steps to accerlate
   # sampling positive data. For instance, the mergesort aglorithm.
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=100"])
@@ -168,16 +168,16 @@ def set_sharma_splitter_Experiments(path, arguments):
   return arguments 
 
 def set_SVComp_Experiments(path, arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=10"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=20"])
   if (path.find("email_") != -1): arguments.extend(["-horn-rule-sample-width=3"])
   return arguments
 
 def set_default_Experiments(arguments):
-  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
-  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0.dt_entropy", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
+  # arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen"])
+  arguments.extend(["--horn-ice-c5-exec-path=C50/c5.0", "--horn-ice-svm-exec-path=libsvm/svm-invgen", "--horn-ice-z3-exec-path=z3latest/z3"])
   arguments.extend(["--horn-ice-svm-coeff-bound=5", "--horn-rule-sample-length=1"])
   arguments.extend(["--horn-ice-svm-call-freq-pos=0", "--horn-ice-svm-call-freq-neg=30"])
   # arguments.extend(["--bounded"])
