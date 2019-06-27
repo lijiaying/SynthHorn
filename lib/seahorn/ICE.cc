@@ -58,7 +58,6 @@ namespace seahorn
 #define UNSAT false
 
 
-
 #if USE_EXTERNAL
 #define Solve(solver) callExternalZ3ToSolve(solver)
 #define GetModel(solver) parseModelFromString(m_z3_model_str)
@@ -638,7 +637,7 @@ namespace seahorn
 			// LOGIT("ice", errs() << red << " relation : " << *rel << "\n" << normal);
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
-			errs() << green << *fapp << normal << " : " << *cand_app << "\n";
+			errs() << green << *fapp << normal << " : " << blue << *cand_app << normal << "\n";
 		}
 	}
 	void ICE::outputDataSetInfo(bool mustprint) {
@@ -1184,8 +1183,7 @@ namespace seahorn
 	// For now always try to prove a query is false.
 	void ICE::invalidateQueries (HornClauseDB &db)
 	{
-		LOG("ice", errs() << mag << m_candidate_model << "\n" << normal);
-		// errs() << ">>>> invalidate queries \n";
+		// LOG("ice", errs() << mag << m_candidate_model << "\n" << normal);
 		for(Expr rel : db.getRelations())
 		{
 			// errs() << "  - relation: " << *rel << "\n";
@@ -1206,7 +1204,6 @@ namespace seahorn
 				}
 			}
 		}
-		// errs() << "<<<< invalidate queries \n";
 		// errs() << bold << cyan << m_candidate_model << "\n" << normal;
 	}
 
@@ -1650,6 +1647,21 @@ namespace seahorn
 		}
 	}
 
+	boost::tribool ICE::solveOneHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver) 
+	{
+		solver.reset();
+		Expr r_head = r.head();
+		Expr r_head_cand = m_candidate_model.getDef(r_head);
+		solver.assertExpr(mk<NEG>(r_head_cand));
+		Expr body_formula = extractRelation(r, db, NULL, NULL);
+		solver.assertExpr(body_formula);
+		LOG("ice", errs() << "head candidate: " << blue << *r_head_cand << "\n" << normal);
+		LOG("ice", errs() << "body candidate: " << blue << *body_formula << "\n" << normal);
+
+		boost::tribool result = Solve(solver);
+		return result;
+	}
+
 	static int solveConstraintTime = 0;
 	bool ICE::solveConstraints(HornClauseDB &db, bool &isChanged, int &index)
 	{
@@ -1681,8 +1693,7 @@ namespace seahorn
 			errs() << "----------------------------------------------------------------------------------------------------------------------\n";
 			LOGIT ("ice", errs() << bgreen << "Solve Constraint #" << solveConstraintTime << " --- loop #" << ++loopi << " times ---");
 			errs() << normal << mag << " Current WorkList: " << bold;
-			for (auto r : workList) 
-				errs() << HornRuleToStr(r) << " ";
+			for (auto r : workList) errs() << HornRuleToStr(r) << " ";
 			errs() << normal << "\n";
 			HornRule r = workList.front();
 			workList.pop_front();
@@ -1701,25 +1712,13 @@ namespace seahorn
 				} else { cleanBody = false; break; }
 			}
 
-			solver.reset();
-			Expr r_head_cand = m_candidate_model.getDef(r_head);
-			solver.assertExpr(mk<NEG>(r_head_cand));
-			Expr body_formula = extractRelation(r, db, NULL, NULL);
-			solver.assertExpr(body_formula);
-			LOG("ice", errs() << "head candidate: " << blue << *r_head_cand << "\n" << normal);
-			LOG("ice", errs() << "body candidate: " << blue << *body_formula << "\n" << normal);
-
-			boost::tribool result = Solve(solver);
-			if (DebugLevel>3) {
-				if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
-				else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
-			}
-			if (result == UNSAT) continue;
-
-
+			
+			boost::tribool result;
 			if (body_pred_apps.size() <= 0 || cleanBody) {
 				LOGIT("ice", errs() << bred << "[1] BODY is clean" << normal << "\n");
 				if (bind::domainSz(bind::fname(r.head ())) <= 0) {
+					result = solveOneHornRule(r, db, solver);
+					if (result == UNSAT) continue;
 					LOGIT("ice", errs() << red << " [1].1 HEAD is clearn. CHECK IT. Nothing is need to be refined!" << normal << "\n");
 					LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
 					outs() << red << "1.1 Program is buggy.\n" << normal;
@@ -1732,33 +1731,10 @@ namespace seahorn
 				} else {
 					LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
 					// Head is possibly need to be refined!
-					LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program State Samples. RuleNo." << HornRuleToStr(r) << normal << "\n");
-					bool first_time = true;
+					LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
 					do {
-						if (first_time) { 
-							// the constraint has been solved before the loop
-							first_time = false;
-						} else {
-							solver.reset();
-							r_head_cand = m_candidate_model.getDef(r_head); solver.assertExpr(mk<NEG>(r_head_cand));
-							body_formula = extractRelation(r, db, NULL, NULL); solver.assertExpr(body_formula);
-							LOGIT("ice", errs() << cyan << "1.2[not 1st] check: << Horn Rule No." << mag << bold << HornRuleToStr(r) << normal << "\n" );
-							if (DebugLevel >=4)
-									errs() << blue << *r_head_cand << normal << " <- " << red << *body_formula << "\n" << normal;
-							result = Solve(solver);
-							if (result == UNSAT) {
-								if (DebugLevel>3) {
-									LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
-								}
-								upd = false;
-								break;
-							}
-							else {
-								if (DebugLevel>3) {
-									LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
-								}
-							}
-						}
+						result = solveOneHornRule(r, db, solver);
+						if (result == UNSAT) { upd = false; break; }
 
 						bool run = true;
 						upd = generatePostiveSamples (db, r, solver, index, run);
@@ -1772,20 +1748,17 @@ namespace seahorn
 							/*
 								 Expr e = bind::fname(bind::fname(r.head()));
 								 changedPreds.push_back(e);
-							// changedPreds.push_back(bind::fname(bind::fname(r.head())));
-							LOGLINE("ice", errs() << lred << bold << "1.2.0 add to changed Pred: " << *e << "\n" << normal);
-							e = bind::fname(*db.getRelations().begin());
-							changedPreds.push_back(e);
-							LOGLINE("ice", errs() << lred << bold << "1.2.1 add to changed Pred: " << *e << "\n" << normal);
+								 // changedPreds.push_back(bind::fname(bind::fname(r.head())));
+								 LOGLINE("ice", errs() << lred << bold << "1.2.0 add to changed Pred: " << *e << "\n" << normal);
+								 e = bind::fname(*db.getRelations().begin());
+								 changedPreds.push_back(e);
+								 LOGLINE("ice", errs() << lred << bold << "1.2.1 add to changed Pred: " << *e << "\n" << normal);
 							*/
-							//*
 							for (auto pred: db.getRelations())
 							{
-								Expr e = bind::fname(pred);
-								changedPreds.push_back(e);
+								Expr e = bind::fname(pred); changedPreds.push_back(e);
 								LOGLINE("ice", errs() << lred << bold << "1.2.1 add to changed Pred: " << *e << "\n" << normal);
 							}
-							//*/
 							C5learn (changedPreds);
 						}
 					} while (upd);
@@ -1794,28 +1767,11 @@ namespace seahorn
 					addUsedToWorkList (db, workList, r);
 				}
 			} else {
-				LOGIT("ice", errs() << bred << " [2] BODY IS DIRTY. Might Both Head and Body are possibly need to be refined!" << normal << "\n");
-				bool first_time = true;
+				LOGIT("ice", errs() << bred << " [2] BODY IS DIRTY. Might Both Head and Body need to be refined!" << normal << "\n");
 				do {
-					counter ++;
-
+					++counter;
 					LOGLINE("ice", errs() << bold << green << "Rule Verification Round " << counter << normal << "\n");
-					if (first_time) { 
-						// the constraint has been solved before the loop
-						first_time = false;
-					} else {
-						solver.reset();
-						r_head_cand = m_candidate_model.getDef(r_head); solver.assertExpr(mk<NEG>(r_head_cand));
-						body_formula = extractRelation(r, db, NULL, NULL); solver.assertExpr(body_formula);
-						// LOGIT("ice", errs() << cyan << "[not 1st] check: " << blue << *r_head_cand << normal << " <- " << red << *body_formula << "\n" << normal);
-						LOGIT("ice", errs() << cyan << "2[not 1st] check: << Horn Rule No." << mag << bold << HornRuleToStr(r) << normal << "\n" );
-						result = Solve(solver);
-					}
-
-					if (DebugLevel>3) {
-						if (result == UNSAT) LOGLINE("ice", errs() << bold << green << "solving result: UNSAT. THIS RULE PASSES.\n" << normal);
-						else LOGLINE("ice", errs() << bold << red << "solving result: SAT\n" << normal);
-					}
+					result = solveOneHornRule(r, db, solver);
 
 					// Which predicates will be changed in this iteration of solving.
 					ExprVector changedPreds;
@@ -1850,11 +1806,6 @@ namespace seahorn
 							errs() << " |-> " << DataPointToStr(empty, neg_dp, false) << "\n";
 						}
 
-						/*
-						errs() << "negPoints: " << bold; 
-						for (DataPoint dp : negPoints) { errs() << DataPointToStr(empty, dp, true) << ", "; } 
-						errs() << normal << "\n";
-						*/
 						outputDataSetInfo();
 
 						// If the counterexample is already labeled positive;
@@ -1906,7 +1857,6 @@ namespace seahorn
 
 							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 							{
-								// LOGLINE("ice", errs() << red << bold << "> Remove all the data for rhead " << *r_head << " in cex and neg_data_list\n" << normal);
 								m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [pos_dp,r_head,this](DataPoint p) { 
 											return p.getPredName() == bind::fname(bind::fname(r_head)) && m_neg_data_set.find(p) != m_neg_data_set.end();
 											}), 
@@ -1925,7 +1875,6 @@ namespace seahorn
 								// ---- Clean negative samples for body apps as well
 								for (Expr body_app : body_pred_apps) {
 									if (bind::domainSz(bind::fname(body_app)) <= 0) continue;
-									// LOGLINE("ice", errs() << red << bold << "> Remove all the data for body " << *body_app << " in cex and neg_data_list\n" << normal);
 									m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), [body_app,this](DataPoint p) { 
 												return p.getPredName() == bind::fname(bind::fname(body_app)) && m_neg_data_set.find(p) != m_neg_data_set.end(); 
 												}), 

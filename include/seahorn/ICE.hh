@@ -116,7 +116,6 @@ namespace seahorn
 
 			boost::tribool m_z3_sat;
 			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
-			// std::list<Expr> m_model; // var_name: <var_type, var_value>
 			std::map<std::string, Expr> m_model;
 			std::string m_z3_model_str;
 
@@ -132,6 +131,7 @@ namespace seahorn
 				}
 				return oss.str();
 			}
+			boost::tribool solveOneHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver);
 
 		public:
 			void setupC5();
