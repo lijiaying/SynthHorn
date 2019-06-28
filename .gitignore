@@ -21,3 +21,4 @@ FromCmd.*
 *temp
 *log
 *.o
+/tmp

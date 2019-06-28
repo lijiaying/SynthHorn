@@ -26,6 +26,10 @@ def _bc_or_ll_file (name):
     ext = os.path.splitext (name)[1]
     return ext == '.bc' or ext == '.ll'
 
+# lijiaying
+input_c_files = []
+# end lijiaying
+
 class Clang(sea.LimitedCmd):
     def __init__ (self, quiet=False, plusplus=False):
         super (Clang, self).__init__('clang', 'Compile', allow_extra=True)
@@ -115,6 +119,9 @@ class Clang(sea.LimitedCmd):
                     argv1.extend (['-o', out_file])
 
                 argv1.append (in_file)
+                # lijiaying
+                input_c_files.append(in_file)
+                # end lijiaying
                 ret = self.clangCmd.run (args, argv1)
                 if ret <> 0: return ret
         
@@ -880,11 +887,29 @@ class Seahorn(sea.LimitedCmd):
         if args.out_file is not None: argv.extend (['-o', args.out_file])
         argv.extend (args.in_files)
 
+        # lijiaying
+        if len(input_c_files) > 0:
+            inputcfile = input_c_files[0]
+            inputdir = os.path.dirname(inputcfile)
+            destdir = os.path.join('.', 'tmp', inputdir)
+        else:
+            distdir = os.path.join('/', 'tmp')
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        
+        for infile in args.in_files:
+            bcfilename = infile[infile.rfind('/') + 1:]
+            if bcfilename.endswith('.pp.ms.o.bc'):
+                dest = os.path.join(destdir, bcfilename)
+                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                shutil.copy(infile, dest) 
+        # end lijiaying
+
         # pick out extra seahorn options
         argv.extend (filter (_is_seahorn_opt, extra))
 
-
         return self.seahornCmd.run (args, argv)
+
 
 class SeahornClp(sea.LimitedCmd):
     def __init__ (self, quiet=False):

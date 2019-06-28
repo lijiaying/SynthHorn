@@ -23,6 +23,7 @@
 namespace seahorn
 {
 	using namespace llvm;
+	static ExprVector empty;
 
 	class ICEPass : public llvm::ModulePass
 	{
@@ -68,6 +69,7 @@ namespace seahorn
 		public:
 			ICE(HornifyModule &hm) : m_hm(hm)  {failurePoint = -1; n_svm_calls = 0;}
 			virtual ~ICE() {/*m_fp.reset (nullptr);*/}
+
 		private:
 			HornifyModule &m_hm;
 			HornDbModel m_candidate_model;
@@ -93,7 +95,8 @@ namespace seahorn
 
 			std::set<DataPoint> m_pos_data_set;
 			std::set<DataPoint> m_neg_data_set;
-			//std::set<DataPoint> m_impl_data_set;
+			std::set<DataPoint> m_must_pos_data_set;
+			std::set<DataPoint> m_must_neg_data_set;
 			std::set<DataPoint> m_impl_cex_set;
 			std::set<std::pair<DataPoint, DataPoint>> m_impl_pair_set;
 
@@ -103,8 +106,10 @@ namespace seahorn
 			std::map<DataPoint, int> m_data_point_to_index_map;
 			std::vector<DataPoint> m_cex_list;
 
-			std::map<Expr, int> m_neg_data_count;
 			std::map<Expr, int> m_pos_data_count;
+			std::map<Expr, int> m_neg_data_count;
+			std::map<Expr, int> m_must_pos_data_count;
+			std::map<Expr, int> m_must_neg_data_count;
 			std::map<Expr, int> m_impl_data_count;
 
 			std::map<DataPoint, int> m_pos_index_map;
@@ -114,10 +119,10 @@ namespace seahorn
 
 			int n_svm_calls;
 
-			boost::tribool m_z3_sat;
-			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
-			std::map<std::string, Expr> m_model;
+		private:
+			bool m_buggy;
 			std::string m_z3_model_str;
+			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
 
 			std::map<HornRule, int> ruleIndex;
 			std::string HornRuleToStr(HornRule& r, bool rulecontent = false) {
@@ -131,16 +136,18 @@ namespace seahorn
 				}
 				return oss.str();
 			}
-			boost::tribool solveOneHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver);
+
+			std::string DataPointToStr(DataPoint p, ExprVector targets = empty, bool valueOnly = true);
+			std::string DataSetToStr(bool mustprint = false);
+			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
+			bool parseModelFromString(std::string model_str);
+			boost::tribool checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver);
+			void clearNegData(Expr& e);
 
 		public:
 			void setupC5();
 			void initC5(ExprVector targets);
 			void C5learn(ExprVector targets);
-			std::string DataPointToStr(ExprVector targets, DataPoint p, bool valueOnly = true);
-			// bool callExternalZ3ToSolve(std::string smt2str);
-			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
-			bool parseModelFromString(std::string model_str);
 
 		public:
 			HornifyModule& getHornifyModule() {return m_hm;}
@@ -152,36 +159,46 @@ namespace seahorn
 		public:
 			void runICE();
 
-			void guessCandidates(HornClauseDB &db);
+			// void guessCandidates(HornClauseDB &db);
 
 			//Add ICE invs to default solver
-			void addInvarCandsToProgramSolver();
+			void addInvCandsToProgramSolver();
 
 			void genInitialCandidates(HornClauseDB &db);
 			void generateC5DataAndImplicationFiles(ExprVector targets);
 
-			//void constructPosAndNegRules(HornClauseDB &db);
 
-			void addPosCex(DataPoint dp) {
+			void addPosCex(DataPoint dp, bool is_must = false) {
 				m_pos_data_set.insert(dp);
 				std::map<Expr, int>::iterator it = m_pos_data_count.find(dp.getPredName());
-				if (it != m_pos_data_count.end())
-					it->second ++;
-				else
-					m_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
+				if (it != m_pos_data_count.end()) it->second ++;
+				else m_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
+
+				if(is_must) {
+					m_must_pos_data_set.insert(dp);
+					std::map<Expr, int>::iterator it = m_must_pos_data_count.find(dp.getPredName());
+					if (it != m_must_pos_data_count.end()) it->second ++;
+					else m_must_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
+				}
 
 				m_pos_list.push_back (dp);
 				m_pos_index_map.insert (std::make_pair(dp, m_pos_list.size()-1));
 			}
 
-			void addNegCex(DataPoint dp) {
+			void addNegCex(DataPoint dp, bool is_must = false) {
 				m_neg_data_set.insert(dp);
 				std::map<Expr, int>::iterator it = m_neg_data_count.find(dp.getPredName());
-				if (it != m_neg_data_count.end())
-					it->second ++;
-				else
-					m_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
+				if (it != m_neg_data_count.end()) it->second ++;
+				else m_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
+
+				if(is_must) {
+					m_must_neg_data_set.insert(dp);
+					std::map<Expr, int>::iterator it = m_must_neg_data_count.find(dp.getPredName());
+					if (it != m_must_neg_data_count.end()) it->second ++;
+					else m_must_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
+				}
 			}
+
 
 			void drawDataPoint(DataPoint& dp, std::string ending = "") {
 				Expr pred_cname = dp.getPredName();
@@ -275,7 +292,6 @@ namespace seahorn
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
 
-			void outputDataSetInfo(bool mustprint = false);
 	};
 }
 
