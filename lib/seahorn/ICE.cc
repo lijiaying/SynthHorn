@@ -412,7 +412,7 @@ namespace seahorn
 		LOGDP("ice", errs() << lblue << "------------------------------------------------------------\n" << normal);
 	}
 
-	void outputFileContent(std::string filename) {
+	void outputFileContent(std::string filename, int linelength = 54) {
 		if (DebugLevel<=4) 
 			return;
 		std::ifstream _if(filename); 
@@ -422,7 +422,7 @@ namespace seahorn
 		while (endlpos != std::string::npos) {
 			std::string pre_str = "| ";
 			std::string post_str = " |";
-			int nspace = 50 - (endlpos - last_endlpos);
+			int nspace = linelength - 4  - (endlpos - last_endlpos);
 			while (nspace-->0)
 				post_str = " " + post_str;
 			str = str.insert(endlpos, post_str);
@@ -433,10 +433,13 @@ namespace seahorn
 		// errs() << bold << mag << "|------------- " << filename << " --------------";
 		errs() << bold << mag << "-------------- " << filename << " --------------";
 		int len = filename.size() + 32;
-		while (len++<54) errs() << "-";
+		while (len++<linelength) errs() << "-";
 		// errs() << "|\n" << str;
 		errs() << "-\n" << str;
-		errs() << "-----------------------------------------------------\n" << normal;
+		std::string end = "";
+		while (--linelength>0)
+			end += "-";
+		errs() << end << "\n" << normal;
 		//errs() << "|--------------------- END -------------------------|\n" << normal;
 	}
 
@@ -614,7 +617,8 @@ namespace seahorn
 		std::stringstream ss(json_string);
 		try { boost::property_tree::json_parser::read_json(ss, pt); }
 		catch(boost::property_tree::ptree_error & e) { LOG("ice", errs() << "READ JSON ERROR!\n"); return; }
-		LOG("ice", errs() << " <<< convert json to ptree (structured json format): \n" << mag << ptreeToString(pt) << "\n");
+		if (DebugLevel>8)
+			LOGLINE("ice", errs() << " <<< convert json to ptree (structured json format): \n" << mag << ptreeToString(pt) << "\n");
 
 		//parse ptree to invariant format
 		LOG("ice", errs() << " >>> convert ptree to inv. \n");
@@ -672,14 +676,22 @@ namespace seahorn
 
 		oss << green << "|---------------------  POS DATA SET -----------------------" << "(" << m_pos_data_set.size() << ")" << normal << "\n"; 
 		for (auto dp: m_pos_data_set) {
-			if (std::find(m_must_pos_data_set.begin(), m_must_pos_data_set.end(), dp) != m_must_pos_data_set.end()) oss << bold;
+			// if (std::find(m_must_pos_data_set.begin(), m_must_pos_data_set.end(), dp) != m_must_pos_data_set.end()) oss << bold;
 			oss << green << "| " << DataPointToStr(dp) << normal << "\n"; 
+		}
+		oss << green << bold << "|---------------------  MUST POS DATA SET -----------------------" << "(" << m_must_pos_data_set.size() << ")" << normal << "\n"; 
+		for (auto dp: m_must_pos_data_set) {
+			oss << green << bold << "| " << DataPointToStr(dp) << normal << "\n"; 
 		}
 
 		oss << red <<   "|---------------------  NEG DATA SET -----------------------" << "(" << m_neg_data_set.size() << ")" << normal << "\n"; 
 		for (auto dp: m_neg_data_set) {
-			if (std::find(m_must_neg_data_set.begin(), m_must_neg_data_set.end(), dp) != m_must_neg_data_set.end()) oss << bold;
+			// if (std::find(m_must_neg_data_set.begin(), m_must_neg_data_set.end(), dp) != m_must_neg_data_set.end()) oss << bold;
 			oss << red << "| " << DataPointToStr(dp) << normal << "\n"; 
+		}
+		oss << red << bold << "|---------------------  MUST NEG DATA SET -----------------------" << "(" << m_must_pos_data_set.size() << ")" << normal << "\n"; 
+		for (auto dp: m_must_neg_data_set) {
+			oss << red << bold << "| " << DataPointToStr(dp) << normal << "\n"; 
 		}
 
 		if (ICEICE) {
@@ -693,10 +705,14 @@ namespace seahorn
 
 	void ICE::generateC5DataAndImplicationFiles(ExprVector targets)
 	{
-		errs() << " generate C5 Data File --------------- \n";
-		errs() << DataSetToStr();
+		errs() << " generate C5 Data File -----------targets:";
+		for (auto target: targets)
+			errs() << "  " << *target;
+		errs() << "\n";
+		// errs() << DataSetToStr();
 		//generate .data file
 		std::ofstream data_of(m_C5filename + ".data");
+		std::ofstream data_hex_of(m_C5filename + ".hex.data");
 		if(!data_of) return;
 		for(auto it = m_cex_list.begin(); it!=m_cex_list.end(); ++it) {
 			if (std::find(targets.begin(), targets.end(), it->getPredName()) != targets.end()) {
@@ -705,6 +721,7 @@ namespace seahorn
 				else if(m_neg_data_set.count(*it) != 0) { label = "false"; } 
 				else if(ICEICE && m_impl_cex_set.count(*it) != 0) { label = "?"; }
 				std::string dpstr = DataPointToStr(*it, targets);
+				data_hex_of << dpstr << "," << label << "\n";
 				if (Bounded) {
 					int start1, start2 = dpstr.find(":bv");
 					int end1, end2;
@@ -733,7 +750,9 @@ namespace seahorn
 			}
 		}
 		data_of.close();
-		outputFileContent(m_C5filename + ".data"); 
+		data_hex_of.close();
+		// outputFileContent(m_C5filename + ".data"); 
+		outputFileContent(m_C5filename + ".hex.data", 80); 
 
 		//generate .implications file
 		if (ICEICE) {
@@ -873,6 +892,10 @@ namespace seahorn
 			LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
 			int cut = sub_pt.get<int>("cut");
 			Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
+			// int upper = sub_pt.get<int>("upper");
+			// int lower = sub_pt.get<int>("lower");
+			// LOGIT("ice", errs() << " CutExpr[" << *threshold << "] cut:" << cut << " upper:" << upper << " lower:" << lower << "\n");
+
 
 			if(attr_name.find("+") != -1) { 
 				LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
@@ -1457,7 +1480,7 @@ namespace seahorn
 		std::ostringstream oss;
 		solver.toSmtLib(oss);
 		std::string smt2_to_solve = oss.str() + "\n(get-model)";
-		// outs()  << oss.str();
+		// outs() << "SMT format for solving: " << gray << oss.str() << normal << "\n";
 		// errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
 		std::ofstream smt_of(m_C5filename + ".smt2");
 		smt_of << smt2_to_solve;
@@ -1561,6 +1584,8 @@ namespace seahorn
 		DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 		int orig_size = m_pos_data_set.size();
 		addPosCex(pos_dp);
+		if (mustPositive(r)) addMustPosCex(pos_dp);
+		if (mustNegative(r)) addMustNegCex(pos_dp);
 
 		LOGLINE("ice", errs() << "head cex (point model, exclude unknowns): " << DataPointToStr(pos_dp, empty, false) << normal << "\n");
 		if(m_pos_data_set.size() == orig_size + 1) //no duplicate
@@ -1629,7 +1654,7 @@ namespace seahorn
 		}
 	}
 
-	boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver) 
+	boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver) 
 	{
 		solver.reset();
 		Expr r_head = r.head();
@@ -1660,26 +1685,71 @@ namespace seahorn
 			} else { ++it; } 
 		}
 		LOGIT("ice", errs() << "\n");
+		// Test Feature!!
+		// lijiaying
+		/*
 		m_neg_data_count.erase (pred);
+		for (std::set<DataPoint>::iterator it = m_must_neg_data_set.begin(); it != m_must_neg_data_set.end(); ++it) {
+			if (it->getPredName() == bind::fname(bind::fname(pred))) {
+				LOGIT("ice", errs() << DataPointToStr(*it));
+				addNegCex(*it);
+			} 
+		}
+		*/
+		// end lijiaying
 	}
+
+	void ICE::preparePosNegPredSet(HornClauseDB &db) {
+		m_neg_pred_set.clear();
+		m_pos_pred_set.clear();
+		for (auto q: db.getQueries())
+			m_neg_pred_set.insert(bind::fname(bind::fname(q)));
+
+		for (auto r: db.getRules()) {
+			if (isOpX<TRUE>(r.body()))
+				m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
+		}
+
+		/*
+			errs() << "POSITIVE PREDICATES: "; for(auto e : m_pos_pred_set) errs() << " " << *e; errs() << "\n";
+			errs() << "\n NEGATIVE PREDICATES: "; for(auto e : m_neg_pred_set) errs() << " " << *e; errs() << "\n";
+		*/
+
+		m_must_pos_rule_set.clear();
+		m_must_neg_rule_set.clear();
+		bool must_pos = true;
+		bool must_neg = true;
+		for (auto r: db.getRules()) {
+			// errs() << blue << "rule: " << HornRuleToStr(r, true) << normal << "---------\n";
+			Expr r_head_name = bind::fname(bind::fname(r.head()));
+			must_neg = (m_neg_pred_set.count(r_head_name) > 0);
+			
+			// errs() << "  body: ------------------------- \n"; 
+			ExprVector body_pred_apps;
+			get_all_pred_apps(r.body(), db, std::back_inserter(body_pred_apps));
+			for (auto pred: body_pred_apps) {
+				Expr pred_name = bind::fname(bind::fname(pred));
+				// errs() << "    |---- " << *pred_name << "\n"; 
+				must_pos = (m_pos_pred_set.count(pred_name) > 0)? must_pos : false;
+			}
+
+			if (must_pos) m_must_pos_rule_set.insert(r);
+			if (must_neg) m_must_neg_rule_set.insert(r);
+			// errs() << "  -- mustPositive: " << must_pos << "  mustNegative: " << must_neg << "\n";
+		}
+
+
+		//*
+			errs() << " MUST POSITIVE RULES: "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+			errs() << " MUST NEGATIVE RULES: "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+		//*/
+	}
+
 
 	static int solveConstraintTime = 0;
 	bool ICE::solveConstraints(HornClauseDB &db, bool &isChanged, int &index)
 	{
 		solveConstraintTime++;
-		int ruleno = 0;
-		std::ofstream ruleout("rule.txt");
-		//print the map from predicate name to C5-form predicate name
-		LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
-		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
-			ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
-		ruleout << "\n\n";
-		for (auto r: db.getRules()) {
-			ruleIndex[r] = ruleno++;
-			ruleout << HornRuleToStr(r, true) << "\n";
-		}
-		ruleout.close();
-
 		std::list<HornRule> workList;
 		workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
 		workList.reverse();
@@ -1715,24 +1785,42 @@ namespace seahorn
 				}
 			}
 
+			errs() << DataSetToStr();
+
 			if (cleanBody) {
-				LOGIT("ice", errs() << bred << "[1] BODY is clean" << normal << "\n");
-				if (bind::domainSz(bind::fname(r_head)) <= 0) {
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				//////////////////////////  BODY IS CLEAN (Simple Case)  ////////////////////////////////////////////////
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				// LOGIT("ice", errs() << bred << "[1] BODY is clean" << normal << "\n");
+				if (bind::domainSz(bind::fname(r_head)) <= 0) 
+				{
+					errs() << bold << bmag << " //////////////////////////  BODY, HEAD ARE CLEAN (CHECK DIRECTLY)  ////////////////////////////////////// " << normal << "\n";
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//////////////////////////  BODY, HEAD ARE CLEAN (CHECK DIRECTLY)  //////////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					// LOGIT("ice", errs() << red << " HEAD clean, Body clean. CHECK IT. Nothing is need to be refined!" << normal << "\n");
+					// LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
 					if (checkHornRule(r, db, solver) == UNSAT) 
 						continue;
-					LOGIT("ice", errs() << red << " HEAD clean, Body clean. CHECK IT. Nothing is need to be refined!" << normal << "\n");
-					LOGLINE ("ice", errs() << "Verify a rule without unknown invariants.\n");
 					outs() << red << "1.1 Program is buggy.\n" << normal;
 					std::list<Expr> attr_values;
 					DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 					addPosCex(pos_dp);
+					if (mustPositive(r)) addMustPosCex(pos_dp);
+					if (mustNegative(r)) addMustNegCex(pos_dp);
 					LOGLINE("ice", errs() << red << "Failed DataPoint: " << DataPointToStr(pos_dp, empty, false) << normal << "\n");
 					failurePoint = m_pos_list.size()-1;
 					return false;
-				} else {
-					LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
+				} 
+				else 
+				{
+					errs() << bmag << bold << " //////////////////////////  BODY IS CLEAN, HEAD DIRTY (Generate More Samples) //////////////////////// " << normal << "\n";
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//////////////////////////  BODY IS CLEAN (Generate More Samples)  //////////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					// LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
 					// Head is possibly need to be refined!
-					LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
+					// LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
 					do {
 						if (checkHornRule(r, db, solver) == UNSAT) { 
 							updated = false; 
@@ -1763,8 +1851,14 @@ namespace seahorn
 					// --- Extend work list as we just go through a strengthening loop ----
 					addUsedToWorkList (db, workList, r);
 				}
-			} else {
-				LOGIT("ice", errs() << bred << " [2] BODY IS DIRTY. Might Both Head and Body need to be refined!" << normal << "\n");
+			} 
+			else 
+			{
+				errs() << bold << bmag << "///////////////////////////   BODY IS DIRTY  ////////////////////////////////////////////////////////" << normal << "\n";
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				///////////////////////////   BODY IS DIRTY (IMPLICATION)  //////////////////////////////////////////////
+				/////////////////////////////////////////////////////////////////////////////////////////////////////////
+				// LOGIT("ice", errs() << bred << " [2] BODY IS DIRTY. Might Both Head and Body need to be refined!" << normal << "\n");
 				do {
 					++counter;
 					LOGLINE("ice", errs() << bold << green << "Rule Verification Round " << counter << normal << "\n");
@@ -1787,13 +1881,12 @@ namespace seahorn
 
 						//print cex
 						errs() << cyan << "get candidate for each body_predicate that has parameters: " << normal << "\n";
-						int body_index = 0;
 						for (Expr body_app : body_pred_apps) {
-							body_index++;
-							// errs() << "BODY{" << body_index << "}";
 							errs() << gray << *body_app << normal;
-							if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
-							{ errs() << " xxx \n"; continue; }
+							// No counterexample can be obtained from it because it is clean.
+							assert (bind::domainSz(bind::fname(body_app)) > 0); 
+							// if (bind::domainSz(bind::fname(body_app)) <= 0) // No counterexample can be obtained from it because it is clean.
+							// { errs() << " xxx \n"; continue; }
 
 							std::list<Expr> attr_values = ModelToAttrValues(body_app);
 							// Presumbaly add counterexample
@@ -1802,7 +1895,6 @@ namespace seahorn
 							errs() << " |-> " << DataPointToStr(neg_dp, empty, false) << "\n";
 						}
 
-						errs() << DataSetToStr();
 
 						// If the counterexample is already labeled positive;
 						// Add its successive (aka. state transition) to positives instead.
@@ -1818,112 +1910,114 @@ namespace seahorn
 								break; 
 							}
 						}
-						if (foundPos) { /* the whole negPoints */
-							errs() << red << " [2.yPos] body instance is in Pos!" << normal << "\n";
+
+						if (foundPos) /* the whole negPoints */
+						{
+							errs() << bold << bmag << "      /////////////////////   BODY IS DIRTY (Positive => Positive)  /////////////////////////////////////////" << normal << "\n";
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							///////////////////////////   BODY IS DIRTY (Positive => Positive)  /////////////////////////////////////
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							errs() << red << " [2.yPos] body instance is in Pos, Refine the Head!" << normal << "\n";
+							// LOGLINE("diff", errs() << red << "[IMPLICATION]!! Body=/=>Head, and the body model is found in POSitive Set, then the Head must be refined !! \n" << normal);
 							// if the body datapoint found in Positive, then head must be refined!
-							LOGLINE("diff", errs() << red << "[IMPLICATION]!! Body=/=>Head, and the body model is found to be positive (in m_pos_data_set) then the Head must be refined !! \n" << normal);
-							if (bind::domainSz(bind::fname(r_head)) <= 0) 
-							{
-								LOGLINE("diff", errs() << bred << "&& head contains no predicate !! (ERROR)" << normal << "\n");
-								outs()<<" [2].1 Program is buggy.\n";
-								LOGLINE("ice", errs() << red << "Collect the buggy implication (body_model -> head_model(empty)).\n" << normal);
-								std::list<Expr> attr_values; // should be empty
-								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-								addPosCex(pos_dp);
-								failurePoint = m_pos_list.size()-1;
-								std::list<int> preIndices;
-								for (DataPoint neg_dp : negPoints) {
-									preIndices.push_back(m_pos_index_map[neg_dp]);
-								}
-								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-								return false;
-							}
-
-							// should be implication! Both sides contains predicates.
-							errs() << bold << "Head should be fixed!: \n" << normal;
-							errs() << " get head cex (positive): " << mag;
+							
 							std::list<Expr> attr_values = ModelToAttrValues(r_head);
-							for (auto e : attr_values) errs() << "  " << *e;
-							errs() << normal << "\n";
-
 							DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-							// errs() << " ___pos_beg___\n" << DataPointToStr(empty, pos_dp) << "\n ___pos_end___\n";
+							errs() << " get HEAD cex (positive): " << mag << DataPointToStr(pos_dp) << normal << "\n";
+							if (mustPositive(r)) addMustPosCex(pos_dp);
+							if (mustNegative(r)) addMustNegCex(pos_dp);
 							int orig_size = m_pos_data_set.size();
 							addPosCex(pos_dp);
 
+							if (bind::domainSz(bind::fname(r_head)) <= 0) 
+							{
+								// Positive ==> HEAD with no params
+								LOGLINE("diff", errs() << bred << " Positive ==> Head with no params!! (ERROR)" << normal << "\n");
+								outs()<<" [2].1 Program is buggy. " << bred << "[lijiaying Question: the Point might be put in Pos wrongly]" << normal << "\n";
+								LOGLINE("ice", errs() << red << "Collect the buggy implication (body_model -> head_model(empty)).\n" << normal);
+								/*
+								std::list<Expr> attr_values; // should be empty
+								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
+								addPosCex(pos_dp);
+								if (mustPositive(r)) addMustPosCex(pos_dp);
+								if (mustNegative(r)) addMustNegCex(pos_dp);
+								*/
+								failurePoint = m_pos_list.size()-1;
+								std::list<int> preIndices; for (DataPoint neg_dp : negPoints) { preIndices.push_back(m_pos_index_map[neg_dp]); } postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+								return false;
+							}
+
+							// should be Positive => Positive !
+							// LOGLINE("diff", errs() << bred << " Positive ==> Positive !! " << normal << "\n");
 							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 							{
-								// LOGLINE("ice", errs() << red << "> Remove all the data for r_head " << *r_head << " in cex and neg_data_list\n" << normal);
-								clearNegData(r_head);
+								/*
+									// ---- Doubly check if the above code is necessary
+									clearNegData(r_head);
 
-								// ---- Clean negative samples for body apps as well
-								for (Expr body_app : body_pred_apps) {
-									if (bind::domainSz(bind::fname(body_app)) <= 0) continue;
-									clearNegData(body_app);
-								}
-
-								// ---- Doubly check if the above code is necessary
-								m_cex_list.push_back(pos_dp);
-								addDataPointToIndex(pos_dp, index);
-
-								std::list<int> preIndices;
-								for (DataPoint neg_dp : negPoints) {
-									preIndices.push_back(m_pos_index_map[neg_dp]);
-								}
-								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-
-								LOGDP("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
+									// ---- Clean negative samples for body apps as well
+									for (Expr body_app : body_pred_apps) { if (bind::domainSz(bind::fname(body_app)) <= 0) continue; clearNegData(body_app); }
+								*/
+								
+								// LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
+								m_cex_list.push_back(pos_dp); addDataPointToIndex(pos_dp, index);
 								index++;
+
+								std::list<int> preIndices; for (DataPoint neg_dp : negPoints) { preIndices.push_back(m_pos_index_map[neg_dp]); } postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 								posUpdated = true;
 
 								bool run = sampleLinearHornCtrs(r_head, pos_dp, index);
 								if (!run) return false;
 
-								Expr e = pos_dp.getPredName();
-								changedPreds.push_back (e); // e is head
+								Expr e = pos_dp.getPredName(); // e is head
+								if (std::find(changedPreds.begin(), changedPreds.end(), e) == changedPreds.end())
+									changedPreds.push_back (e);
 								LOGLINE("ice", errs() << red << " 3.1. add to changed Pred: " << *e << "\n" << normal);
 							}
 							else //it is a duplicate data point
 							{
-								LOGIT("ice", errs() << bred << "[2].2 ERROR. Head should have classified correct on this sample] Duplicated positive points should be impossible.\n" << normal);
+								LOGLINE("ice", errs() << bred << "[2].2 ERROR. Head should have classified correct on this sample] Duplicated positive points should be impossible.\n" << normal);
+								LOGIT("ice", errs() << bred << " lijiaying: It might be possible the predicate has not updated Last Time. " << *pos_dp.getPredName() << normal);
 								clearNegSamples (r_head, true);
 								m_buggy = true;
 								return false;
 								//exit (-3);
 							}
-						} else {
-							LOG("diff", errs() << "!! NOT Found the (whole) Body instance in Positive Data!! \n");
-							errs() << red << " [2.xPos] body instance is not in Pos!" << normal << "\n";
-							// errs() << DataSetToStr(true);
-							int i = -1;
+						} 
+						else 
+						{  // foundPos = False
+							errs() << bold << bmag << "      /////////////////////   BODY IS DIRTY (Pure Implication)  /////////////////////////////////////////" << normal << "\n";
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							///////////////////////////   BODY IS DIRTY (Pure Implication)  /////////////////////////////////////////
+							/////////////////////////////////////////////////////////////////////////////////////////////////////////
+							// LOG("diff", errs() << "[2.xPos]!! " << bred << "PURE IMPLICATION" << normal << "\n");
+							errs() << red << " [2.PureImplication] body instance is not in Pos!" << normal << "\n";
 							for (DataPoint neg_dp : negPoints) {
-								i++;
-								LOG("ice", errs() << "  > on negDataPoint[" << i << "] " << red << DataPointToStr(neg_dp) << normal << "\n");
 								if (m_pos_data_set.find(neg_dp) != m_pos_data_set.end()) /* Found this in positive set. */ 
 								{ 
-									errs() << "/* Found this in positive set. */\n"; 
-									LOGLINE("ice", errs() << red << "[do not know why] !! Error !! inconsistency." << normal << "\n");
+									errs() << "  Found sample " << red << DataPointToStr(neg_dp, empty, false) << " in positive set. \n"; 
+									LOGLINE("ice", errs() << red << "Inconsisitency: such as body1, body2 ==> head!  Only One of Body1/2 is stored.." << normal << "\n");
 								} 
 								else 
 								{
-									// errs() << red << "  [2.xPos--] body instance is not in Pos! Try to add it to negative data set." << normal << "\n";
+									if (mustPositive(r)) addMustPosCex(neg_dp);
+									if (mustNegative(r)) addMustNegCex(neg_dp);
 									int org_size = m_neg_data_set.size();
-									// lijiyiang to fix it
-									// if this neg_dp can really lead to Assertion Failure, such as verifier.error.split, 
-									// then it should be added into Must_Neg_Data_Set
-									// otherwise, add it into May_Neg_Data_Set
 									addNegCex(neg_dp);
 
 									if(m_neg_data_set.size() == org_size + 1) //no duplicate
 									{
-										errs() << red << "  [2.xPos.xNeg] body instance is not in Pos and not in Neg!" << normal << "\n";
-										LOGLINE("neg", errs() << "++ add new neg sample: " << DataPointToStr(neg_dp) << "\n");
-
-										m_cex_list.push_back(neg_dp);
-										addDataPointToIndex(neg_dp, index);
+										errs() << red << "  [2.xPos:PureImplication.xNeg] !" << normal << " add new neg sample: " << DataPointToStr(neg_dp) << "\n";
 										// LOGLINE("ice", errs() << "NEG CEX, INDEX IS " << index << "\n");
+										m_cex_list.push_back(neg_dp); addDataPointToIndex(neg_dp, index);
 										index++;
 
+										Expr e = neg_dp.getPredName(); // e is one of the bodies 
+										if (std::find(changedPreds.begin(), changedPreds.end(), e) == changedPreds.end())
+											changedPreds.push_back (e);
+										LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
+
+										/*
 										if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
 										{
 											Expr e = neg_dp.getPredName();
@@ -1931,18 +2025,28 @@ namespace seahorn
 											// changedPreds.push_back(pos_dp.getPredName());
 											LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
 										}
+										*/
 
+										/*
 										std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
 										if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
-											LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); svmLearn (neg_dp.getPredName());
+											LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); 
+											svmLearn (neg_dp.getPredName());
 										}
+										*/
 									}
 									else //it is a duplicate data point
 									{ 
-										errs() << DataSetToStr(true);
-										LOGLINE("ice", errs() << lred << "    [2.xPos.yNeg] body instance [not belong to Pos][belongs to Neg](but it should be a new Negative point) Duplicated negative points should be impossible." << normal << "\n"); 
+										LOGLINE("ice", errs() << bred << "    [2.xPos:Pureimplication.yNeg] Duplication! body instance is already in NegSet. " << normal << "\n"); 
+										LOGLINE("ice", errs() << bred << "    lijiaying: Not possible, because the sample is generated based on the rule, and the rule is based on the learned result!" << normal << "\n"); 
+										LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *neg_dp.getPredName() << normal << "\n"); 
+										// outs() << gray; solver.toSmtLib(outs()); outs() << normal;
+										errs() << "save the smt2 constraint into file.\n";
+										std::ofstream of_smt2(m_C5filename + ".bug.smt2");
+										solver.toSmtLib(of_smt2);
+										of_smt2.close();
+										// check Z3 correctness
 										clearNegSamples (neg_dp.getPredName(), false); 
-										errs() << bold << bmag << " possibly added the point is added [due to not sure]...." << normal << "\n";
 										m_buggy = true;
 										return false;
 									}
@@ -2126,6 +2230,8 @@ namespace seahorn
 				std::list<Expr> attr_values;
 				DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 				addPosCex(pos_dp);
+				if (mustPositive(r)) addMustPosCex(pos_dp);
+				if (mustNegative(r)) addMustNegCex(pos_dp);
 				failurePoint = m_pos_list.size()-1;
 				std::list<int> preIndices;
 				preIndices.push_back(pindex);
@@ -2190,6 +2296,8 @@ namespace seahorn
 			DataPoint pos_dp(bind::fname(bind::fname(r.head())), attr_values);
 			int orig_size = m_pos_data_set.size();
 			addPosCex(pos_dp);
+			if (mustPositive(r)) addMustPosCex(pos_dp);
+			if (mustNegative(r)) addMustNegCex(pos_dp);
 
 			if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 			{
@@ -2295,6 +2403,21 @@ namespace seahorn
 		n_svm_calls = 0;
 		failurePoint = -1;
 		bool no_verification_found_error;
+
+		int ruleno = 0;
+		std::ofstream ruleout("rule.txt");
+		//print the map from predicate name to C5-form predicate name
+		LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
+		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
+			ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
+		ruleout << "\n\n";
+		for (auto r: db.getRules()) {
+			ruleIndex[r] = ruleno++;
+			ruleout << HornRuleToStr(r, true) << "\n";
+		}
+		ruleout.close();
+		preparePosNegPredSet(db);
+
 		while(isChanged) //There are still some counterexamples to find
 		{
 			isChanged = false;

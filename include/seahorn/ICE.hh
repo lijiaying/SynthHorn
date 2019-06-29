@@ -123,6 +123,8 @@ namespace seahorn
 			bool m_buggy;
 			std::string m_z3_model_str;
 			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
+			std::set<Expr> m_pos_pred_set;
+			std::set<Expr> m_neg_pred_set;
 
 			std::map<HornRule, int> ruleIndex;
 			std::string HornRuleToStr(HornRule& r, bool rulecontent = false) {
@@ -141,8 +143,21 @@ namespace seahorn
 			std::string DataSetToStr(bool mustprint = false);
 			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
 			bool parseModelFromString(std::string model_str);
-			boost::tribool checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3> solver);
+			boost::tribool checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver);
 			void clearNegData(Expr& e);
+			void preparePosNegPredSet(HornClauseDB&);
+			std::set<Expr>& getPosPredSet() {return m_pos_pred_set;}
+			std::set<Expr>& getNegPredSet() {return m_neg_pred_set;}
+
+			std::set<HornRule> m_must_pos_rule_set;
+			std::set<HornRule> m_must_neg_rule_set;
+
+			inline bool mustPositive(HornRule& r) {
+				return (m_must_pos_rule_set.count(r) > 0);
+			}
+			inline bool mustNegative(HornRule& r) {
+				return (m_must_neg_rule_set.count(r) > 0);
+			}
 
 		public:
 			void setupC5();
@@ -153,13 +168,9 @@ namespace seahorn
 			HornifyModule& getHornifyModule() {return m_hm;}
 			HornDbModel& getCandidateModel() {return m_candidate_model;}
 
-			//std::set<HornRule>& getPosRuleSet() {return m_pos_rule_set;}
-			//std::set<HornRule>& getNegRuleSet() {return m_neg_rule_set;}
 
 		public:
 			void runICE();
-
-			// void guessCandidates(HornClauseDB &db);
 
 			//Add ICE invs to default solver
 			void addInvCandsToProgramSolver();
@@ -167,36 +178,37 @@ namespace seahorn
 			void genInitialCandidates(HornClauseDB &db);
 			void generateC5DataAndImplicationFiles(ExprVector targets);
 
+			void addMustPosCex(DataPoint dp) {
+				errs() << bold << blue << "Must be Positive: " << DataPointToStr(dp) << "\n";
+				m_must_pos_data_set.insert(dp);
+				std::map<Expr, int>::iterator it = m_must_pos_data_count.find(dp.getPredName());
+				if (it != m_must_pos_data_count.end()) it->second ++;
+				else m_must_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
+			}
 
-			void addPosCex(DataPoint dp, bool is_must = false) {
+			void addPosCex(DataPoint dp) {
 				m_pos_data_set.insert(dp);
 				std::map<Expr, int>::iterator it = m_pos_data_count.find(dp.getPredName());
 				if (it != m_pos_data_count.end()) it->second ++;
 				else m_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
 
-				if(is_must) {
-					m_must_pos_data_set.insert(dp);
-					std::map<Expr, int>::iterator it = m_must_pos_data_count.find(dp.getPredName());
-					if (it != m_must_pos_data_count.end()) it->second ++;
-					else m_must_pos_data_count.insert (std::make_pair(dp.getPredName(), 1));
-				}
-
 				m_pos_list.push_back (dp);
 				m_pos_index_map.insert (std::make_pair(dp, m_pos_list.size()-1));
 			}
 
-			void addNegCex(DataPoint dp, bool is_must = false) {
+			void addNegCex(DataPoint dp) {
 				m_neg_data_set.insert(dp);
 				std::map<Expr, int>::iterator it = m_neg_data_count.find(dp.getPredName());
 				if (it != m_neg_data_count.end()) it->second ++;
 				else m_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
+			}
 
-				if(is_must) {
-					m_must_neg_data_set.insert(dp);
-					std::map<Expr, int>::iterator it = m_must_neg_data_count.find(dp.getPredName());
-					if (it != m_must_neg_data_count.end()) it->second ++;
-					else m_must_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
-				}
+			void addMustNegCex(DataPoint dp) {
+				errs() << bold << blue << "Must be Negative: " << DataPointToStr(dp) << "\n";
+				m_must_neg_data_set.insert(dp);
+				std::map<Expr, int>::iterator it = m_must_neg_data_count.find(dp.getPredName());
+				if (it != m_must_neg_data_count.end()) it->second ++;
+				else m_must_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
 			}
 
 
