@@ -1767,8 +1767,12 @@ namespace seahorn
 			bool updated = false; int counter = 0; bool posUpdated = false;
 
 			LOGIT ("ice", errs() << bgreen << "Solve Constraint #" << solveConstraintTime << " --- loop #" << ++loopi << " times ---");
-			errs() << normal << mag << " Current WorkList: " << bold; for (auto r : workList) errs() << HornRuleToStr(r) << " "; errs() << normal << "\n";
-			LOGIT("ice", errs() << bold << green << "VERIFY Horn Rule: " << normal << mag << bold << HornRuleToStr(r) << normal << "\n" );
+			errs() << normal << mag << " WorkList: " << bold; 
+			errs() << underline << HornRuleToStr(r) << normal << mag;
+			for (auto rr : workList) 
+				errs() << HornRuleToStr(rr); 
+			errs() << normal << "\n";
+			// LOGIT("ice", errs() << bold << green << "VERIFY Horn Rule: " << normal << mag << bold << HornRuleToStr(r) << normal << "\n" );
 
 			Expr r_head = r.head();
 			Expr r_body = r.body();
@@ -1861,7 +1865,13 @@ namespace seahorn
 				// LOGIT("ice", errs() << bred << " [2] BODY IS DIRTY. Might Both Head and Body need to be refined!" << normal << "\n");
 				do {
 					++counter;
-					LOGLINE("ice", errs() << bold << green << "Rule Verification Round " << counter << normal << "\n");
+					// errs() << normal << mag << " WorkList: " << bold; 
+					errs() << bold << green << "Rule Verification Round " << counter << " " << normal;
+					errs() << bold << mag << underline << HornRuleToStr(r) << normal << mag;
+					for (auto rr : workList) 
+						errs() << HornRuleToStr(rr); 
+					errs() << normal << "\n";
+					// LOGLINE("ice", errs() << bold << green << "Rule Verification Round " << counter << mag << HornRuleToStr(r) << normal << "\n");
 					result = checkHornRule(r, db, solver);
 
 					// Which predicates will be changed in this iteration of solving.
