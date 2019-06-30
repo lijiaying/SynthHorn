@@ -276,7 +276,8 @@ namespace seahorn
 									errs() << bred << "type error." << DataPointToStr(dp, empty, false) << " -> " << attr_str << " -> " << hex << normal << "\n";
 									exit(-4);
 								}
-								if (n>500000000 || n<-500000000)
+								// if (n>500000000 || n<-500000000)
+								if (n>99999 || n<-99999)
 									is_proper = false;
 								attr_str = std::to_string(n);
 							}
@@ -1961,13 +1962,11 @@ namespace seahorn
 							// LOGLINE("diff", errs() << bred << " Positive ==> Positive !! " << normal << "\n");
 							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 							{
-								/*
-									// ---- Doubly check if the above code is necessary
+									// ---- Doubly check if the below code is necessary
 									clearNegData(r_head);
 
 									// ---- Clean negative samples for body apps as well
 									for (Expr body_app : body_pred_apps) { if (bind::domainSz(bind::fname(body_app)) <= 0) continue; clearNegData(body_app); }
-								*/
 								
 								// LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 								m_cex_list.push_back(pos_dp); addDataPointToIndex(pos_dp, index);
