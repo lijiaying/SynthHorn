@@ -2,10 +2,8 @@
 #define __COLOR_HH__
 
 #include "llvm/Support/raw_ostream.h"
-// #include <iostream>
-// #include <string>
-// #include <stdlib.h>
-// #include <stdio.h>
+
+#define COLOR 0
 
 #ifdef red
 #undef red
@@ -59,19 +57,9 @@
 #undef underline 
 #endif
 
-/*
-static enum {normal=0, bold, underline=4, red=31, green, yellow, blue, mag, cyan, gray, light_gray=91, light_red, light_green, light_yellow, light_blue, light_mag, light_cyan} _color_;
-
-inline std::string background(enum color c) {
-	return "\e[37m;" + std::to_string(c+10) + "m";
-}
-
-inline std::string foreground(enum color c) {
-	return "\e[" + std::to_string(c) + "m";
-}
-*/
 
 
+#if COLOR
 #define red "\e[31;40m"
 #define green "\e[32;40m"
 #define yellow "\e[33;40m"
@@ -106,6 +94,42 @@ inline std::string foreground(enum color c) {
 #define bold "\e[1m"
 #define underline "\e[4m"
 
+#else
+
+#define red ""
+#define green ""
+#define yellow ""
+#define blue ""
+#define mag ""
+#define cyan ""
+#define lgray ""
+#define gray ""
+#define lred ""
+#define lgreen ""
+#define lyellow ""
+#define lblue "" 
+#define lmag ""
+#define lcyan ""
+
+#define bred ""
+#define bgreen ""
+#define byellow ""
+#define bblue ""
+#define bmag ""
+#define bcyan ""
+#define blgray ""
+#define bgray ""
+#define blred ""
+#define blgreen ""
+#define blyellow ""
+#define blblue "" 
+#define blmag ""
+#define blcyan ""
+
+#define normal ""
+#define bold ""
+#define underline ""
+#endif
 
 #ifdef LOG
 #undef LOG

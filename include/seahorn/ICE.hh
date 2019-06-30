@@ -158,6 +158,16 @@ namespace seahorn
 			inline bool mustNegative(HornRule& r) {
 				return (m_must_neg_rule_set.count(r) > 0);
 			}
+			Expr constructStateFromPredicateAndDataPoint(Expr pred, DataPoint p);
+
+			bool m_positive_trace;
+			bool m_negative_trace;
+
+			// This can be positive, negative, or unknown. 
+			// After generation, the data might be transfered into m_must_pos_data_set or m_must_neg_data_set
+			std::set<DataPoint> m_tmp_data_set; 
+
+			std::string CandidateToStr();
 
 		public:
 			void setupC5();
@@ -194,6 +204,8 @@ namespace seahorn
 
 				m_pos_list.push_back (dp);
 				m_pos_index_map.insert (std::make_pair(dp, m_pos_list.size()-1));
+
+				m_tmp_data_set.insert(dp);
 			}
 
 			void addNegCex(DataPoint dp) {
@@ -201,6 +213,8 @@ namespace seahorn
 				std::map<Expr, int>::iterator it = m_neg_data_count.find(dp.getPredName());
 				if (it != m_neg_data_count.end()) it->second ++;
 				else m_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
+
+				m_tmp_data_set.insert(dp);
 			}
 
 			void addMustNegCex(DataPoint dp) {
@@ -286,7 +300,7 @@ namespace seahorn
 			Expr extractRelation (HornRule r, HornClauseDB &db, Expr t, Expr s);
 			bool solveConstraints(HornClauseDB &db, bool &isChanged, int &index);
 			void fastSolveConstraints(HornClauseDB &db, bool &isChanged, int &index);
-			bool generatePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run);
+			bool generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprVector& changedPreds);
 			bool fastGeneratePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index);
 			int countSamples (Expr pred, bool positive);
 			bool matchFacts (HornClauseDB &db, DataPoint p);
@@ -295,11 +309,9 @@ namespace seahorn
 
 			// Sample Horn Constraint System.
 			// Fixme. Not suitable for non-linear Horn Constraint System.
-			bool getReachableStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap,
-					Expr from_pred, DataPoint p, int &index);
-			bool getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap,
-					HornRule r, Expr from_pred_state, int pindex, int &index);
-			bool sampleLinearHornCtrs(Expr pred, DataPoint p, int &index);
+			bool getReachableStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index);
+			bool getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index);
+			bool sampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
 			void svmLearn (Expr targetName); //(ExprVector target);
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
