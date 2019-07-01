@@ -49,6 +49,15 @@ static llvm::cl::opt<unsigned> ICEOct("horn-ice-oct", cl::Hidden, cl::init(1));
 static llvm::cl::opt<unsigned> ICEICE("horn-ice-ice", cl::Hidden, cl::init(0));
 static llvm::cl::opt<unsigned> DebugLevel("debug-level", cl::desc("Debug Level: The higher the more information you get. Default = 5"), cl::init (5));
 
+static llvm::cl::opt<bool> ShowDataSet("show-data-set", llvm::cl::desc ("Show the Data Set Information"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5NameFile("show-c5-name-file", llvm::cl::desc ("Show the names file to proceed by C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5IntervalFile("show-c5-interval-file", llvm::cl::desc ("Show the interval file to proceed by C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5DataFile("show-c5-data-file", llvm::cl::desc ("Show the data file to proceed by C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5HexDataFile("show-c5-hex-data-file", llvm::cl::desc ("Show the hex data file, corresponding to the data file proceeded by C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5JsonFile("show-c5-json-file", llvm::cl::desc ("Show the Json file output from C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowC5JsonStruct("show-c5-json-struct", llvm::cl::desc ("Show the Json file in structured form output from C5.0"), cl::init (false));
+
+static llvm::cl::opt<unsigned> ColorEnable("color", cl::desc("Enable colored output or not"), cl::init (5));
 #define USE_EXTERNAL 1
 // #define USE_EXTERNAL 0
 
@@ -574,8 +583,10 @@ namespace seahorn
 		names_of << "invariant: true, false.\n";
 		names_of.close();
 		intervals_of.close();
-		// outputFileContent(m_C5filename + ".names");
-		// outputFileContent(m_C5filename + ".intervals");
+		if (ShowC5NameFile)
+			outputFileContent(m_C5filename + ".names");
+		if (ShowC5IntervalFile)
+			outputFileContent(m_C5filename + ".intervals");
 	}
 
 	std::string ptreeToString(boost::property_tree::ptree pt) {
@@ -665,7 +676,7 @@ namespace seahorn
 
 	std::string ICE::DataSetToStr(bool mustprint) {
 		std::ostringstream oss; 
-		if (DebugLevel<=5 && !mustprint)
+		if (!ShowDataSet && !mustprint)
 			return oss.str();
 
 		oss << blue << "===================================================================\n" << normal; 
@@ -760,8 +771,10 @@ namespace seahorn
 		}
 		data_of.close();
 		data_hex_of.close();
-		// outputFileContent(m_C5filename + ".data"); 
-		outputFileContent(m_C5filename + ".hex.data", 80); 
+		if (ShowC5DataFile)
+			outputFileContent(m_C5filename + ".data"); 
+		if (ShowC5HexDataFile)
+			outputFileContent(m_C5filename + ".hex.data", 100); 
 
 		//generate .implications file
 		if (ICEICE) {
@@ -2428,8 +2441,18 @@ namespace seahorn
 		auto &db = m_hm.getHornClauseDB ();
 		db.buildIndexes ();
 		LOG("ice", errs() << "DB: \n" << cyan << db << normal);
-		errs() << yellow << bold << "=========================start runICE method==================================\n" << normal;
-		errs() << yellow << bold << "DebugLevel=" << DebugLevel << "  Bounded=" << Bounded << normal;
+		errs() << yellow << bold;
+		errs() << "=========================start runICE method==================================\n";
+		errs() << "  DebugLevel=" << DebugLevel << "\n";
+		errs() << "  Bounded=" << Bounded << "\n";
+		errs() << "  ShowC5NameFile=" << ShowC5NameFile << "\n";
+		errs() << "  ShowC5IntervalFile=" << ShowC5IntervalFile << "\n";
+		errs() << "  ShowC5DataFile=" << ShowC5DataFile << "\n";
+		errs() << "  ShowC5HexDataFile=" << ShowC5HexDataFile << "\n";
+		errs() << "  ShowC5JsonFile=" << ShowC5JsonFile << "\n";
+		errs() << "  ShowC5JsonStruct=" << ShowC5JsonStruct << "\n";
+		errs() << "  ShowDataSet=" << ShowDataSet << "\n";
+		errs() << normal;
 
 		for (auto rel : db.getRelations())
 			LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
