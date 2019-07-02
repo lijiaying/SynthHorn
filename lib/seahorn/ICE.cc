@@ -95,8 +95,6 @@ namespace seahorn
 		LOG("ice-res", errs() << "Start ICE Pass\n");
 		Stats::resume ("ICE inv");
 		ICE ice(hm);
-		ice.setupC5();
-		ice.genInitialCandidates(hm.getHornClauseDB());
 		ice.runICE();
 		LOG("ice-res", errs() << "RUN ICE SUCCESSCULLY\n");
 		Stats::stop ("ICE inv");
@@ -119,9 +117,9 @@ namespace seahorn
 		for(int i=0; i<bind::domainSz(rel); i++)
 		{
 			Expr arg_i_type = bind::domainTy(rel, i);
-			// Expr arg_i = bind::fapp(bind::constDecl(variant::tag(bind::fname(rel), variant::variant(i, mkTerm<std::string> ("V", rel->efac ()))), arg_i_type));
+			// Expr arg_i = bind::fapp(bind::constDecl(variant::tag(bind::fname(rel), variant::variant(i, mkTerm<std::string> ("v", rel->efac ()))), arg_i_type));
 			// short name
-			Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+			Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 			arg_list.push_back(arg_i);
 		}
 		return arg_list;
@@ -210,8 +208,17 @@ namespace seahorn
 			m_svmattr_name_to_str_map.clear ();
 		}
 
+		// for (Expr rel : m_rules) {
+		LOGLINE("ice", errs() << "Check Fact Rules.\n");
+		for (auto fact_pred: m_fact_predicates)
+			errs() << "Fact Predicate: " << *fact_pred << "\n";
 		for (Expr rel : db.getRelations()) {
-			LOG("ice", errs() << "SVM on predicate: " << cyan << bold << *rel << normal << " -->\n");
+			LOGIT("ice", errs() << "SVM on predicate: " << cyan << bold << *(bind::fname(rel)) << normal << " --> ");
+			if (m_fact_predicates.count(bind::fname(rel)) > 0) {
+				LOGIT("ice", errs() << " In Fact-Predicates\n");
+				continue;
+			}
+			LOGIT("ice", errs() << " NOT in Fact-Predicates\n");
 			Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 			std::stringstream oss; oss << C5_rel_name;
 			// oss = rel.C5_name
@@ -250,7 +257,7 @@ namespace seahorn
 				Expr arg_i_type = bind::domainTy(rel, i);
 				std::ostringstream oss; oss << arg_i_type;
 				if (oss.str().compare("BOOL") == 0) { exclusives.push_back(i); continue; } 
-				Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type)); 
+				Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type)); 
 				arg_list.push_back(arg_i);
 			}
 
@@ -495,7 +502,7 @@ namespace seahorn
 				for(int i=0; i<bind::domainSz(rel); i++)
 				{
 					Expr arg_i_type = bind::domainTy(rel, i);
-					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 					Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
 					LOG("ice", errs() << "check --" << *arg_i_type << " " << *attr_name_i << ": ");
 					if(isOpX<BVSORT>(bind::domainTy(rel, i)) || isOpX<INT_TY>(bind::domainTy(rel, i)) || isOpX<BOOL_TY>(bind::domainTy(rel, i)))
@@ -507,7 +514,7 @@ namespace seahorn
 							continue;
 						}
 						Expr arg_i_type = bind::domainTy(rel, i);
-						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 						Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
 						m_attr_name_to_expr_map.insert(std::make_pair(attr_name_i, arg_i));
 						names_of << attr_name_i << ": continuous.\n";
@@ -527,7 +534,7 @@ namespace seahorn
 							if(isOpX<INT_TY>(bind::domainTy(rel, i)) || (isOpX<bv::BvSort>(bind::domainTy(rel, i))))
 							{
 								Expr arg_i_type = bind::domainTy(rel, i);
-								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 								Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
 								names_of << attr_name_i << "mod" << cons << ":= (" << attr_name_i << " % " << cons << " + " << cons << ") % " << cons << ".\n";
 								upperInterval ++;
@@ -548,8 +555,8 @@ namespace seahorn
 								// || (isOpX<BV_TY>(bind::domainTy(rel, i)) && isOpX<BV_TY>(bind::domainTy(rel, j))))
 							{
 								Expr arg_type = bind::domainTy(rel, i);
-								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_type));
-								Expr arg_j = bind::fapp(bind::constDecl(variant::variant(j, mkTerm<std::string> ("V", rel->efac ())), arg_type));
+								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_type));
+								Expr arg_j = bind::fapp(bind::constDecl(variant::variant(j, mkTerm<std::string> ("v", rel->efac ())), arg_type));
 								Expr attr_name_i = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_i)));
 								Expr attr_name_j = variant::tag(C5_rel_name, bind::fname(bind::fname(arg_j)));
 								names_of << attr_name_i << "+" << attr_name_j << ":= " << attr_name_i << " + " << attr_name_j << ".\n";
@@ -603,7 +610,7 @@ namespace seahorn
 		// errs() << bblue << "-------------------------C5Learn--------------------------" << normal << " targets (" << targets.size() << ")\n";
 		// for (int i = 0; i < targets.size(); i++) errs() << bold << blue << *targets[i] << normal << " ";
 		//  errs() << normal << "\n";
-		
+
 		for (auto target : targets)
 			svmLearn(target);
 		initC5 (targets); // Set .names file and .interval file
@@ -636,6 +643,7 @@ namespace seahorn
 		LOG("ice", errs() << " >>> convert ptree to inv. \n");
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
 		LOG("ice", errs() << " <<< convert ptree to inv. \n");
+		errs() << CandidateToStr() << "\n";
 		auto &db = m_hm.getHornClauseDB();
 
 		//Fixme: enforce to prove all queries are unsat.
@@ -643,7 +651,9 @@ namespace seahorn
 		LOG("ice", errs() << " >>> invalididate queries \n");
 		/* m_candidate_model = */ invalidateQueries(db);
 		LOG("ice", errs() << " <<< invalididate queries \n");
+		errs() << CandidateToStr() << "\n";
 		extractFacts(db, targets);
+		errs() << CandidateToStr() << "\n";
 
 		errs() << CandidateToStr() << "\n";
 	}
@@ -1097,7 +1107,7 @@ namespace seahorn
 	void ICE::extractUnknowns(HornClauseDB &db) {
 		LOGLINE("ice", errs() << ">>> Unknown search starts.\n");
 		ExprVector all_preds; // can have duplicates!
-		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
+		for(auto it = m_rules.begin(); it != m_rules.end(); ++it) {
 			HornRule r = *it;
 			all_preds.push_back(r.head());
 			get_all_pred_apps(r.body(), db, std::back_inserter(all_preds));
@@ -1153,7 +1163,7 @@ namespace seahorn
 			bool operator() (Expr e) {return isOpX<REM>(e);}
 		};
 
-		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
+		for(auto it = m_rules.begin(); it != m_rules.end(); ++it)
 		{
 			HornRule r = *it;
 			ExprVector body_pred_apps;
@@ -1223,7 +1233,7 @@ namespace seahorn
 		// LOGIT("init candidate", m_candidate_model.Print(errs()));
 		LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
 
-		extractFacts (db, empty);
+		// extractFacts (db, empty);
 	}
 
 	// For now always try to prove a query is false.
@@ -1256,7 +1266,7 @@ namespace seahorn
 	// Match wheter an example corresponds to a fact.
 	// Still not understand how this method should be used
 	bool ICE::matchFacts (HornClauseDB &db, DataPoint p) {
-		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
+		for(auto it = m_rules.begin(); it != m_rules.end(); ++it)
 		{
 			HornRule r = *it;
 			// true -> head  &&  p is a model of head
@@ -1271,7 +1281,7 @@ namespace seahorn
 					Expr arg_i_value = head->arg(i+1);
 					LOGIT("ice", errs() << *arg_i_value);
 					Expr arg_i_type = bind::domainTy(head_app, i);
-					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", head_app->efac ())), arg_i_type));
+					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", head_app->efac ())), arg_i_type));
 
 					if(isOpX<TRUE>(arg_i_value) || (isOpX<FALSE>(arg_i_value))) {
 						std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
@@ -1304,55 +1314,109 @@ namespace seahorn
 
 	// Dealing with fact rules inside Horn System.
 	// <1> Scan all the fact rules (true -> f (...)) <2>
-	void ICE::extractFacts (HornClauseDB &db, ExprVector targets) {
-		LOG("ice", errs() << "Extracting Fact Rules ...\n");
-		// For each rule with format [true->head]:
-		//     If head in targets:
-		//     		curSolve = true /\ arg1_value /\ arg2_value /\ ...
+	void ICE::reduceRules() {
+		auto &db = m_hm.getHornClauseDB();
+		ZSolver<EZ3> solver(m_hm.getZContext());
+		m_fact_predicates.clear();
+		m_rules.clear(); 
 		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
 		{
 			HornRule r = *it;
+			// errs() << blue << "rule: " << HornRuleToStr(r, true) << normal;
+			bool fact = false;
+			Expr head = r.head();
+			Expr body = r.body();
+			Expr rel = bind::fname(head);
+			ExprVector arg_list;
+			ExprVector elements;
 			if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
-				Expr head = r.head();
-				Expr body = r.body();
-				// errs() << green << "on rule " << normal << *head << blue << " <-<- " << normal << red << *body << "\n" << normal;
-				Expr rel = bind::fname(head);
-				// errs() << blue << "       where the head is fapp: " << *rel << "  ";
+				int n_unknowns = 0;
+				arg_list.clear();
+				elements.clear();
+				for(int i=0; i<bind::domainSz(rel); i++)
+				{
+					Expr arg_i_value = head->arg(i+1);
+					Expr arg_i_type = bind::domainTy(rel, i);
+					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
+					arg_list.push_back(arg_i);
 
-				if (targets.empty() || std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
-					ExprVector arg_list;
-					bool fact = false;
-					Expr curSolve = mk<TRUE>(rel->efac());
-					for(int i=0; i<bind::domainSz(rel); i++)
-					{
-						Expr arg_i_value = head->arg(i+1);
-						LOG("ice", errs() << *arg_i_value << ",");
-						Expr arg_i_type = bind::domainTy(rel, i);
-						Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
-						arg_list.push_back(arg_i);
-						// errs() << cyan << "   " << i << "> " << *arg_i << "=" << *arg_i_value << normal;
-
-						if(bind::isBoolConst(arg_i_value)) { LOG("ice", errs() << "bool const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
-						else if(bind::isIntConst(arg_i_value)) { LOG("ice", errs() << "int const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
-						else if(bind::isBvConst(arg_i_value)) { LOG("ice", errs() << "bv const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
-						else if(isOpX<TRUE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, arg_i); }
-						else if(isOpX<FALSE>(arg_i_value)) { fact = true; curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); }
-						else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
-						// errs() << red << "         cursolve: " << *curSolve << "\n" << normal;
+					if(bind::isBoolConst(arg_i_value)) { n_unknowns++; LOG("ice", errs() << "bool const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
+					else if(bind::isIntConst(arg_i_value)) { n_unknowns++; LOG("ice", errs() << "int const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
+					else if(bind::isBvConst(arg_i_value)) { n_unknowns++; LOG("ice", errs() << "bv const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); }
+					else if(isOpX<TRUE>(arg_i_value)) { 
+						fact = true; 
+						elements.push_back(arg_i);
 					}
-					// errs() << "\n";
-
-					if (fact) { // Add fact rules into solutions.
-						Expr fapp = bind::fapp(rel, arg_list);
-						Expr preSolve = m_candidate_model.getDef(fapp);
-						// errs() << green << "         presolve: " << *preSolve << "\n" << normal;
-						m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
+					else if(isOpX<FALSE>(arg_i_value)) { 
+						fact = true; 
+						elements.push_back(mk<NEG>(arg_i));
 					}
+					else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
 				}
+				if (n_unknowns == bind::domainSz(rel))
+					fact = true;
+			}
+			if (fact) { // Add fact rules into solutions.
+				Expr fapp = bind::fapp(rel, arg_list);
+				Expr curSolve = mk<TRUE>(rel->efac());
+				if (elements.size() >= 1)
+					curSolve = mknary<AND>(elements.begin(), elements.end());
+				m_candidate_model.addDef(fapp, curSolve);
+				m_fact_predicates.insert(bind::fname(rel));
+			} else {
+				m_rules.push_back(r);
+				// errs() << bred << " ++add rule: " << normal << HornRuleToStr(r) << "\n";
 			}
 		}
-		// LOGIT("ice", errs() << "Candidate Model: \n" << green << bold << m_candidate_model << normal);
-		// LOGLINE("ice", errs() << "Extracted Fact Rules.\n");
+		for (auto q : db.getQueries ()) {
+			Expr query = q.get();
+			Expr rel = bind::fname(query);
+			m_fact_predicates.insert(bind::fname(rel));
+		}
+
+		/*
+		LOGLINE("ice", errs() << "Extracted Fact Rules.\n");
+		for (auto fact_pred: m_fact_predicates)
+			errs() << "Fact Predicate: " << *fact_pred << "\n";
+			*/
+
+		int i = 0;
+		for(auto r: m_rules) {
+			// LOGLINE("ice", errs() << " Check the rule: " << HornRuleToStr(r) << "\n");
+			ExprVector all_pred_apps;
+			all_pred_apps.push_back(r.head());
+			get_all_pred_apps(r.body(), db, std::back_inserter(all_pred_apps));
+
+			bool must_invalid = true;
+			for (auto pred_app: all_pred_apps) {
+				Expr rel = bind::fname(pred_app);
+				if (std::find(m_fact_predicates.begin(), m_fact_predicates.end(), bind::fname(rel)) == m_fact_predicates.end()) {
+					must_invalid = false;
+					break;
+				}
+			}
+			if (must_invalid) {
+				if (checkHornRule(r, db, solver) != UNSAT) {
+					errs() << bred << bold << "Bug! The following rule can go from (pass) Pre to (fail) Post directly." << normal << "\n";
+					errs() << mag << bold << HornRuleToStr(r, true) << normal << "\n";
+					exit(-1);
+				}
+
+				// LOGIT("ice", errs() << " Erase the rule (Pre=>xPost): " << HornRuleToStr(r, true) << "\n");
+				m_rules.erase(m_rules.begin() + i);
+			}
+			i++;
+		}
+
+		// rebuild the rule
+		// { int ruleno = 0; for (auto r: m_rules) { ruleIndex[r] = ruleno++; } }
+	}
+
+	// Dealing with fact rules inside Horn System.
+	// <1> Scan all the fact rules (true -> f (...)) <2>
+	void ICE::extractFacts (HornClauseDB &db, ExprVector targets) {
+		LOGIT("ice", errs() << "Extracting Fact Rules ...\n");
+		LOGIT("ice", errs() << "NULL NOW...\n");
 	}
 
 	int ICE::countSamples (Expr pred, bool positive) {
@@ -1528,7 +1592,7 @@ namespace seahorn
 			model += buffer;
 		}
 		// outs()  << red << model << normal << "\n";
-		
+
 		auto returnCode = pclose(fp);
 		// if (returnCode == 0) { LOGLINE("ice", errs() << "RET 0 : SUCCESS\n"); } 
 		// else { LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n"); }
@@ -1639,9 +1703,9 @@ namespace seahorn
 	}
 
 	// Given a rule head, extract all rules using it in body, then add all such rules to the beginning of workList
-	void addUsedToWorkList(HornClauseDB &db, std::list<HornRule> &workList, HornRule r)
+	void addUsedToWorkList(HornClauseDB &db, std::vector<HornRule>& rules, std::list<HornRule> &workList, HornRule r)
 	{
-		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
+		for(auto it = rules.begin(); it != rules.end(); ++it)
 		{
 			if(*it == r) continue;
 			HornRule rule = *it;
@@ -1661,12 +1725,12 @@ namespace seahorn
 	}
 
 	// Given a rule, extract all rules using its body_apps in head, then add all such rules to the end of workList
-	void addNewToWorkList (HornClauseDB &db, std::list<HornRule> &workList, HornRule r) {
+	void addNewToWorkList (HornClauseDB &db, std::vector<HornRule>& rules, std::list<HornRule> &workList, HornRule r) {
 		Expr r_body = r.body();
 		ExprVector body_apps;
 		get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
 
-		for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
+		for(auto it = rules.begin(); it != rules.end(); ++it) {
 			if(*it == r) continue;
 			HornRule rule = *it;
 			for (Expr body_app : body_apps) {
@@ -1712,14 +1776,14 @@ namespace seahorn
 		// Test Feature!!
 		// lijiaying
 		/*
-		m_neg_data_count.erase (pred);
-		for (std::set<DataPoint>::iterator it = m_must_neg_data_set.begin(); it != m_must_neg_data_set.end(); ++it) {
-			if (it->getPredName() == bind::fname(bind::fname(pred))) {
-				LOGIT("ice", errs() << DataPointToStr(*it));
-				addNegCex(*it);
-			} 
-		}
-		*/
+			 m_neg_data_count.erase (pred);
+			 for (std::set<DataPoint>::iterator it = m_must_neg_data_set.begin(); it != m_must_neg_data_set.end(); ++it) {
+			 if (it->getPredName() == bind::fname(bind::fname(pred))) {
+			 LOGIT("ice", errs() << DataPointToStr(*it));
+			 addNegCex(*it);
+			 } 
+			 }
+			 */
 		// end lijiaying
 	}
 
@@ -1735,9 +1799,9 @@ namespace seahorn
 		}
 
 		/*
-			errs() << "POSITIVE PREDICATES: "; for(auto e : m_pos_pred_set) errs() << " " << *e; errs() << "\n";
-			errs() << "\n NEGATIVE PREDICATES: "; for(auto e : m_neg_pred_set) errs() << " " << *e; errs() << "\n";
-		*/
+			 errs() << "POSITIVE PREDICATES: "; for(auto e : m_pos_pred_set) errs() << " " << *e; errs() << "\n";
+			 errs() << "\n NEGATIVE PREDICATES: "; for(auto e : m_neg_pred_set) errs() << " " << *e; errs() << "\n";
+			 */
 
 		m_must_pos_rule_set.clear();
 		m_must_neg_rule_set.clear();
@@ -1747,7 +1811,7 @@ namespace seahorn
 			// errs() << blue << "rule: " << HornRuleToStr(r, true) << normal << "---------\n";
 			Expr r_head_name = bind::fname(bind::fname(r.head()));
 			must_neg = (m_neg_pred_set.count(r_head_name) > 0);
-			
+
 			// errs() << "  body: ------------------------- \n"; 
 			ExprVector body_pred_apps;
 			get_all_pred_apps(r.body(), db, std::back_inserter(body_pred_apps));
@@ -1762,11 +1826,9 @@ namespace seahorn
 			// errs() << "  -- mustPositive: " << must_pos << "  mustNegative: " << must_neg << "\n";
 		}
 
+		errs() << " MUST POSITIVE RULES: "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+		errs() << " MUST NEGATIVE RULES: "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
 
-		//*
-			errs() << " MUST POSITIVE RULES: "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-			errs() << " MUST NEGATIVE RULES: "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-		//*/
 	}
 
 
@@ -1775,7 +1837,7 @@ namespace seahorn
 	{
 		solveConstraintTime++;
 		std::list<HornRule> workList;
-		workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
+		workList.insert(workList.end(), m_rules.begin(), m_rules.end());
 		workList.reverse();
 
 		LOGIT("ice", errs() << green << bold << "=========================== Constraint Solving of Horn Clauses ============================\n" << normal);
@@ -1881,7 +1943,7 @@ namespace seahorn
 					} while (updated);
 					LOGLINE ("ice", errs() << bcyan << "1.2 << Generate Initial Program State Samples." << normal << "\n");
 					// --- Extend work list as we just go through a strengthening loop ----
-					addUsedToWorkList (db, workList, r);
+					addUsedToWorkList (db, m_rules, workList, r);
 				}
 			} 
 			else 
@@ -1958,7 +2020,7 @@ namespace seahorn
 							errs() << red << " [2.yPos] body instance is in Pos, Refine the Head!" << normal << "\n";
 							// LOGLINE("diff", errs() << red << "[IMPLICATION]!! Body=/=>Head, and the body model is found in POSitive Set, then the Head must be refined !! \n" << normal);
 							// if the body datapoint found in Positive, then head must be refined!
-							
+
 							std::list<Expr> attr_values = ModelToAttrValues(r_head);
 							DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 							errs() << " get HEAD cex (positive): " << mag << DataPointToStr(pos_dp) << normal << "\n";
@@ -1974,12 +2036,12 @@ namespace seahorn
 								outs()<<" [2].1 Program is buggy. " << bred << "[lijiaying Question: the Point might be put in Pos wrongly]" << normal << "\n";
 								LOGLINE("ice", errs() << red << "Collect the buggy implication (body_model -> head_model(empty)).\n" << normal);
 								/*
-								std::list<Expr> attr_values; // should be empty
-								DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-								addPosCex(pos_dp);
-								if (mustPositive(r)) addMustPosCex(pos_dp);
-								if (mustNegative(r)) addMustNegCex(pos_dp);
-								*/
+									 std::list<Expr> attr_values; // should be empty
+									 DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
+									 addPosCex(pos_dp);
+									 if (mustPositive(r)) addMustPosCex(pos_dp);
+									 if (mustNegative(r)) addMustNegCex(pos_dp);
+									 */
 								failurePoint = m_pos_list.size()-1;
 								std::list<int> preIndices; for (DataPoint neg_dp : negPoints) { preIndices.push_back(m_pos_index_map[neg_dp]); } postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 								return false;
@@ -1989,12 +2051,12 @@ namespace seahorn
 							// LOGLINE("diff", errs() << bred << " Positive ==> Positive !! " << normal << "\n");
 							if(m_pos_data_set.size() == orig_size + 1) //no duplicate
 							{
-									// ---- Doubly check if the below code is necessary
-									clearNegData(r_head);
+								// ---- Doubly check if the below code is necessary
+								clearNegData(r_head);
 
-									// ---- Clean negative samples for body apps as well
-									for (Expr body_app : body_pred_apps) { if (bind::domainSz(bind::fname(body_app)) <= 0) continue; clearNegData(body_app); }
-								
+								// ---- Clean negative samples for body apps as well
+								for (Expr body_app : body_pred_apps) { if (bind::domainSz(bind::fname(body_app)) <= 0) continue; clearNegData(body_app); }
+
 								// LOGLINE("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 								m_cex_list.push_back(pos_dp); addDataPointToIndex(pos_dp, index);
 								index++;
@@ -2054,22 +2116,22 @@ namespace seahorn
 										LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
 
 										/*
-										if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
-										{
-											Expr e = neg_dp.getPredName();
-											changedPreds.push_back (e);
-											// changedPreds.push_back(pos_dp.getPredName());
-											LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
+											 if (changedPreds.size() <= 1 || std::find(changedPreds.begin(), changedPreds.end(), neg_dp.getPredName()) == changedPreds.end())
+											 {
+											 Expr e = neg_dp.getPredName();
+											 changedPreds.push_back (e);
+										// changedPreds.push_back(pos_dp.getPredName());
+										LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
 										}
 										*/
 
 										/*
-										std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
-										if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
-											LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); 
-											svmLearn (neg_dp.getPredName());
-										}
-										*/
+											 std::map<Expr, int>::iterator it = m_neg_data_count.find(neg_dp.getPredName());
+											 if (it != m_neg_data_count.end() && it->second > ICESVMFreqNeg && it->second % ICESVMFreqNeg == 0) {
+											 LOG("ice", errs() << "SVM based Hyperplane Learning!\n"); 
+											 svmLearn (neg_dp.getPredName());
+											 }
+											 */
 									}
 									else //it is a duplicate data point
 									{ 
@@ -2101,8 +2163,8 @@ namespace seahorn
 
 				// --- Extend worklist as we just go through a strengthening loop ----
 				if (counter > 1) {
-					if (posUpdated) addUsedToWorkList (db, workList, r);
-					else addNewToWorkList (db, workList, r);
+					if (posUpdated) addUsedToWorkList (db, m_rules, workList, r);
+					else addNewToWorkList (db, m_rules, workList, r);
 				}
 			}
 		}
@@ -2219,7 +2281,7 @@ namespace seahorn
 		errs() << " from Predicate:" << gray << *from_pred << normal << " DataPoint: " << bgreen << DataPointToStr(p) << normal << "\n";
 		auto &db = m_hm.getHornClauseDB();
 		int count = 0;
-		for(HornClauseDB::RuleVector::iterator itr = db.getRules().begin(); itr != db.getRules().end(); ++itr)
+		for(HornClauseDB::RuleVector::iterator itr = m_rules.begin(); itr != m_rules.end(); ++itr)
 		{
 			HornRule r = *itr;
 			std::map<HornRule, int>::iterator itc = transitionCount.find(r);
@@ -2342,7 +2404,7 @@ namespace seahorn
 				if(isOpX<FALSE>(value)) { value = mkTerm<mpz_class>(0, value->efac()); }
 				attr_values.push_back(value);
 			}
-			
+
 			Expr this_state;
 			if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
 			else { this_state = equations[0]; }
@@ -2370,18 +2432,18 @@ namespace seahorn
 				postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 
 				/* // lijiaying do not know why this part should be done
-				ExprVector arg_list;
-				Expr rel = bind::fname (r_head);
-				for(int i=0; i<bind::domainSz(rel); i++) {
-					Expr arg_i_type = bind::domainTy(rel, i);
-					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
-					arg_list.push_back(arg_i);
-				}
-				Expr fapp = bind::fapp(rel, arg_list);
-				Expr True = mk<TRUE>(rel->efac());
-				m_candidate_model.addDef(fapp, True);
-				LOGLINE("ice", errs() << bold << red << "[not know] add def to model: " << *fapp << " -> " << *True << normal << "\n");
-				*/
+					 ExprVector arg_list;
+					 Expr rel = bind::fname (r_head);
+					 for(int i=0; i<bind::domainSz(rel); i++) {
+					 Expr arg_i_type = bind::domainTy(rel, i);
+					 Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
+					 arg_list.push_back(arg_i);
+					 }
+					 Expr fapp = bind::fapp(rel, arg_list);
+					 Expr True = mk<TRUE>(rel->efac());
+					 m_candidate_model.addDef(fapp, True);
+					 LOGLINE("ice", errs() << bold << red << "[not know] add def to model: " << *fapp << " -> " << *True << normal << "\n");
+					 */
 
 				if(relationToPositiveStateMap.find(bind::fname(r_head)) == relationToPositiveStateMap.end()) {
 					ExprVector states;
@@ -2458,6 +2520,75 @@ namespace seahorn
 			LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
 		errs() << "===========================================================\n";
 
+		// init the rule
+		{ int ruleno = 0; for (auto r: db.getRules()) { ruleIndex[r] = ruleno++; } }
+
+		preparePosNegPredSet(db);
+		reduceRules();
+
+		// LOGIT("ice", errs() << mag << "Rebuild m_must_pos_rule_set:\n" << normal);
+		std::set<HornRule> tmp_rules;
+		for (auto r: m_must_pos_rule_set) {
+			if (std::find(m_rules.begin(), m_rules.end(), r) != m_rules.end()) {
+				tmp_rules.insert(r);
+			}
+		}
+		m_must_pos_rule_set.clear();
+		for (auto rule : tmp_rules)
+			m_must_pos_rule_set.insert(rule);
+		tmp_rules.clear();
+		// LOGIT("ice", errs() << mag << "Rebuild m_must_neg_rule_set:\n" << normal);
+		for (auto r: m_must_neg_rule_set) {
+			if (std::find(m_rules.begin(), m_rules.end(), r) != m_rules.end()) {
+				tmp_rules.insert(r);
+			}
+		}
+		m_must_neg_rule_set.clear();
+		for (auto rule : tmp_rules)
+			m_must_neg_rule_set.insert(rule);
+		tmp_rules.clear();
+
+		// rebuild the rule
+		ruleIndex.clear();
+		{ int ruleno = 0; 
+			for (auto r: m_rules) { 
+				ruleIndex[r] = ruleno++; 
+			} 
+		}
+
+		//*/
+		
+		
+		LOGLINE("ice", errs() << "Extracted Fact Rules.\n");
+		for (auto fact_pred: m_fact_predicates)
+			errs() << "Fact Predicate: " << *fact_pred << "\n";
+		LOGIT("ice", errs() << "=============================" << normal << "\n");
+		LOGIT("ice", errs() << "Fact Candidates: \n" << green << bold << m_candidate_model << normal);
+		LOGIT("ice", errs() << "=============================" << normal << "\n");
+		LOGIT("ice", errs() << mag << "Reduced Rules:\n");
+		for (auto r : m_rules)
+			LOGIT("ice", errs() << "  :" << HornRuleToStr(r, true) << "\n");
+		LOGIT("ice", errs() << "=============================" << normal << "\n");
+		errs() << " MUST POSITIVE RULES: "; 
+		for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r, true); 
+		errs() << "\n=============================\n";
+		errs() << " MUST NEGATIVE RULES: "; 
+		for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r, true); 
+		errs() << "\n=============================\n";
+
+		// save the map from predicate name to C5-form predicate name
+		// save the reduced rules
+		std::ofstream ruleout("rule.txt");
+		ruleout << "C5 NAME TO PRED NAME MAP\n";
+		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
+			ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
+		ruleout << "\n\n";
+		for (auto r: m_rules) {
+			ruleout << HornRuleToStr(r, true) << "\n";
+		}
+		ruleout.close();
+
+
 		int index = 0;
 		bool isChanged = true;
 		int c = 0;
@@ -2465,20 +2596,10 @@ namespace seahorn
 		failurePoint = -1;
 		bool no_verification_found_error;
 
-		int ruleno = 0;
-		std::ofstream ruleout("rule.txt");
-		//print the map from predicate name to C5-form predicate name
-		LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
-		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
-			ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
-		ruleout << "\n\n";
-		for (auto r: db.getRules()) {
-			ruleIndex[r] = ruleno++;
-			ruleout << HornRuleToStr(r, true) << "\n";
-		}
-		ruleout.close();
-		preparePosNegPredSet(db);
-
+		
+		setupC5();
+		genInitialCandidates(db);
+		
 		while(isChanged) //There are still some counterexamples to find
 		{
 			isChanged = false;
@@ -2502,7 +2623,7 @@ namespace seahorn
 				for(int i=0; i<bind::domainSz(rel); i++)
 				{
 					Expr arg_i_type = bind::domainTy(rel, i);
-					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("V", rel->efac ())), arg_i_type));
+					Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 					arg_list.push_back(arg_i);
 				}
 				Expr fapp = bind::fapp(rel, arg_list);

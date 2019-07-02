@@ -3,7 +3,7 @@
 
 #include "llvm/Support/raw_ostream.h"
 
-#define COLOR 0
+#define COLOR 1
 
 #ifdef red
 #undef red

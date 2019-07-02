@@ -125,6 +125,8 @@ namespace seahorn
 			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
 			std::set<Expr> m_pos_pred_set;
 			std::set<Expr> m_neg_pred_set;
+			std::vector<HornRule> m_rules;
+			void reduceRules();
 
 			std::map<HornRule, int> ruleIndex;
 			std::string HornRuleToStr(HornRule& r, bool rulecontent = false) {
@@ -168,6 +170,7 @@ namespace seahorn
 			std::set<DataPoint> m_tmp_data_set; 
 
 			std::string CandidateToStr();
+			std::set<Expr> m_fact_predicates;
 
 		public:
 			void setupC5();
