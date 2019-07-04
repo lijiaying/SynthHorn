@@ -5,8 +5,8 @@ FROM ubuntu:14.04
 
 MAINTAINER Temesghen Kahsai <lememta@gmail.com>
 
-ENV SEAHORN=/home/seahorn/seahorn_bin
-ENV PATH="/home/seahorn/seahorn/bin:$PATH"
+ENV SEAHORN=/home/SynthHorn/build/run/bin
+ENV PATH="/home/SynthHorn/build/run/bin:/home/SynthHorn:$PATH"
 
 
 # Install
@@ -21,10 +21,11 @@ RUN \
   apt-get install python2.7 python2.7-dev -y && \
   apt-get install -y libboost1.55-all-dev && \
   apt-get install --yes libgmp-dev && \
-  apt-get install --yes python-pip
+  apt-get install --yes python-pip && \
+  apt-get install --yes cmake
 
 RUN \
-  export LZ="$TRAVIS_BUILD_DIR/../lz" && \
+  export LZ="/home/" && \
   mkdir -p $LZ && \
   wget --output-document=llvm-z3.tar.gz https://www.dropbox.com/s/cipjz38k3boyd1v/llvm-3.6-z3.tar.gz?dl=1 && \
   tar xvf llvm-z3.tar.gz -C $LZ && \
@@ -32,23 +33,29 @@ RUN \
   sudo pip install lit && \
   sudo pip install OutputCheck
 
-
 RUN \
-  git clone https://github.com/seahorn/seahorn && \
-  cd seahorn && \
-  ls && \
+  git clone https://github.com/lijiaying/SynthHorn && \
+  cd SynthHorn && \
   mkdir -p build && \
   cd build && \
-  mv $LZ/run run && \
-  /usr/bin/cmake -DBOOST_ROOT=$BOOST_ROOT -DZ3_ROOT=run -DLLVM_DIR=$(pwd)/run/share/llvm/cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_PROGRAM_PATH=/usr/bin  -DCMAKE_INSTALL_PREFIX=run ../ && \
-  /usr/bin/cmake --build . --target extra && \
-  ls ../ && \
-  /usr/bin/cmake --build . && \
-  /usr/bin/cmake --build . && \
-  /usr/bin/cmake --build . --target install && \
-  ls run/bin/ && \
-  run/bin/sea -h && \
-  /usr/bin/cmake --build . --target test-simple
+	cmake -DCMAKE_INSTALL_PREFIX=run ../ && \
+	cmake --build . && \
+	cmake --build . --target extra && \
+	cd ../llvm-seahorn/ && git reset --hard 39aa187 && cd ../llvm-dsa/ && git reset --hard fedb3e3 && cd ../sea-dsa/ && git reset --hard 246f0f5 && cd ../crab-llvm/ && git reset --hard e2fac87 && cd ../build/ && make .. && \
+	cmake --build . --target crab && cmake .. && \
+	cmake --build . --target install
 
-ENV C_INCLUDE_PATH="/home/seahorn/include/seahorn:$C_INCLUDE_PATH"
-ENV PATH="/home/seahorn/build/run/bin:$PATH"
+RUN \
+	cd $LZ && \
+	cd SynthHorn && \
+	cd libsvm && \
+	make clean && \
+	make
+
+RUN \
+	cd $LZ && \
+	cd SynthHorn && \
+	cd C50 && \
+	make clean && \
+	make
+
