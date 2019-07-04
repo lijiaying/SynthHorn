@@ -99,6 +99,7 @@ namespace seahorn
 			std::set<DataPoint> m_must_neg_data_set;
 			std::set<DataPoint> m_impl_cex_set;
 			std::set<std::pair<DataPoint, DataPoint>> m_impl_pair_set;
+			std::set<std::set<DataPoint>> m_impl_data_set;
 
 			//std::set<DataPoint> m_potential_pos_data_set;
 			//std::set<DataPoint> m_potential_neg_data_set;
@@ -111,6 +112,7 @@ namespace seahorn
 			std::map<Expr, int> m_must_pos_data_count;
 			std::map<Expr, int> m_must_neg_data_count;
 			std::map<Expr, int> m_impl_data_count;
+			std::map<Expr, int> m_pred_knowns_count;
 
 			std::map<DataPoint, int> m_pos_index_map;
 			std::vector<DataPoint> m_pos_list;
@@ -125,6 +127,8 @@ namespace seahorn
 			std::map<std::string, std::pair<std::string, std::string>> m_z3_model; // var_name: <var_type, var_value>
 			std::set<Expr> m_pos_pred_set;
 			std::set<Expr> m_neg_pred_set;
+			std::vector<HornRule> m_rules;
+			void reduceRules();
 
 			std::map<HornRule, int> ruleIndex;
 			std::string HornRuleToStr(HornRule& r, bool rulecontent = false) {
@@ -140,6 +144,7 @@ namespace seahorn
 			}
 
 			std::string DataPointToStr(DataPoint p, ExprVector targets = empty, bool valueOnly = true);
+			std::string DataPointToPlainStr(DataPoint& dp, ExprVector targets = empty);
 			std::string DataSetToStr(bool mustprint = false);
 			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
 			bool parseModelFromString(std::string model_str);
@@ -168,6 +173,7 @@ namespace seahorn
 			std::set<DataPoint> m_tmp_data_set; 
 
 			std::string CandidateToStr();
+			std::set<Expr> m_fact_predicates;
 
 		public:
 			void setupC5();
@@ -225,6 +231,79 @@ namespace seahorn
 				else m_must_neg_data_count.insert (std::make_pair(dp.getPredName(), 1));
 			}
 
+			void addImplChain(std::set<DataPoint> data_chain, bool positive, bool negative) {
+				for (auto dp : data_chain) {
+					m_cex_list.push_back(dp);
+				}
+				errs() << bmag << ">>>>> add the implication chain: " << normal;
+				for (auto dp : data_chain) errs() << bblue << "[" << DataPointToStr(dp) << "]" << normal << " ";
+				errs() << "\n";
+				errs() << "MustPositive?" << positive << " MustNegative?" << negative << "\n";
+
+				if (positive && negative) {
+					errs() << "BUG! The dataset must be Positive and Negative simonteneously.\n";
+					exit(-1);
+				}
+				bool implication = !positive && !negative; // not positive, not negative ==> pure implication
+				bool in_positive = false, in_negative = false, in_implication = false;
+				DataPoint the_pos_dp;
+				DataPoint the_neg_dp;
+				std::set<DataPoint>* the_impl_chain;
+				for (auto dp : data_chain) {
+					if (m_pos_data_set.count(dp) > 0) { in_positive = true; the_pos_dp = dp; }
+					if (m_neg_data_set.count(dp) > 0) { in_negative = true; the_neg_dp = dp; }
+					for (auto exist_chain : m_impl_data_set) {
+						if (exist_chain.count(dp) > 0) {
+							in_implication = true;
+							the_impl_chain = &exist_chain;
+						}
+					}
+				}
+				errs() << "--> InPositive?" << in_positive << " InNegative?" << in_negative << " InImplication?" << in_implication << "\n";
+
+				if (in_negative && in_positive) {
+					errs() << "BUG! A dataset contains points in both Positive and Negative simonteneously.\n";
+					errs() << " DataPoint(inPositive): " << bred << DataPointToStr(the_pos_dp) << normal << "\n";
+					errs() << " DataPoint(inNegative): " << bred << DataPointToStr(the_neg_dp) << normal << "\n";
+					exit(-1);
+				}
+
+				if (positive && in_negative) {
+					errs() << "BUG! A datapoint must be Positive and Negative simonteneously.\n";
+					errs() << " DataPoint: " << bred << DataPointToStr(the_neg_dp) << normal << "\n";
+					exit(-1);
+				}
+
+				if (negative && in_positive) {
+					errs() << "BUG! A datapoint must be Positive and Negative simonteneously.\n";
+					errs() << " DataPoint: " << bred << DataPointToStr(the_pos_dp) << normal << "\n";
+					exit(-1);
+				}
+
+				if (in_implication) { for (auto dp : *the_impl_chain) { data_chain.insert(dp); } m_impl_data_set.erase(*the_impl_chain); }
+				in_implication = false;
+
+				if (positive || in_positive) { for (auto dp : data_chain) { addMustPosCex(dp); } }
+				if (negative || in_negative) { for (auto dp : data_chain) { addMustNegCex(dp); } }
+				if (implication && !in_positive && !in_negative) { m_impl_data_set.insert(data_chain); }
+			}
+
+			// data chain is a chain in principle, but now we define it as a set
+			// Because the order does not matter in learning the weakest inductive loop invariant
+			void addImplChain(std::set<DataPoint> data_chain) {
+				// check if any datapoint is existed in the existing implication set
+				for (auto dp : data_chain) {
+					for (auto exist_chain : m_impl_data_set) {
+						if (exist_chain.count(dp) > 0) {
+							for (auto dp : data_chain) {
+								exist_chain.insert(dp);
+							}
+							return;
+						}
+					}
+				}
+				m_impl_data_set.insert(data_chain);
+			}
 
 			void drawDataPoint(DataPoint& dp, std::string ending = "") {
 				Expr pred_cname = dp.getPredName();

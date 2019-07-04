@@ -1,0 +1,562 @@
+#ifndef __COLOR_HH__
+#define __COLOR_HH__
+
+#include "llvm/Support/raw_ostream.h"
+
+#ifdef red
+#undef red
+#endif
+#ifdef green
+#undef green 
+#endif
+#ifdef yellow 
+#undef yellow
+#endif
+#ifdef blue 
+#undef blue 
+#endif
+#ifdef mag 
+#undef mag 
+#endif
+#ifdef cyan
+#undef cyan 
+#endif
+#ifdef gray
+#undef gray
+#endif
+#ifdef lred
+#undef lred
+#endif
+#ifdef lgreen
+#undef lgreen 
+#endif
+#ifdef lyellow 
+#undef lyellow
+#endif
+#ifdef lblue 
+#undef lblue 
+#endif
+#ifdef lmag 
+#undef lmag 
+#endif
+#ifdef lcyan
+#undef lcyan 
+#endif
+#ifdef lgray
+#undef lgray
+#endif
+#ifdef bred
+#undef bred
+#endif
+#ifdef bgreen
+#undef bgreen 
+#endif
+#ifdef byellow 
+#undef byellow
+#endif
+#ifdef bblue 
+#undef bblue 
+#endif
+#ifdef bmag 
+#undef bmag 
+#endif
+#ifdef bcyan
+#undef bcyan 
+#endif
+#ifdef bgray
+#undef bgray
+#endif
+#ifdef blred
+#undef blred
+#endif
+#ifdef blgreen
+#undef blgreen 
+#endif
+#ifdef blyellow 
+#undef blyellow
+#endif
+#ifdef blblue 
+#undef glblue 
+#endif
+#ifdef blmag 
+#undef blmag 
+#endif
+#ifdef blcyan
+#undef blcyan 
+#endif
+#ifdef blgray
+#undef blgray
+#endif
+#ifdef normal
+#undef normal
+#endif
+#ifdef bold
+#undef bold
+#endif
+#ifdef underline 
+#undef underline 
+#endif
+
+
+#define red "\e[31;40m"
+#define green "\e[32;40m"
+#define yellow "\e[33;40m"
+#define blue "\e[34;40m"
+#define mag "\e[35;40m"
+#define cyan "\e[36;40m"
+#define lgray "\e[37;40m"
+#define gray "\e[90;40m"
+#define lred "\e[91;40m"
+#define lgreen "\e[92;40m"
+#define lyellow "\e[93;40m"
+#define lblue "\e[94;40m" 
+#define lmag "\e[95;40m"
+#define lcyan "\e[96;40m"
+
+#define bred "\e[37;41m"
+#define bgreen "\e[37;42m"
+#define byellow "\e[37;43m"
+#define bblue "\e[37;44m"
+#define bmag "\e[37;45m"
+#define bcyan "\e[37;46m"
+#define blgray "\e[37;47m"
+#define bgray "\e[37;100m"
+#define blred "\e[37;101m"
+#define blgreen "\e[37;102m"
+#define blyellow "\e[37;103m"
+#define blblue "\e[37;104m" 
+#define blmag "\e[37;105m"
+#define blcyan "\e[37;106m"
+
+#define normal "\e[0m"
+#define bold "\e[1m"
+#define underline "\e[4m"
+
+#ifdef LOG
+#undef LOG
+#endif
+#ifdef LOGIT
+#undef LOGIT
+#endif
+#ifdef LOGDP
+#undef LOGDP
+#endif
+#ifdef LOGLINE
+#undef LOGLINE
+#endif
+
+static std::string function = " ====[ Start tracing ]=== ";
+static std::string line;
+// char cur_line[10]; \
+// sprintf(cur_line, "%d", __LINE__); \
+
+#define _NULL_LOG(TAG, CODE) do {} while(0)
+#define _PURE_LOG(TAG, CODE) do {CODE;} while(0)
+#define _LINE_LOG(TAG, CODE) do { \
+	std::string filestr = __FILE__;\
+	int loc = filestr.rfind("/");\
+	loc = filestr.rfind("/", loc-1);\
+	loc = filestr.rfind("/", loc-1);\
+	filestr = filestr.substr(loc+1);\
+	llvm::errs() << gray << underline << "<" << filestr << ":L" << __LINE__ << ">" << normal << " "; \
+	CODE; \
+	llvm::errs().flush();\
+} while (0)
+
+#define _LOCT_LOG_OLD(TAG, CODE) do { \
+	if (__FUNCTION__ != function) { \
+		llvm::errs() << blue << "<<< ****** function: " << function << " ****** <<<\n\n" << normal; \
+		function = __FUNCTION__;\
+		llvm::errs() << green << ">>> ****** function: " << function << " ****** >>>\n" << normal; \
+	} \
+} while (0)
+
+#define _LOCT_LOG(TAG, CODE) do { \
+	std::string filestr = __FILE__;\
+	int loc = filestr.rfind("/");\
+	loc = filestr.rfind("/", loc-1);\
+	loc = filestr.rfind("/", loc-1);\
+	filestr = filestr.substr(loc+1);\
+	llvm::errs() << gray << underline << "<" << filestr << ":L" << __LINE__ << ">" << normal << " "; \
+	CODE; \
+	llvm::errs().flush();\
+} while (0)
+
+
+#define LOG(TAG, CODE) _NULL_LOG(TAG, CODE)
+#define LOGIT(TAG, CODE) _PURE_LOG(TAG, CODE)
+#define LOGDP(TAG, CODE) _LOCT_LOG(TAG, CODE)
+#define LOGLINE(TAG, CODE) _LINE_LOG(TAG, CODE)
+#define LOGLOC(TAG, CODE) _LOCT_LOG(TAG, CODE)
+
+static void UndefAllColors() {
+#ifdef red
+#undef red
+#endif
+#ifdef green
+#undef green 
+#endif
+#ifdef yellow 
+#undef yellow
+#endif
+#ifdef blue 
+#undef blue 
+#endif
+#ifdef mag 
+#undef mag 
+#endif
+#ifdef cyan
+#undef cyan 
+#endif
+#ifdef gray
+#undef gray
+#endif
+#ifdef lred
+#undef lred
+#endif
+#ifdef lgreen
+#undef lgreen 
+#endif
+#ifdef lyellow 
+#undef lyellow
+#endif
+#ifdef lblue 
+#undef lblue 
+#endif
+#ifdef lmag 
+#undef lmag 
+#endif
+#ifdef lcyan
+#undef lcyan 
+#endif
+#ifdef lgray
+#undef lgray
+#endif
+#ifdef bred
+#undef bred
+#endif
+#ifdef bgreen
+#undef bgreen 
+#endif
+#ifdef byellow 
+#undef byellow
+#endif
+#ifdef bblue 
+#undef bblue 
+#endif
+#ifdef bmag 
+#undef bmag 
+#endif
+#ifdef bcyan
+#undef bcyan 
+#endif
+#ifdef bgray
+#undef bgray
+#endif
+#ifdef blred
+#undef blred
+#endif
+#ifdef blgreen
+#undef blgreen 
+#endif
+#ifdef blyellow 
+#undef blyellow
+#endif
+#ifdef blblue 
+#undef glblue 
+#endif
+#ifdef blmag 
+#undef blmag 
+#endif
+#ifdef blcyan
+#undef blcyan 
+#endif
+#ifdef blgray
+#undef blgray
+#endif
+#ifdef normal
+#undef normal
+#endif
+#ifdef bold
+#undef bold
+#endif
+#ifdef underline 
+#undef underline 
+#endif
+}
+
+
+static void DefAllColors() {
+#ifdef red
+#undef red
+#define red "\e[31;40m"
+#endif
+#ifdef green
+#undef green 
+#define green "\e[32;40m"
+#endif
+#ifdef yellow 
+#undef yellow
+#define yellow "\e[33;40m"
+#endif
+#ifdef blue 
+#undef blue 
+#define blue "\e[34;40m"
+#endif
+#ifdef mag 
+#undef mag 
+#define mag "\e[35;40m"
+#endif
+#ifdef cyan
+#undef cyan 
+#define cyan "\e[36;40m"
+#endif
+#ifdef gray
+#undef gray
+#define gray "\e[90;40m"
+#endif
+
+#ifdef lred
+#undef lred
+#define lred "\e[91;40m"
+#endif
+#ifdef lgreen
+#undef lgreen 
+#define lgreen "\e[92;40m"
+#endif
+#ifdef lyellow 
+#undef lyellow
+#define lyellow "\e[93;40m"
+#endif
+#ifdef lblue 
+#undef lblue 
+#define lblue "\e[94;40m" 
+#endif
+#ifdef lmag 
+#undef lmag 
+#define lmag "\e[95;40m"
+#endif
+#ifdef lcyan
+#undef lcyan 
+#define lcyan "\e[96;40m"
+#endif
+#ifdef lgray
+#undef lgray
+#define lgray "\e[37;40m"
+#endif
+#ifdef bred
+#undef bred
+#endif
+
+#ifdef bred
+#undef bred
+#define bred "\e[37;41m"
+#endif
+#ifdef bgreen
+#undef bgreen 
+#define bgreen "\e[37;42m"
+#endif
+#ifdef byellow 
+#undef byellow
+#define byellow "\e[37;43m"
+#endif
+#ifdef bblue 
+#undef bblue 
+#define bblue "\e[37;44m"
+#endif
+#ifdef bmag 
+#undef bmag 
+#define bmag "\e[37;45m"
+#endif
+#ifdef bcyan
+#undef bcyan 
+#define bcyan "\e[37;46m"
+#endif
+#ifdef bgray
+#undef bgray
+#define bgray "\e[37;100m"
+#endif
+#ifdef blred
+#undef blred
+#define blred "\e[37;101m"
+#endif
+#ifdef blgreen
+#undef blgreen 
+#define blgreen "\e[37;102m"
+#endif
+#ifdef blyellow 
+#undef blyellow
+#define blyellow "\e[37;103m"
+#endif
+#ifdef blblue 
+#undef glblue 
+#define blblue "\e[37;104m" 
+#endif
+#ifdef blmag 
+#undef blmag 
+#define blmag "\e[37;105m"
+#endif
+#ifdef blcyan
+#undef blcyan 
+#define blcyan "\e[37;106m"
+#endif
+#ifdef blgray
+#undef blgray
+#define blgray "\e[37;47m"
+#endif
+#ifdef normal
+#undef normal
+#define normal "\e[0m"
+#endif
+#ifdef bold
+#undef bold
+#define bold "\e[1m"
+#endif
+#ifdef underline 
+#undef underline 
+#define underline "\e[4m"
+#endif
+}
+
+
+static void DefAllColorsToNull(){
+#ifdef red
+#undef red
+#define red ""
+#endif
+#ifdef green
+#undef green 
+#define green ""
+#endif
+#ifdef yellow 
+#undef yellow
+#define yellow ""
+#endif
+#ifdef blue 
+#undef blue 
+#define blue ""
+#endif
+#ifdef mag 
+#undef mag 
+#define mag ""
+#endif
+#ifdef cyan
+#undef cyan 
+#define cyan ""
+#endif
+#ifdef gray
+#undef gray
+#define gray ""
+#endif
+
+#ifdef lred
+#undef lred
+#define lred ""
+#endif
+#ifdef lgreen
+#undef lgreen 
+#define lgreen ""
+#endif
+#ifdef lyellow 
+#undef lyellow
+#define lyellow ""
+#endif
+#ifdef lblue 
+#undef lblue 
+#define lblue "" 
+#endif
+#ifdef lmag 
+#undef lmag 
+#define lmag ""
+#endif
+#ifdef lcyan
+#undef lcyan 
+#define lcyan ""
+#endif
+#ifdef lgray
+#undef lgray
+#define lgray ""
+#endif
+#ifdef bred
+#undef bred
+#endif
+
+#ifdef bred
+#undef bred
+#define bred ""
+#endif
+#ifdef bgreen
+#undef bgreen 
+#define bgreen ""
+#endif
+#ifdef byellow 
+#undef byellow
+#define byellow ""
+#endif
+#ifdef bblue 
+#undef bblue 
+#define bblue ""
+#endif
+#ifdef bmag 
+#undef bmag 
+#define bmag ""
+#endif
+#ifdef bcyan
+#undef bcyan 
+#define bcyan ""
+#endif
+#ifdef bgray
+#undef bgray
+#define bgray ""
+#endif
+#ifdef blred
+#undef blred
+#define blred ""
+#endif
+#ifdef blgreen
+#undef blgreen 
+#define blgreen ""
+#endif
+#ifdef blyellow 
+#undef blyellow
+#define blyellow ""
+#endif
+#ifdef blblue 
+#undef glblue 
+#define blblue "" 
+#endif
+#ifdef blmag 
+#undef blmag 
+#define blmag ""
+#endif
+#ifdef blcyan
+#undef blcyan 
+#define blcyan ""
+#endif
+#ifdef blgray
+#undef blgray
+#define blgray ""
+#endif
+#ifdef normal
+#undef normal
+#define normal ""
+#endif
+#ifdef bold
+#undef bold
+#define bold ""
+#endif
+#ifdef underline 
+#undef underline 
+#define underline ""
+#endif
+}
+
+static void SetColor(bool enable) {
+	if (enable)
+		DefAllColors();
+	else
+		DefAllColorsToNull();
+}
+
+
+#endif

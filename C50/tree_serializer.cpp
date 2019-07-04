@@ -37,6 +37,10 @@ void _serialize_to_JSON (Tree t, std::ostream & out) {
 		char some_char_array[20];
 		CValToStr(t->Cut, t->Tested, some_char_array);
 		out << "\"cut\":" << some_char_array << ",";
+		CValToStr(t->Upper, t->Tested, some_char_array);
+		out << "\"upper\":" << some_char_array << ",";
+		CValToStr(t->Lower, t->Tested, some_char_array);
+		out << "\"lower\":" << some_char_array << ",";
 
 		// Classification
 		out << "\"classification\":0,";
@@ -58,6 +62,8 @@ void _serialize_to_JSON (Tree t, std::ostream & out) {
 
 		// Cut
 		out << "\"cut\":0,";
+		out << "\"lower\":0,";
+		out << "\"upper\":0,";
 
 		// Classification
 		out << "\"classification\":0,";
@@ -82,6 +88,8 @@ void _serialize_to_JSON (Tree t, std::ostream & out) {
 
 		// Cut
 		out << "\"cut\":0,";
+		out << "\"lower\":0,";
+		out << "\"upper\":0,";
 
 		// Classification
 		out << "\"classification\":" << ClassName[t->Leaf] << ",";

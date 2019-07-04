@@ -20,6 +20,7 @@ namespace seahorn
     Expr getDef(Expr fapp);
     bool hasDef (Expr fdecl);
     virtual ~HornDbModel() {}
+    void clear() {m_defs.clear();}
     void Print (llvm::raw_ostream &os) const
     {
       for (auto def: m_defs)

@@ -26,6 +26,10 @@ def _bc_or_ll_file (name):
     ext = os.path.splitext (name)[1]
     return ext == '.bc' or ext == '.ll'
 
+# lijiaying
+input_c_files = []
+# end lijiaying
+
 class Clang(sea.LimitedCmd):
     def __init__ (self, quiet=False, plusplus=False):
         super (Clang, self).__init__('clang', 'Compile', allow_extra=True)
@@ -115,6 +119,9 @@ class Clang(sea.LimitedCmd):
                     argv1.extend (['-o', out_file])
 
                 argv1.append (in_file)
+                # lijiaying
+                input_c_files.append(in_file)
+                # end lijiaying
                 ret = self.clangCmd.run (args, argv1)
                 if ret <> 0: return ret
         
@@ -808,6 +815,30 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--bounded',
                          help='use Bounded datatype',
                          dest='bounded', default=False, action='store_true')
+        ap.add_argument ('--show-c5-name-file',
+                         help='Show C5.0 name file',
+                         dest='show_c5_name_file', default=False, action='store_true')
+        ap.add_argument ('--show-c5-data-file',
+                         help='Show C5.0 data file',
+                         dest='show_c5_data_file', default=False, action='store_true')
+        ap.add_argument ('--show-c5-hex-data-file',
+                         help='Show C5.0 hex data file',
+                         dest='show_c5_hex_data_file', default=False, action='store_true')
+        ap.add_argument ('--show-c5-interval-file',
+                         help='Show C5.0 interval file',
+                         dest='show_c5_interval_file', default=False, action='store_true')
+        ap.add_argument ('--show-c5-json-file',
+                         help='Show C5.0 json file',
+                         dest='show_c5_json_file', default=False, action='store_true')
+        ap.add_argument ('--show-c5-json-struct',
+                         help='Show C5.0 json struct',
+                         dest='show_c5_json_struct', default=False, action='store_true')
+        ap.add_argument ('--show-data-set',
+                         help='Show data set',
+                         dest='show_data_set', default=False, action='store_true')
+        ap.add_argument ('--debug-level',
+                         help='debug information level',
+                         dest='debug_level', type=int, default=5)
         return ap
 
     def run (self, args, extra):
@@ -817,8 +848,16 @@ class Seahorn(sea.LimitedCmd):
 
         argv = list()
 
-        if args.bounded:
-            argv.append('--bounded=true')
+        argv.append('--debug-level=' + str(args.debug_level))
+
+        if args.bounded: argv.append('--bounded=true')
+        if args.show_c5_name_file: argv.append('--show-c5-name-file=true')
+        if args.show_c5_interval_file: argv.append('--show-c5-interval-file=true')
+        if args.show_c5_data_file: argv.append('--show-c5-data-file=true')
+        if args.show_c5_hex_data_file: argv.append('--show-c5-hex-data-file=true')
+        if args.show_c5_json_file: argv.append('--show-c5-json-file=true')
+        if args.show_c5_json_struct: argv.append('--show-c5-json-struct=true')
+        if args.show_data_set: argv.append('--show-data-set=true')
 
         if args.bmc:
             argv.append ('--horn-bmc')
@@ -828,7 +867,6 @@ class Seahorn(sea.LimitedCmd):
 
         if args.solve or args.out_file is not None:
             argv.append ('--keep-shadows=true')
-
             
         if args.dsa != 'llvm':
             if "--dsa-stats" in extra:
@@ -876,11 +914,29 @@ class Seahorn(sea.LimitedCmd):
         if args.out_file is not None: argv.extend (['-o', args.out_file])
         argv.extend (args.in_files)
 
+        # lijiaying
+        if len(input_c_files) > 0:
+            inputcfile = input_c_files[0]
+            inputdir = os.path.dirname(inputcfile)
+            destdir = os.path.join('.', 'tmp', inputdir)
+        else:
+            distdir = os.path.join('/', 'tmp')
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        
+        for infile in args.in_files:
+            bcfilename = infile[infile.rfind('/') + 1:]
+            if bcfilename.endswith('.pp.ms.o.bc'):
+                dest = os.path.join(destdir, bcfilename)
+                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                shutil.copy(infile, dest) 
+        # end lijiaying
+
         # pick out extra seahorn options
         argv.extend (filter (_is_seahorn_opt, extra))
 
-
         return self.seahornCmd.run (args, argv)
+
 
 class SeahornClp(sea.LimitedCmd):
     def __init__ (self, quiet=False):

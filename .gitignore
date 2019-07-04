@@ -20,3 +20,5 @@ FromCmd.*
 /C50/c5.0.dt_penalty*
 *temp
 *log
+*.o
+/tmp

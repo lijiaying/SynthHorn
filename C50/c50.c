@@ -34,7 +34,7 @@
 #include "defns.i"
 #include "extern.i"
 
-#include "cpp_wrapper/cmap.h"
+#include "cmap.h"
 
 //#include <signal.h>
 
@@ -84,6 +84,7 @@ int select_rhs_if_lhs_is_negative(int lhs, int rhs) {
 int main(int Argc, char *Argv[])
 /*  ----  */
 {
+    // printf("-----> from c1 (modified version)-----\n");
     int			o;
     extern String	OptArg, Option;
     char		*EndPtr;
@@ -297,7 +298,7 @@ int main(int Argc, char *Argv[])
 #ifdef DEBUG
 	// Save implications and original data for later verification
 	DebugImplications = cmap_copy (Implications);
-	fprintf( Of, "Copied %d implications\n", cmap_number_of_implications (DebugImplications));
+	// fprintf( Of, "Copied %d implications\n", cmap_number_of_implications (DebugImplications));
 
     DebugCase = (DataRec *) malloc((MaxCase + 1) * sizeof (DataRec));
 	int my_MaxCase = MaxCase;

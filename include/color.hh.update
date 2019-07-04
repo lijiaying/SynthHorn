@@ -1,0 +1,97 @@
+#ifndef __COLOR_HH__
+#define __COLOR_HH__
+
+#include "llvm/Support/raw_ostream.h"
+
+extern std::string red;
+extern std::string green;
+extern std::string yellow;
+extern std::string blue;
+extern std::string mag;
+extern std::string cyan;
+extern std::string lgray;
+extern std::string gray;
+extern std::string lred;
+extern std::string lgreen;
+extern std::string lyellow;
+extern std::string lblue; 
+extern std::string lmag;
+extern std::string lcyan;
+
+extern std::string bred;
+extern std::string bgreen;
+extern std::string byellow;
+extern std::string bblue;
+extern std::string bmag;
+extern std::string bcyan;
+extern std::string blgray;
+extern std::string bgray;
+extern std::string blred;
+extern std::string blgreen;
+extern std::string blyellow;
+extern std::string blblue; 
+extern std::string blmag;
+extern std::string blcyan;
+
+extern std::string normal;
+extern std::string bold;
+extern std::string underline;
+
+#ifdef LOG
+#undef LOG
+#endif
+#ifdef LOGIT
+#undef LOGIT
+#endif
+#ifdef LOGDP
+#undef LOGDP
+#endif
+#ifdef LOGLINE
+#undef LOGLINE
+#endif
+
+static std::string function = " ====[ Start tracing ]=== ";
+static std::string line;
+// char cur_line[10]; \
+// sprintf(cur_line, "%d", __LINE__); \
+
+#define _NULL_LOG(TAG, CODE) do {} while(0)
+#define _PURE_LOG(TAG, CODE) do {CODE;} while(0)
+#define _LINE_LOG(TAG, CODE) do { \
+	std::string filestr = __FILE__;\
+	int loc = filestr.rfind("/");\
+	loc = filestr.rfind("/", loc-1);\
+	loc = filestr.rfind("/", loc-1);\
+	filestr = filestr.substr(loc+1);\
+	llvm::errs() << gray << underline << "<" << filestr << ":L" << __LINE__ << ">" << normal << " "; \
+	CODE; \
+	llvm::errs().flush();\
+} while (0)
+
+#define _LOCT_LOG_OLD(TAG, CODE) do { \
+	if (__FUNCTION__ != function) { \
+		llvm::errs() << blue << "<<< ****** function: " << function << " ****** <<<\n\n" << normal; \
+		function = __FUNCTION__;\
+		llvm::errs() << green << ">>> ****** function: " << function << " ****** >>>\n" << normal; \
+	} \
+} while (0)
+
+#define _LOCT_LOG(TAG, CODE) do { \
+	std::string filestr = __FILE__;\
+	int loc = filestr.rfind("/");\
+	loc = filestr.rfind("/", loc-1);\
+	loc = filestr.rfind("/", loc-1);\
+	filestr = filestr.substr(loc+1);\
+	llvm::errs() << gray << underline << "<" << filestr << ":L" << __LINE__ << ">" << normal << " "; \
+	CODE; \
+	llvm::errs().flush();\
+} while (0)
+
+
+#define LOG(TAG, CODE) _NULL_LOG(TAG, CODE)
+#define LOGIT(TAG, CODE) _PURE_LOG(TAG, CODE)
+#define LOGDP(TAG, CODE) _LOCT_LOG(TAG, CODE)
+#define LOGLINE(TAG, CODE) _LINE_LOG(TAG, CODE)
+#define LOGLOC(TAG, CODE) _LOCT_LOG(TAG, CODE)
+
+#endif

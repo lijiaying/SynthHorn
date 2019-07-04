@@ -53,7 +53,7 @@
 #include "defns.i"
 #include "extern.i"
 
-#include "cpp_wrapper/tree_serializer.h"
+#include "tree_serializer.h"
 
 /*************************************************************************/
 /*									 */
@@ -162,6 +162,7 @@ void ConstructClassifiers()
 
 	// Daniel: Use the new version of formtree (the one that splits PC first)
 	MyFormTree(Bp, MaxCase, 0, &Raw[Trial]);
+	// printf("-------------------------------after forming the tree-------------------------------\n");
 
 	/*  Prune the raw tree to minimise expected misclassification cost  */
 
@@ -192,7 +193,11 @@ void ConstructClassifiers()
 	// Pranav: Turn off pruning
 	//Prune(Pruned[Trial]);
 
+	// Li Jiaying: remove adjusting thresholds....
+	// if not use endpoint, do not adjust the thresholds
+#ifdef USE_ENDPOINT
 	AdjustAllThresholds(Pruned[Trial]);
+#endif
 
 	/*  Record tree parameters for later  */
 

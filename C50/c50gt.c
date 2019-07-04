@@ -34,10 +34,11 @@
 
 #define	 RELEASE	"2.07 GPL Edition"
 
-				/*  Uncomment following line to enable
-				    sample estimates for large datasets.
-				    This can lead to some variablility,
-				    especially when used with SMP  */
+#define USEDOUBLE
+/*  Uncomment following line to enable
+    sample estimates for large datasets.
+    This can lead to some variablility,
+    especially when used with SMP  */
 //#define	SAMPLE_ESTIMATES
 
 #include <stdio.h>
@@ -52,7 +53,7 @@
 #include "text.i"
 
 // Pranav
-#include "cpp_wrapper/cmap.h"
+#include "cmap.h"
 
 
 /*************************************************************************/
@@ -81,7 +82,7 @@
 /* Pranav: Redefine AltRandom
 #define AltRandom		drand48()
 #define	AltSeed(x)		srand48(x)
-*/
+ */
 #define AltRandom		(double)((rand()%RAND_MAX)/RAND_MAX)
 
 #define Free(x)			{free(x); x=0;}
@@ -115,9 +116,9 @@
 #define	 CMINFO	   1		/* generate confusion matrix */
 #define	 USAGEINFO 2		/* print usage information */
 
-				/* unknown and N/A values are represented by
-				   unlikely floating-point numbers
-				   (octal 01600000000 and 01) */
+/* unknown and N/A values are represented by
+   unlikely floating-point numbers
+   (octal 01600000000 and 01) */
 #define	 UNKNOWN   01600000000	/* 1.5777218104420236e-30 */
 #define	 NA	   01		/* 1.4012984643248171e-45 */
 
@@ -174,13 +175,13 @@
 #define	 EmptyNA(T)	(T->Branch[1]->Cases < 0.01)
 
 #define  Before(n1,n2)  (n1->Tested < n2->Tested ||\
-			n1->Tested == n2->Tested && n1->Cut < n2->Cut)
+                n1->Tested == n2->Tested && n1->Cut < n2->Cut)
 
 #define	 SwapWithImplications(a,b)	{DataRec xab;\
-			                assert(a >= 0 && a <= MaxCase &&\
-			                b >= 0 && b <= MaxCase);\
-			                xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
-                                        }
+        assert(a >= 0 && a <= MaxCase &&\
+                        b >= 0 && b <= MaxCase);\
+        xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
+}
 
 #define	 Swap(a,b)	{assert (false);}
 
@@ -246,8 +247,8 @@ typedef  int	CaseNo;		/* data case number */
 typedef  float	CaseCount;	/* count of (partial) cases */
 
 typedef  int	ClassNo,	/* class number, 1..MaxClass */
-		DiscrValue,	/* discrete attribute value */
-		Attribute;	/* attribute number, 1..MaxAtt */
+         DiscrValue,	/* discrete attribute value */
+         Attribute;	/* attribute number, 1..MaxAtt */
 
 #ifdef USEDOUBLE
 typedef	 double	ContValue;	/* continuous attribute value */
@@ -259,26 +260,26 @@ typedef	 float	ContValue;	/* continuous attribute value */
 
 
 typedef  union	 _def_val
-	 {
-	    String	_s_val;		/* att val for comparison */
-	    ContValue	_n_val;		/* number for arith */
-	 }
-	 DefVal;
+{
+        String	_s_val;		/* att val for comparison */
+        ContValue	_n_val;		/* number for arith */
+}
+DefVal;
 
 typedef  struct  _def_elt
-	 {
-	    short	_op_code;	/* type of element */
-	    DefVal	_operand;	/* string or numeric value */
-	 }
-	 DefElt, *Definition;
+{
+        short	_op_code;	/* type of element */
+        DefVal	_operand;	/* string or numeric value */
+}
+DefElt, *Definition;
 
 typedef  struct  _elt_rec
-	 {
-	    int		Fi,		/* index of first char of element */
-			Li;		/* last ditto */
-	    char	Type;		/* 'B', 'S', or 'N' */
-	 }
-	 EltRec;
+{
+        int		Fi,		/* index of first char of element */
+                        Li;		/* last ditto */
+        char	Type;		/* 'B', 'S', or 'N' */
+}
+EltRec;
 
 #define	 DefOp(DE)	DE._op_code
 #define	 DefSVal(DE)	DE._operand._s_val
@@ -315,19 +316,19 @@ typedef  struct  _elt_rec
 
 
 typedef  union  _attribute_value
-	 {
-	    DiscrValue	_discr_val;
-	    ContValue	_cont_val;
-	 }
-	 AttValue, *DataRec;
+{
+        DiscrValue	_discr_val;
+        ContValue	_cont_val;
+}
+AttValue, *DataRec;
 
 typedef	 struct _sort_rec
-	 {
-	    ContValue	V;
-	    ClassNo	C;
-	    float	W;
-	 }
-	 SortRec;
+{
+        ContValue	V;
+        ClassNo	C;
+        float	W;
+}
+SortRec;
 
 #define  CVal(Case,Att)		Case[Att]._cont_val
 #define  DVal(Case,Att)		Case[Att]._discr_val
@@ -342,116 +343,116 @@ typedef	 struct _sort_rec
 #define	 NotApplicVal(AV)	(AV._discr_val==NA)
 
 #define	 RelCWt(Case)		( Unknown(Case,CWtAtt)||\
-				  NotApplic(Case,CWtAtt)||\
-			  	  CVal(Case,CWtAtt)<=0 ? 1 :\
-				  CVal(Case,CWtAtt)/AvCWt )
+                NotApplic(Case,CWtAtt)||\
+                CVal(Case,CWtAtt)<=0 ? 1 :\
+                CVal(Case,CWtAtt)/AvCWt )
 
 typedef  struct _treerec	*Tree;
 typedef  struct _treerec
-	 {
-	    BranchType	NodeType;
-	    ClassNo	Leaf;		/* best class at this node */
-	    CaseCount	Cases,		/* no of cases at this node */
-			*ClassDist,	/* class distribution of cases */
-	    		Errors;		/* est or resub errors at this node */
-	    Attribute	Tested; 	/* attribute referenced in test */
-	    int		Forks,		/* number of branches at this node */
-			Leaves;		/* number of non-empty leaves in tree */
-	    ContValue	Cut,		/* threshold for continuous attribute */
-		  	Lower,		/* lower limit of soft threshold */
-		  	Upper,		/* upper limit ditto */
-			Mid;		/* midpoint for soft threshold */
-	    Set         *Subset;	/* subsets of discrete values  */
-	    Tree	*Branch,	/* Branch[x] = subtree for outcome x */
-			Parent;		/* node above this one */
-	 }
-	 TreeRec;
+{
+        BranchType	NodeType;
+        ClassNo	Leaf;		/* best class at this node */
+        CaseCount	Cases,		/* no of cases at this node */
+                        *ClassDist,	/* class distribution of cases */
+                        Errors;		/* est or resub errors at this node */
+        Attribute	Tested; 	/* attribute referenced in test */
+        int		Forks,		/* number of branches at this node */
+                        Leaves;		/* number of non-empty leaves in tree */
+        ContValue	Cut,		/* threshold for continuous attribute */
+                        Lower,		/* lower limit of soft threshold */
+                        Upper,		/* upper limit ditto */
+                        Mid;		/* midpoint for soft threshold */
+        Set         *Subset;	/* subsets of discrete values  */
+        Tree	*Branch,	/* Branch[x] = subtree for outcome x */
+                Parent;		/* node above this one */
+}
+TreeRec;
 
 
 typedef	 struct _environment
-	 {
-	    CaseNo	Xp, Ep;			/* start and end of scan  */
-	    double	Cases,			/* total cases */
-			KnownCases,		/* ditto less missing values */
-			ApplicCases,		/* cases with numeric values */
-			HighCases, LowCases,	/* cases above/below cut */
-			NAInfo,			/* info for N/A values */
-			FixedSplitInfo,		/* split info for ?, N/A */
-			BaseInfo,		/* info before split */
-			UnknownRate,		/* proportion of ? values */
-			MinSplit,		/* min cases before/after cut */
-			**Freq,			/* local Freq[4][class] */
-			*ClassFreq,		/* local class frequencies */
-			*ValFreq;		/* cases with val i */
-	    ClassNo	HighClass, LowClass;	/* class after/before cut */
-	    ContValue	HighVal, LowVal;	/* values after/before cut */
-	    SortRec	*SRec;			/* for Cachesort() */
-	    Set		**Subset,		/* Subset[att][number] */
-			*WSubset;		/* working subsets */
-	    int		*Subsets,		/* no of subsets for att */
-			Blocks,			/* intermediate no of subsets */
-			Bytes,			/* size of each subset */
-			ReasonableSubsets;
-	    double	*SubsetInfo,		/* subset info */
-			*SubsetEntr,		/* subset entropy */
-			**MergeInfo,		/* info of merged subsets i,j */
-			**MergeEntr;		/* entropy ditto */
+{
+        CaseNo	Xp, Ep;			/* start and end of scan  */
+        double	Cases,			/* total cases */
+                KnownCases,		/* ditto less missing values */
+                ApplicCases,		/* cases with numeric values */
+                HighCases, LowCases,	/* cases above/below cut */
+                NAInfo,			/* info for N/A values */
+                FixedSplitInfo,		/* split info for ?, N/A */
+                BaseInfo,		/* info before split */
+                UnknownRate,		/* proportion of ? values */
+                MinSplit,		/* min cases before/after cut */
+                **Freq,			/* local Freq[4][class] */
+                *ClassFreq,		/* local class frequencies */
+                *ValFreq;		/* cases with val i */
+        ClassNo	HighClass, LowClass;	/* class after/before cut */
+        ContValue	HighVal, LowVal;	/* values after/before cut */
+        SortRec	*SRec;			/* for Cachesort() */
+        Set		**Subset,		/* Subset[att][number] */
+                        *WSubset;		/* working subsets */
+        int		*Subsets,		/* no of subsets for att */
+                        Blocks,			/* intermediate no of subsets */
+                        Bytes,			/* size of each subset */
+                        ReasonableSubsets;
+        double	*SubsetInfo,		/* subset info */
+                *SubsetEntr,		/* subset entropy */
+                **MergeInfo,		/* info of merged subsets i,j */
+                **MergeEntr;		/* entropy ditto */
 
-            struct cmap     *Implications;
-            struct array    *permutation;
-            struct array    *classAttr;
-	 }
-	 EnvRec;
+        struct cmap     *Implications;
+        struct array    *permutation;
+        struct array    *classAttr;
+}
+EnvRec;
 
 
 typedef  int	RuleNo;			/* rule number */
 
 typedef  struct _condrec
-	 {
-	    BranchType	NodeType;	/* test type (see tree nodes) */
-	    Attribute	Tested;		/* attribute tested */
-	    ContValue	Cut;		/* threshold (if relevant) */
-	    Set		Subset;		/* subset (if relevant) */
-	    int		TestValue,	/* specified outcome of test */
-			TestI;		/* rule tree index of this test */
-	 }
-	 CondRec, *Condition;
+{
+        BranchType	NodeType;	/* test type (see tree nodes) */
+        Attribute	Tested;		/* attribute tested */
+        ContValue	Cut;		/* threshold (if relevant) */
+        Set		Subset;		/* subset (if relevant) */
+        int		TestValue,	/* specified outcome of test */
+                        TestI;		/* rule tree index of this test */
+}
+CondRec, *Condition;
 
 
 typedef  struct _rulerec
-	 {
-	    RuleNo	RNo;		/* rule number */
-	    int		TNo,		/* trial number */
-	    		Size;		/* number of conditions */
-	    Condition	*Lhs;		/* conditions themselves */
-	    ClassNo	Rhs;		/* class given by rule */
-	    CaseCount	Cover,		/* number of cases covered by rule */
-			Correct;	/* number on which correct */
-	    float	Prior;		/* prior probability of RHS */
-	    int		Vote;		/* unit = 0.001 */
-	 }
-	 RuleRec, *CRule;
+{
+        RuleNo	RNo;		/* rule number */
+        int		TNo,		/* trial number */
+                        Size;		/* number of conditions */
+        Condition	*Lhs;		/* conditions themselves */
+        ClassNo	Rhs;		/* class given by rule */
+        CaseCount	Cover,		/* number of cases covered by rule */
+                        Correct;	/* number on which correct */
+        float	Prior;		/* prior probability of RHS */
+        int		Vote;		/* unit = 0.001 */
+}
+RuleRec, *CRule;
 
 
 typedef  struct _ruletreerec *RuleTree;
 typedef  struct _ruletreerec
-	 {
-	    RuleNo	*Fire;		/* rules matched at this node */
-	    Condition	CondTest;	/* new test */
-	    int		Forks;		/* number of branches */
-	    RuleTree	*Branch;	/* subtrees */
-	 }
-	 RuleTreeRec;
+{
+        RuleNo	*Fire;		/* rules matched at this node */
+        Condition	CondTest;	/* new test */
+        int		Forks;		/* number of branches */
+        RuleTree	*Branch;	/* subtrees */
+}
+RuleTreeRec;
 
 
 typedef struct _rulesetrec
-	 {
-	    RuleNo	SNRules;	/* number of rules */
-	    CRule	*SRule;		/* rules */
-	    ClassNo	SDefault;	/* default class for this ruleset */
-	    RuleTree	RT;		/* rule tree (see ruletree.c) */
-	 }
-	 RuleSetRec, *CRuleSet;
+{
+        RuleNo	SNRules;	/* number of rules */
+        CRule	*SRule;		/* rules */
+        ClassNo	SDefault;	/* default class for this ruleset */
+        RuleTree	RT;		/* rule tree (see ruletree.c) */
+}
+RuleSetRec, *CRuleSet;
 
 
 /*************************************************************************/
@@ -460,12 +461,12 @@ typedef struct _rulesetrec
 /*									 */
 /*************************************************************************/
 
-	/* c50.c */
+/* c50.c */
 
 int	    main(int, char *[]);
 void	    FreeClassifier(int Trial);
 
-	/* construct.c */
+/* construct.c */
 
 void	    ConstructClassifiers(void);
 void	    InitialiseWeights(void);
@@ -475,7 +476,7 @@ void	    EvaluateSingle(int Flags);
 void	    EvaluateBoost(int Flags);
 void	    RecordAttUsage(DataRec Case, int *Usage);
 
-	/* getnames.c */
+/* getnames.c */
 
 Boolean	    ReadName(FILE *f, String s, int n, char ColonOpt);
 void	    GetNames(FILE *Nf);
@@ -485,7 +486,7 @@ void	    ListAttsUsed(void);
 void	    FreeNames(void);
 int	    InChar(FILE *f);
 
-	/* implicitatt.c */
+/* implicitatt.c */
 
 void	    ImplicitAtt(FILE *Nf);
 void	    ReadDefinition(FILE *f);
@@ -508,7 +509,7 @@ void	    DumpOp(char OpCode, int Fi);
 Boolean	    UpdateTStack(char OpCode, ContValue F, String S, int Fi);
 AttValue    EvaluateDef(Definition D, DataRec Case);
 
-	/* getdata.c */
+/* getdata.c */
 
 void	    GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass);
 DataRec	    GetDataRec(FILE *Df, Boolean Train);
@@ -519,18 +520,18 @@ void	    CheckValue(DataRec Case, Attribute Att);
 void 		GetImplications(const char * extension); // Daniel
 void		GetIntervals(const char * extension); // Daniel
 
-	/* mcost.c */
+/* mcost.c */
 
 void	    GetMCosts(FILE *f);
 
-	/* attwinnow.c */
+/* attwinnow.c */
 
 void	    WinnowAtts(void);
 float	    TrialTreeCost(Boolean FirstTime);
 float	    ErrCost(Tree T, CaseNo Fp, CaseNo Lp);
 void	    ScanTree(Tree T, Boolean *Used);
 
-	/* formtree.c */
+/* formtree.c */
 
 void	    InitialiseTreeData(void);
 void	    FreeTreeData(void);
@@ -560,7 +561,7 @@ void	    FindAllFreq(CaseNo, CaseNo);
 int         assignClass(int caseNo, int classValue);
 
 
-	/* discr.c */
+/* discr.c */
 
 void	    EvalDiscreteAtt(Attribute Att, CaseCount Cases);
 void	    EvalOrderedAtt(Attribute Att, CaseCount Cases);
@@ -568,7 +569,7 @@ void	    SetDiscrFreq(Attribute Att);
 double	    DiscrKnownBaseInfo(CaseCount KnownCases, DiscrValue MaxVal);
 void	    DiscreteTest(Tree Node, Attribute Att);
 
-	/* contin.c */
+/* contin.c */
 
 void	    EvalContinuousAtt(Attribute Att, CaseNo Fp, CaseNo Lp);
 void	    EvalContinuousAttAlg1(Attribute Att, CaseNo Fp, CaseNo Lp);
@@ -587,18 +588,19 @@ void	    ContinTest(Tree Node, Attribute Att);
 void	    AdjustAllThresholds(Tree T);
 void	    AdjustThresholds(Tree T, Attribute Att, CaseNo *Ep);
 ContValue   GreatestValueBelow(ContValue Th, CaseNo *Ep);
+ContValue   LeastValueAbove(ContValue Th, CaseNo *Ep);
 
-	/* info.c */
+/* info.c */
 
 double	    ComputeGain(double BaseInfo, float UnknFrac, DiscrValue MaxVal,
-			CaseCount TotalCases);
+                CaseCount TotalCases);
 double	    TotalInfo(double V[], DiscrValue MinVal, DiscrValue MaxVal);
 double	    ImplicationInfo(double pos, double neg, double implications);
 void	    PrintDistribution(Attribute Att, DiscrValue MinVal,
-			DiscrValue MaxVal, double **Freq, double *ValFreq,
-			Boolean ShowNames);
+                DiscrValue MaxVal, double **Freq, double *ValFreq,
+                Boolean ShowNames);
 
-	/* subset.c */
+/* subset.c */
 
 void	    InitialiseBellNumbers(void);
 void	    EvalSubset(Attribute Att, CaseCount Cases);
@@ -611,7 +613,7 @@ void	    AddBlock(DiscrValue V1, DiscrValue V2);
 void	    AddBlock(DiscrValue V1, DiscrValue V2);
 void	    MoveBlock(DiscrValue V1, DiscrValue V2);
 
-	/* prune.c */
+/* prune.c */
 
 void	    Prune(Tree T);
 void	    EstimateErrs(Tree T, CaseNo Fp, CaseNo Lp, int Sh, int Flags);
@@ -626,13 +628,13 @@ void	    RestoreDistribs(Tree T);
 void	    CompressBranches(Tree T);
 void	    SetGlobalUnitWeights(int LocalFlag);
 
-	/* p-thresh.c */
+/* p-thresh.c */
 
 void	    SoftenThresh(Tree T);
 void	    ResubErrs(Tree T, CaseNo Fp, CaseNo Lp);
 void	    FindBounds(Tree T, CaseNo Fp, CaseNo Lp);
 
-	/* classify.c */
+/* classify.c */
 
 ClassNo	    TreeClassify(DataRec Case, Tree DecisionTree);
 void	    FollowAllBranches(DataRec Case, Tree T, float Fraction);
@@ -648,18 +650,18 @@ ClassNo	    SelectClass(ClassNo Default, Boolean UseCosts);
 ClassNo	    Classify(DataRec Case);
 float	    Interpolate(Tree T, ContValue Val);
 
-	/* special case for dual-purpose routines  */
+/* special case for dual-purpose routines  */
 
 void	    FindLeaf(DataRec Case, Tree T, Tree PT, float Wt);
 Boolean	    Satisfies(DataRec Case, Condition OneCond);
 
-	/* sort.c */
+/* sort.c */
 
 void	    Quicksort(CaseNo Fp, CaseNo Lp, Attribute Att);
 void 		QuicksortWithImplications(CaseNo Fp, CaseNo Lp, Attribute Att, struct array * permutation); // Daniel
 void	    Cachesort(CaseNo Fp, CaseNo Lp, SortRec *SRec);
 
-	/* trees.c */
+/* trees.c */
 
 void	    FindDepth(Tree T);
 void	    PrintTree(Tree T, String Title);
@@ -670,7 +672,7 @@ int	    MaxLine(Tree SubTree);
 void	    Indent(int Sh, int BrNo);
 void	    FreeTree(Tree T);
 Tree	    Leaf(double *Freq, ClassNo NodeClass, CaseCount Cases,
-		 CaseCount Errors);
+                CaseCount Errors);
 void	    Sprout(Tree T, DiscrValue Branches);
 void	    UnSprout(Tree T);
 int	    TreeSize(Tree T);
@@ -678,7 +680,7 @@ int	    ExpandedLeafCount(Tree T);
 int	    TreeDepth(Tree T);
 Tree	    CopyTree(Tree T);
 
-	/* utility.c */
+/* utility.c */
 
 void	    PrintHeader(String Title);
 char	    ProcessOption(int Argc, char **Argv, char *Str);
@@ -713,13 +715,13 @@ int	    wcwidth(wchar_t ucs);
 int	    wcswidth(const wchar_t *pwcs, size_t n);
 #endif
 
-	/* confmat.c */
+/* confmat.c */
 
 void	    PrintConfusionMatrix(CaseNo *ConfusionMat);
 void	    PrintErrorBreakdown(CaseNo *ConfusionMat);
 void	    PrintUsageInfo(CaseNo *Usage);
 
-	/* formrules.c */
+/* formrules.c */
 
 CRuleSet    FormRules(Tree T);
 void	    Scan(Tree T);
@@ -734,23 +736,23 @@ int	    SingleFail(CaseNo i);
 void	    Increment(int d, CaseNo i, double *Total, double *Errors);
 void	    FreeFormRuleData(void);
 
-	/* rules.c */
+/* rules.c */
 
 Boolean	    NewRule(Condition Cond[], int NConds, ClassNo TargetClass,
-		    Boolean *Deleted, CRule Existing,
-		    CaseCount Cover, CaseCount Correct, float Prior);
+                Boolean *Deleted, CRule Existing,
+                CaseCount Cover, CaseCount Correct, float Prior);
 void	    ListSort(int *L, int Fp, int Lp);
 Byte	    *Compress(int *L);
 void	    Uncompress(Byte *CL, int *UCL);
 Boolean	    SameRule(RuleNo r, Condition Cond[], int NConds,
-		     ClassNo TargetClass);
+                ClassNo TargetClass);
 void	    FreeRule(CRule R);
 void	    FreeRules(CRuleSet RS);
 void	    PrintRules(CRuleSet, String);
 void	    PrintRule(CRule R);
 void	    PrintCondition(Condition C);
 
-	/* siftrules.c */
+/* siftrules.c */
 
 void	    SiftRules(float EstErrRate);
 void	    InvertFires(void);
@@ -773,7 +775,7 @@ void	    OrderRules(void);
 void	    GenerateLogs(int MaxN);
 void	    FreeSiftRuleData(void);
 
-	/* ruletree.c */
+/* ruletree.c */
 
 void	    ConstructRuleTree(CRuleSet RS);
 void	    SetTestIndex(Condition C);
@@ -782,7 +784,7 @@ int	    DesiredOutcome(CRule R, int TI);
 int	    SelectTest(RuleNo *RR, int RRN, CRule *Rule);
 void	    FreeRuleTree(RuleTree RT);
 
-	/* modelfiles.c */
+/* modelfiles.c */
 
 void	    CheckFile(String Extension, Boolean Write);
 void	    WriteFilePrefix(String Extension);
@@ -804,12 +806,12 @@ String	    RemoveQuotes(String S);
 Set	    MakeSubset(Attribute Att);
 void	    StreamIn(String S, int n);
 
-	/* update.c (Unix) or winmain.c (WIN32) */
+/* update.c (Unix) or winmain.c (WIN32) */
 
 void	    NotifyStage(int);
 void	    Progress(float);
 
-	/* xval.c */
+/* xval.c */
 
 void	    CrossVal(void);
 void	    Prepare(void);
@@ -817,7 +819,7 @@ void	    Shuffle(int *Vec);
 void	    Summary(void);
 float	    SE(float sum, float sumsq, int no);
 
-	/* Daniel: debug.c */
+/* Daniel: debug.c */
 int verify (Tree, DataRec *, struct cmap *, int);
 
 int are_equal (DataRec *, DataRec *, int, int);
@@ -854,7 +856,7 @@ int are_equal (DataRec *, DataRec *, int, int);
 /*									 */
 /*************************************************************************/
 
-#include "cpp_wrapper/cmap.h" // Daniel
+#include "cmap.h" // Daniel
 
 /*************************************************************************/
 /*									 */
@@ -1079,7 +1081,7 @@ FILE  		*Of=0;		/* output file */
 
 
 
-#include "cpp_wrapper/cmap.h"
+#include "cmap.h"
 
 //#include <signal.h>
 
@@ -1129,6 +1131,7 @@ int select_rhs_if_lhs_is_negative(int lhs, int rhs) {
 int main(int Argc, char *Argv[])
 /*  ----  */
 {
+    // printf("-----> from c1 (modified version)-----\n");
     int			o;
     extern String	OptArg, Option;
     char		*EndPtr;
@@ -1342,7 +1345,7 @@ int main(int Argc, char *Argv[])
 #ifdef DEBUG
 	// Save implications and original data for later verification
 	DebugImplications = cmap_copy (Implications);
-	fprintf( Of, "Copied %d implications\n", cmap_number_of_implications (DebugImplications));
+	// fprintf( Of, "Copied %d implications\n", cmap_number_of_implications (DebugImplications));
 
     DebugCase = (DataRec *) malloc((MaxCase + 1) * sizeof (DataRec));
 	int my_MaxCase = MaxCase;
@@ -1568,7 +1571,7 @@ int main(int Argc, char *Argv[])
 
 
 
-#include "cpp_wrapper/tree_serializer.h"
+#include "tree_serializer.h"
 
 /*************************************************************************/
 /*									 */
@@ -1677,6 +1680,7 @@ void ConstructClassifiers()
 
 	// Daniel: Use the new version of formtree (the one that splits PC first)
 	MyFormTree(Bp, MaxCase, 0, &Raw[Trial]);
+	// printf("-------------------------------after forming the tree-------------------------------\n");
 
 	/*  Prune the raw tree to minimise expected misclassification cost  */
 
@@ -1707,7 +1711,11 @@ void ConstructClassifiers()
 	// Pranav: Turn off pruning
 	//Prune(Pruned[Trial]);
 
+	// Li Jiaying: remove adjusting thresholds....
+	// if not use endpoint, do not adjust the thresholds
+#ifdef USE_ENDPOINT
 	AdjustAllThresholds(Pruned[Trial]);
+#endif
 
 	/*  Record tree parameters for later  */
 
@@ -2478,7 +2486,7 @@ void RecordAttUsage(DataRec Case, int *Usage)
 
 
 
-#include "cpp_wrapper/cmap.h"
+#include "cmap.h"
 
 Boolean		MultiVal,	/* all atts have many values */
 		Subsample;	/* use subsampling */
@@ -2499,6 +2507,7 @@ Attribute	*Waiting=Nil,	/* attribute wait list */
 		NWaiting=0;
 
 
+Boolean pout = false;
 
 
 /*************************************************************************/
@@ -2509,213 +2518,213 @@ Attribute	*Waiting=Nil,	/* attribute wait list */
 
 
 void InitialiseTreeData()
-/*   ------------------  */
+	/*   ------------------  */
 {
-    DiscrValue	v;
-    Attribute	Att;
-    DiscrValue	vMax;
+	DiscrValue	v;
+	Attribute	Att;
+	DiscrValue	vMax;
 
-    Raw	     = AllocZero(TRIALS+1, Tree);
-    Pruned   = AllocZero(TRIALS+1, Tree);
+	Raw	     = AllocZero(TRIALS+1, Tree);
+	Pruned   = AllocZero(TRIALS+1, Tree);
 
-    Tested   = AllocZero(MaxAtt+1, Byte);
+	Tested   = AllocZero(MaxAtt+1, Byte);
 
-    Gain     = AllocZero(MaxAtt+1, float);
-    Info     = AllocZero(MaxAtt+1, float);
-    Bar      = AllocZero(MaxAtt+1, ContValue);
+	Gain     = AllocZero(MaxAtt+1, float);
+	Info     = AllocZero(MaxAtt+1, float);
+	Bar      = AllocZero(MaxAtt+1, ContValue);
 
-    EstMaxGR = AllocZero(MaxAtt+1, float);
+	EstMaxGR = AllocZero(MaxAtt+1, float);
 
-    /*  Data for subsets  */
+	/*  Data for subsets  */
 
-    if ( SUBSET )
-    {
-	assert (false);
+	if ( SUBSET )
+	{
+		assert (false);
 
-	InitialiseBellNumbers();
-	Subset = Alloc(MaxAtt+1, Set *);
+		InitialiseBellNumbers();
+		Subset = Alloc(MaxAtt+1, Set *);
 
+		ForEach(Att, 1, MaxAtt)
+		{
+			if ( Discrete(Att) && Att != ClassAtt && ! Skip(Att) )
+			{
+				Subset[Att] = AllocZero(MaxAttVal[Att]+1, Set);
+				ForEach(v, 0, MaxAttVal[Att])
+				{
+					Subset[Att][v] = Alloc((MaxAttVal[Att]>>3)+1, Byte);
+				}
+			}
+		}
+		Subsets = AllocZero(MaxAtt+1, int);
+	}
+
+	DList  = Alloc(MaxAtt, Attribute);
+	NDList = 0;
+
+	DFreq = AllocZero(MaxAtt+1, double *);
 	ForEach(Att, 1, MaxAtt)
 	{
-	    if ( Discrete(Att) && Att != ClassAtt && ! Skip(Att) )
-	    {
-		Subset[Att] = AllocZero(MaxAttVal[Att]+1, Set);
-		ForEach(v, 0, MaxAttVal[Att])
+		if ( Att == ClassAtt || Skip(Att) || ! Discrete(Att) ) continue;
+
+		DList[NDList++] = Att;
+
+		DFreq[Att] = Alloc(MaxClass * (MaxAttVal[Att]+1), double);
+	}
+
+	ClassFreq = AllocZero(MaxClass+1, double);
+	ClassSum  = Alloc(MaxClass+1, float);
+
+	if ( BOOST )
+	{
+		Vote      = Alloc(MaxClass+1, float);
+		TrialPred = Alloc(TRIALS, ClassNo);
+	}
+
+	if ( RULES )
+	{
+		MostSpec     = Alloc(MaxClass+1, CRule);
+		PossibleCuts = Alloc(MaxAtt+1, int);
+	}
+
+	/*  Check whether all attributes have many discrete values  */
+
+	MultiVal = true;
+	if ( ! SUBSET )
+	{
+		for ( Att = 1 ; MultiVal && Att <= MaxAtt ; Att++ )
 		{
-		    Subset[Att][v] = Alloc((MaxAttVal[Att]>>3)+1, Byte);
+			if ( ! Skip(Att) && Att != ClassAtt )
+			{
+				MultiVal = MaxAttVal[Att] >= 0.3 * (MaxCase + 1);
+			}
 		}
-	    }
 	}
-	Subsets = AllocZero(MaxAtt+1, int);
-    }
 
-    DList  = Alloc(MaxAtt, Attribute);
-    NDList = 0;
+	/*  See whether there are continuous attributes for subsampling  */
 
-    DFreq = AllocZero(MaxAtt+1, double *);
-    ForEach(Att, 1, MaxAtt)
-    {
-	if ( Att == ClassAtt || Skip(Att) || ! Discrete(Att) ) continue;
+	Subsample = false;
 
-	DList[NDList++] = Att;
+	/*  Set parameters for RawExtraErrs() */
 
-	DFreq[Att] = Alloc(MaxClass * (MaxAttVal[Att]+1), double);
-    }
+	InitialiseExtraErrs();
 
-    ClassFreq = AllocZero(MaxClass+1, double);
-    ClassSum  = Alloc(MaxClass+1, float);
+	/*  Set up environment  */
 
-    if ( BOOST )
-    {
-	Vote      = Alloc(MaxClass+1, float);
-	TrialPred = Alloc(TRIALS, ClassNo);
-    }
+	Waiting = Alloc(MaxAtt+1, Attribute);
 
-    if ( RULES )
-    {
-	MostSpec     = Alloc(MaxClass+1, CRule);
-	PossibleCuts = Alloc(MaxAtt+1, int);
-    }
+	vMax = Max(3, MaxDiscrVal+1);
 
-    /*  Check whether all attributes have many discrete values  */
-
-    MultiVal = true;
-    if ( ! SUBSET )
-    {
-	for ( Att = 1 ; MultiVal && Att <= MaxAtt ; Att++ )
+	GEnv.Freq = Alloc(vMax+1, double *);
+	ForEach(v, 0, vMax)
 	{
-	    if ( ! Skip(Att) && Att != ClassAtt )
-	    {
-		MultiVal = MaxAttVal[Att] >= 0.3 * (MaxCase + 1);
-	    }
+		GEnv.Freq[v] = Alloc(MaxClass+1, double);
 	}
-    }
 
-    /*  See whether there are continuous attributes for subsampling  */
+	GEnv.ValFreq = Alloc(vMax, double);
 
-    Subsample = false;
+	GEnv.ClassFreq = Alloc(MaxClass+1, double);
 
-    /*  Set parameters for RawExtraErrs() */
+	GEnv.SRec = Alloc(MaxCase+1, SortRec);
 
-    InitialiseExtraErrs();
+	// Pranav: Allocate the new *Implications-related* data structures.
+	GEnv.Implications = 0;
+	GEnv.permutation = new_array(MaxCase+1);
+	GEnv.classAttr = new_array(MaxCase+1);
 
-    /*  Set up environment  */
-
-    Waiting = Alloc(MaxAtt+1, Attribute);
-
-    vMax = Max(3, MaxDiscrVal+1);
-
-    GEnv.Freq = Alloc(vMax+1, double *);
-    ForEach(v, 0, vMax)
-    {
-	GEnv.Freq[v] = Alloc(MaxClass+1, double);
-    }
-
-    GEnv.ValFreq = Alloc(vMax, double);
-
-    GEnv.ClassFreq = Alloc(MaxClass+1, double);
-
-    GEnv.SRec = Alloc(MaxCase+1, SortRec);
-
-    // Pranav: Allocate the new *Implications-related* data structures.
-    GEnv.Implications = 0;
-    GEnv.permutation = new_array(MaxCase+1);
-    GEnv.classAttr = new_array(MaxCase+1);
-
-    if ( SUBSET )
-    {
-	GEnv.SubsetInfo = Alloc(MaxDiscrVal+1, double);
-	GEnv.SubsetEntr = Alloc(MaxDiscrVal+1, double);
-
-	GEnv.MergeInfo = Alloc(MaxDiscrVal+1, double *);
-	GEnv.MergeEntr = Alloc(MaxDiscrVal+1, double *);
-	GEnv.WSubset   = Alloc(MaxDiscrVal+1, Set);
-	ForEach(v, 1, MaxDiscrVal)
+	if ( SUBSET )
 	{
-	    GEnv.MergeInfo[v] = Alloc(MaxDiscrVal+1, double);
-	    GEnv.MergeEntr[v] = Alloc(MaxDiscrVal+1, double);
-	    GEnv.WSubset[v]   = Alloc((MaxDiscrVal>>3)+1, Byte);
+		GEnv.SubsetInfo = Alloc(MaxDiscrVal+1, double);
+		GEnv.SubsetEntr = Alloc(MaxDiscrVal+1, double);
+
+		GEnv.MergeInfo = Alloc(MaxDiscrVal+1, double *);
+		GEnv.MergeEntr = Alloc(MaxDiscrVal+1, double *);
+		GEnv.WSubset   = Alloc(MaxDiscrVal+1, Set);
+		ForEach(v, 1, MaxDiscrVal)
+		{
+			GEnv.MergeInfo[v] = Alloc(MaxDiscrVal+1, double);
+			GEnv.MergeEntr[v] = Alloc(MaxDiscrVal+1, double);
+			GEnv.WSubset[v]   = Alloc((MaxDiscrVal>>3)+1, Byte);
+		}
 	}
-    }
 }
 
 
 void FreeTreeData()
-/*   ------------  */
+	/*   ------------  */
 {
-    Attribute	Att;
-    DiscrValue	vMax;
+	Attribute	Att;
+	DiscrValue	vMax;
 
-    FreeUnlessNil(Raw);					Raw = Nil;
-    FreeUnlessNil(Pruned);				Pruned = Nil;
+	FreeUnlessNil(Raw);					Raw = Nil;
+	FreeUnlessNil(Pruned);				Pruned = Nil;
 
-    FreeUnlessNil(Tested);				Tested = Nil;
+	FreeUnlessNil(Tested);				Tested = Nil;
 
-    FreeUnlessNil(Gain);				Gain = Nil;
-    FreeUnlessNil(Info);				Info = Nil;
-    FreeUnlessNil(Bar);					Bar = Nil;
+	FreeUnlessNil(Gain);				Gain = Nil;
+	FreeUnlessNil(Info);				Info = Nil;
+	FreeUnlessNil(Bar);					Bar = Nil;
 
-    FreeUnlessNil(EstMaxGR);				EstMaxGR = Nil;
+	FreeUnlessNil(EstMaxGR);				EstMaxGR = Nil;
 
-    if ( SUBSET )
-    {
-	FreeVector((void **) Bell, 1, MaxDiscrVal);	Bell = Nil;
-
-	if ( Subset )
+	if ( SUBSET )
 	{
-	    ForEach(Att, 1, MaxAtt)
-	    {
-		if ( Subset[Att] )
+		FreeVector((void **) Bell, 1, MaxDiscrVal);	Bell = Nil;
+
+		if ( Subset )
 		{
-		    FreeVector((void **) Subset[Att], 0, MaxAttVal[Att]);
+			ForEach(Att, 1, MaxAtt)
+			{
+				if ( Subset[Att] )
+				{
+					FreeVector((void **) Subset[Att], 0, MaxAttVal[Att]);
+				}
+			}
+			Free(Subset);				Subset = Nil;
+			Free(Subsets);				Subsets = Nil;
 		}
-	    }
-	    Free(Subset);				Subset = Nil;
-	    Free(Subsets);				Subsets = Nil;
 	}
-    }
 
-    FreeUnlessNil(DList);				DList = Nil;
+	FreeUnlessNil(DList);				DList = Nil;
 
-    if ( DFreq )
-    {
-	ForEach(Att, 1, MaxAtt)
+	if ( DFreq )
 	{
-	    FreeUnlessNil(DFreq[Att]);
+		ForEach(Att, 1, MaxAtt)
+		{
+			FreeUnlessNil(DFreq[Att]);
+		}
+
+		Free(DFreq);					DFreq = Nil;
 	}
 
-	Free(DFreq);					DFreq = Nil;
-    }
+	FreeUnlessNil(ClassFreq);				ClassFreq = Nil;
+	FreeUnlessNil(ClassSum);				ClassSum = Nil;
 
-    FreeUnlessNil(ClassFreq);				ClassFreq = Nil;
-    FreeUnlessNil(ClassSum);				ClassSum = Nil;
+	FreeUnlessNil(Vote);				Vote = Nil;
+	FreeUnlessNil(TrialPred);				TrialPred = Nil;
 
-    FreeUnlessNil(Vote);				Vote = Nil;
-    FreeUnlessNil(TrialPred);				TrialPred = Nil;
+	FreeUnlessNil(MostSpec);				MostSpec = Nil;
+	FreeUnlessNil(PossibleCuts);			PossibleCuts = Nil;
 
-    FreeUnlessNil(MostSpec);				MostSpec = Nil;
-    FreeUnlessNil(PossibleCuts);			PossibleCuts = Nil;
+	vMax = Max(3, MaxDiscrVal+1);
+	FreeVector((void **) GEnv.Freq, 0, vMax);
+	Free(GEnv.ValFreq);
+	Free(GEnv.ClassFreq);
+	FreeUnlessNil(GEnv.SRec);
 
-    vMax = Max(3, MaxDiscrVal+1);
-    FreeVector((void **) GEnv.Freq, 0, vMax);
-    Free(GEnv.ValFreq);
-    Free(GEnv.ClassFreq);
-    FreeUnlessNil(GEnv.SRec);
+	delete_cmap(GEnv.Implications);
+	delete_array(GEnv.permutation);
+	delete_array(GEnv.classAttr);
 
-    delete_cmap(GEnv.Implications);
-    delete_array(GEnv.permutation);
-    delete_array(GEnv.classAttr);
+	if ( GEnv.SubsetInfo )
+	{
+		Free(GEnv.SubsetInfo);
+		Free(GEnv.SubsetEntr);
+		FreeVector((void **) GEnv.MergeInfo, 1, MaxDiscrVal);
+		FreeVector((void **) GEnv.MergeEntr, 1, MaxDiscrVal);
+		FreeVector((void **) GEnv.WSubset, 1, MaxDiscrVal);
+	}
 
-    if ( GEnv.SubsetInfo )
-    {
-	Free(GEnv.SubsetInfo);
-	Free(GEnv.SubsetEntr);
-	FreeVector((void **) GEnv.MergeInfo, 1, MaxDiscrVal);
-	FreeVector((void **) GEnv.MergeEntr, 1, MaxDiscrVal);
-	FreeVector((void **) GEnv.WSubset, 1, MaxDiscrVal);
-    }
-
-    FreeUnlessNil(Waiting);				Waiting = Nil;
+	FreeUnlessNil(Waiting);				Waiting = Nil;
 }
 
 
@@ -2732,35 +2741,35 @@ void FreeTreeData()
 
 
 void SetMinGainThresh()
-/*   ----------------  */
+	/*   ----------------  */
 {
-    float	Frac;
+	float	Frac;
 
-    /*  Set AvGainWt and MDLWt  */
+	/*  Set AvGainWt and MDLWt  */
 
-    if ( Now == WINNOWATTS )
-    {
-	AvGainWt = MDLWt = 0.0;
-    }
-    else
-    if ( (MaxCase+1) / MaxClass <= 500 )
-    {
-	AvGainWt = 1.0;
-	MDLWt    = 0.0;
-    }
-    else
-    if ( (MaxCase+1) / MaxClass >= 1000 )
-    {
-	AvGainWt = 0.0;
-	MDLWt    = 0.9;
-    }
-    else
-    {
-	Frac = ((MaxCase+1) / MaxClass - 500) / 500.0;
+	if ( Now == WINNOWATTS )
+	{
+		AvGainWt = MDLWt = 0.0;
+	}
+	else
+		if ( (MaxCase+1) / MaxClass <= 500 )
+		{
+			AvGainWt = 1.0;
+			MDLWt    = 0.0;
+		}
+		else
+			if ( (MaxCase+1) / MaxClass >= 1000 )
+			{
+				AvGainWt = 0.0;
+				MDLWt    = 0.9;
+			}
+			else
+			{
+				Frac = ((MaxCase+1) / MaxClass - 500) / 500.0;
 
-	AvGainWt = 1 - Frac;
-	MDLWt    = 0.9 * Frac;
-    }
+				AvGainWt = 1 - Frac;
+				MDLWt    = 0.9 * Frac;
+			}
 }
 
 
@@ -2771,134 +2780,113 @@ void SetMinGainThresh()
  */
 void MyFormTree(CaseNo Fp, CaseNo Lp, int Level, Tree * Result)
 {
-
+	// printf("MY@Form Tree CaseNoRange: %02d~%02d, length[%d], @level%d ::: \n", Fp, Lp, Lp-Fp+1, Level);
 	// Sanity check
 	if (Fp > Lp) {
-	
 		printf ("This version of C5 does not support constructing a tree from empty data!\n");
 		exit (EXIT_FAILURE);
-	
 	}
 
 	/*
 	 * If no intervals are give, fall back to original C5
 	 */
 	if (IntervalsUpperBounds == NULL || IntervalsUpperBounds->size == 0) {
-
-		Verbosity(1, 
-			fprintf(Of, "No intervals given, falling back to original C5 ICE"));
-
+		Verbosity(1, fprintf(Of, "No intervals given, falling back to original C5 ICE"));
+		// printf("fall back to original C5\n");
 		FormTree(Fp, Lp, Level, Result, MaxAtt, 1);
+		return;
+	} 
+
+	/* Otherwise, create new root and call original C5 on children */
+	// printf("new C5\n");
+	Attribute FirstSplitAttr = 1;
+
+	int i;	
+
+	// Make sure the first split attribute is a discrete attribute
+	if (!Discrete (FirstSplitAttr)) {
+		printf ("The first attribute has to be a discrete attribute!\n");
+		exit (EXIT_FAILURE);
+	}		
+
+	// Make sure that there are as many intervals as discrete attribute values
+	if (IntervalsLowerBounds->size != MaxAttVal[FirstSplitAttr] - 1) {
+		printf ("The number of discrete attribute (%d) values and the number of intervals (%d) does not match!\n", MaxAttVal[FirstSplitAttr] - 1, IntervalsLowerBounds->size);
+		exit (EXIT_FAILURE);
 
 	}
+
 
 	/*
-	 * Otherwise, create new root and call original C5 on children
+	 * Sort cases on FirstSplitAttr
 	 */
-	else {
+	struct array * permutation = new_array (MaxCase + 1);
+	ForEach (i, 0, MaxCase) {
+		permutation->entries[i] = i;
+	}
+	QuicksortWithImplications(Fp, Lp, FirstSplitAttr, permutation);
+	struct array * inverse_permutation = array_invert(permutation);
+	struct cmap * sortedImplications = cmap_copy_and_rename(Implications, inverse_permutation);
+	delete_cmap (Implications);
+	Implications = sortedImplications;
+	delete_array (permutation);
+	delete_array (inverse_permutation);
 
-		Attribute FirstSplitAttr = 1;
+	/*
+	 * Store upper and lower index of cases with given PC (index 0 is ?, we don't want to use that)
+	 */
+	CaseNo LowerCase[MaxCase + 1];
+	memset (LowerCase, 0, (MaxAttVal[FirstSplitAttr] + 1)  * sizeof(CaseNo));
+	CaseNo UpperCase[MaxAttVal[FirstSplitAttr]];
+	memset (UpperCase, 0, (MaxAttVal[FirstSplitAttr] + 1)  * sizeof(CaseNo));
+	char AttValueFound[MaxAttVal[FirstSplitAttr]];
+	memset (AttValueFound, 0, (MaxAttVal[FirstSplitAttr] + 1) * sizeof(char));
 
-		int i;	
-		
-		// Make sure the first split attribute is a discrete attribute
-		if (!Discrete (FirstSplitAttr)) {
+	DiscrValue cur = DVal(Case[Fp], FirstSplitAttr);
+	AttValueFound[cur] = 1;
+	LowerCase[cur] = Fp;
+	ForEach (i, Fp + 1, Lp) {
+		assert (i > 0 ? DVal(Case[i], FirstSplitAttr) >= DVal(Case[i - 1], FirstSplitAttr) : 1);
+		DiscrValue v = DVal(Case[i], FirstSplitAttr);
+		if (v != cur) {
+			assert (!AttValueFound[v]);
 
-			printf ("The first attribute has to be a discrete attribute!\n");
-			exit (EXIT_FAILURE);
-
-		}		
-
-		// Make sure that there are as many intervals as discrete attribute values
-		if (IntervalsLowerBounds->size != MaxAttVal[FirstSplitAttr] - 1) {
-
-			printf ("The number of discrete attribute (%d) values and the number of intervals (%d) does not match!\n", MaxAttVal[FirstSplitAttr] - 1, IntervalsLowerBounds->size);
-			exit (EXIT_FAILURE);
-
+			AttValueFound[v] = 1;
+			LowerCase[v] = i;
+			UpperCase[cur] = i - 1;
+			cur = v;
 		}
-		
-	
-		/*
-		 * Sort cases on FirstSplitAttr
-		 */
-		struct array * permutation = new_array (MaxCase + 1);
-		ForEach (i, 0, MaxCase) {
-			permutation->entries[i] = i;
-		}
-		QuicksortWithImplications(Fp, Lp, FirstSplitAttr, permutation);
-		struct array * inverse_permutation = array_invert(permutation);
-		struct cmap * sortedImplications = cmap_copy_and_rename(Implications, inverse_permutation);
-		delete_cmap (Implications);
-		Implications = sortedImplications;
-		delete_array (permutation);
-		delete_array (inverse_permutation);
-		
-		/*
-		 * Store upper and lower index of cases with given PC (index 0 is ?, we don't want to use that)
-		 */
-		 CaseNo LowerCase[MaxCase + 1];
-		memset (LowerCase, 0, (MaxAttVal[FirstSplitAttr] + 1)  * sizeof(CaseNo));
-		CaseNo UpperCase[MaxAttVal[FirstSplitAttr]];
-		memset (UpperCase, 0, (MaxAttVal[FirstSplitAttr] + 1)  * sizeof(CaseNo));
-		char AttValueFound[MaxAttVal[FirstSplitAttr]];
-		memset (AttValueFound, 0, (MaxAttVal[FirstSplitAttr] + 1) * sizeof(char));
-
-		DiscrValue cur = DVal(Case[Fp], FirstSplitAttr);
-		AttValueFound[cur] = 1;
-		LowerCase[cur] = Fp;
-		ForEach (i, Fp + 1, Lp) {
-
-			assert (i > 0 ? DVal(Case[i], FirstSplitAttr) >= DVal(Case[i - 1], FirstSplitAttr) : 1);
-
-			DiscrValue v = DVal(Case[i], FirstSplitAttr);
-
-			if (v != cur) {
-
-				assert (!AttValueFound[v]);
-				
-				AttValueFound[v] = 1;
-				LowerCase[v] = i;
-				UpperCase[cur] = i - 1;
-				cur = v;
-
-			}
-
-		}
-		UpperCase[cur] = Lp;
+	}
+	UpperCase[cur] = Lp;
 
 #ifdef DEBUG
-		ForEach (i, 1, MaxAttVal[FirstSplitAttr]) {
-		
-			printf ("%s=%d (%s), enabled=%s: [%d, %d]\n", AttName[FirstSplitAttr], i, AttValName[FirstSplitAttr][i], AttValueFound[i] ? "yes" : "no", LowerCase[i], UpperCase[i]);
-		
-		}
-#endif
+	ForEach (i, 1, MaxAttVal[FirstSplitAttr]) {
 
-		/*
-		 * Construct tree
-		 */
-		// Let us create a new root node
-		Tree Node;
-		*Result = Node = Leaf(Nil, 0, 0.0, 0.0);
-		DiscreteTest (Node, FirstSplitAttr);
-		
-		// Recursively construct tree
-		ForEach(i, 1, Node->Forks) {
-
-			// Only construct subtree if attribute value is present
-			if (AttValueFound[i]) {
-				FormTree(LowerCase[i], UpperCase[i], Level + 1, &Node->Branch[i], IntervalsUpperBounds->entries[i - 2], IntervalsLowerBounds->entries[i - 2]);
-			}
-			
-			// Create a leaf with classified with the first attribute vale (whatever that might be)
-			else {
-				Node->Branch[i] = Leaf(Nil, 1, 0.0, 0.0);
-			}
-
-		}
+		printf ("%s=%d (%s), enabled=%s: [%d, %d]\n", AttName[FirstSplitAttr], i, AttValName[FirstSplitAttr][i], AttValueFound[i] ? "yes" : "no", LowerCase[i], UpperCase[i]);
 
 	}
+#endif
 
+	/*
+	 * Construct tree
+	 */
+	// Let us create a new root node
+	Tree Node;
+	*Result = Node = Leaf(Nil, 0, 0.0, 0.0);
+	DiscreteTest (Node, FirstSplitAttr);
+
+	// Recursively construct tree
+	ForEach(i, 1, Node->Forks) {
+		// Only construct subtree if attribute value is present
+		if (AttValueFound[i]) {
+			FormTree(LowerCase[i], UpperCase[i], Level + 1, &Node->Branch[i], IntervalsUpperBounds->entries[i - 2], IntervalsLowerBounds->entries[i - 2]);
+		}
+
+		// Create a leaf with classified with the first attribute vale (whatever that might be)
+		else {
+			Node->Branch[i] = Leaf(Nil, 1, 0.0, 0.0);
+		}
+	}
 }
 
 
@@ -2926,202 +2914,211 @@ void MyFormTree(CaseNo Fp, CaseNo Lp, int Level, Tree * Result)
 /*								 	 */
 /*************************************************************************/
 void FormTree(CaseNo Fp, CaseNo Lp, int Level, Tree *Result, Attribute upper, Attribute lower)
-/*   --------  */
+	/*   --------  */
 {
-    CaseCount	Cases=0, TreeErrs=0;
-    Attribute	BestAtt;
-    ClassNo	c, BestLeaf=1, Least=1;
-    Tree	Node;
-    DiscrValue	v;
+	// printf("\n\n\n------------------------------------------------------------------------------------------------------------------------------------------------------------\n");
+	// for(int i = 0; i < Level; i++)
+	//		printf("     ");
+	// if (pout)
+	// 	printf(">");
+	pout = false;
+	// printf("*FormTree() Tree:0x%08x Fp: %d, LP: %d, level: %d, upper: %d, lower: %d\n", (int)Result, Fp, Lp, Level, upper, lower);
+	// printf("Form Tree CaseNoRange: %02d~%02d, length[%d], @level%d ::: \n", Fp, Lp, Lp-Fp+1, Level);
+	CaseCount	Cases=0, TreeErrs=0;
+	Attribute	BestAtt;
+	ClassNo	c, BestLeaf=1, Least=1;
+	Tree	Node;
+	DiscrValue	v;
 
 
-    assert(Fp >= 0 && Lp >= Fp && Lp <= MaxCase);
+	assert(Fp >= 0 && Lp >= Fp && Lp <= MaxCase);
 
-    /*  Make a single pass through the cases to determine class frequencies
-	and value/class frequencies for all discrete attributes  */
+	/*  Make a single pass through the cases to determine class frequencies
+	    and value/class frequencies for all discrete attributes  */
 
-    FindAllFreq(Fp, Lp);
+	FindAllFreq(Fp, Lp);
 
-    /*  Choose the best leaf and the least prevalent class  */
+	/*  Choose the best leaf and the least prevalent class  */
 
-    ForEach(c, 2, MaxClass)
-    {
-	if ( ClassFreq[c] > ClassFreq[BestLeaf] )
+	ForEach(c, 2, MaxClass)
 	{
-	    BestLeaf = c;
-	}
-	else
-	if ( ClassFreq[c] > 0.1 && ClassFreq[c] < ClassFreq[Least] )
-	{
-	    Least = c;
-	}
-    }
-
-    /*  Ignoring the cases which have UNKNOWN class values while computing
-        the total Cases.  */
-    ForEach(c, 1, MaxClass)
-    {
-	Cases += ClassFreq[c];
-    }
-
-    MaxLeaves = ( LEAFRATIO > 0 ? rint(LEAFRATIO * Cases) : 1E6 );
-
-    *Result = Node =
-	Leaf(ClassFreq, BestLeaf, Cases, Cases - ClassFreq[BestLeaf]);
-
-    Verbosity(1,
-    	fprintf(Of, "\n<%d> %d cases", Level, No(Fp,Lp));
-	if ( fabs(No(Fp,Lp) - Cases) >= 0.1 )
-	{
-	    fprintf(Of, ", total weight %.1f", Cases);
-	}
-	fprintf(Of, "\n"))
-
-    /*  Do not try to split if:
-	- all cases are of the same class
-	- there are not enough cases to split  */
-
-    // Pranav: Return only if there are no errors; otherwise split further. 
-    //if ( ClassFreq[BestLeaf] >= 0.999 * Cases  ||
-    if ( ClassFreq[BestLeaf] >= Cases  ||
-	 Cases < 2 * MINITEMS ||
-	 MaxLeaves < 2 )
-    {
-	if ( Now == FORMTREE ) Progress(Cases);
-
-	// Pranav: Propagate the classification at the leaf to even nodes labeled unknown.
-
-	int numAllCases = Lp - Fp + 1;
-	int numUnknownClassifiedCases = numAllCases - Cases ;
-
-	if ( numUnknownClassifiedCases > 0 )
-	{
-
-	    struct array * unknownClassifiedCases = new_array(numUnknownClassifiedCases);
-
-	    int i, j = 0;
-
-            ForEach(i, Fp, Lp)
-            {
-		#if false
-		printf("Class Attr of Case %d: %d\n", i, Class(Case[i]));
-		printf("Class Attr of Case %d: %d\n", i, DVal(Case[i], ClassAtt));
-		#endif
-	    	if ( Class(Case[i]) == 0 )	
-	    	{
-		    assert(DVal(Case[i], ClassAtt) == 0);
-		    unknownClassifiedCases->entries[j] = i;
-		    j++;
-	        }
+		if ( ClassFreq[c] > ClassFreq[BestLeaf] )
+		{
+			BestLeaf = c;
+		}
 		else
-		    assert(DVal(Case[i], ClassAtt) != 0);
-	    }
-
-	    assert (j == numUnknownClassifiedCases) ;
-
-	    int success = cmap_propagate(unknownClassifiedCases, Implications, BestLeaf, & assignClass);
-
-	    assert (success > 0);
-
-	    delete_array(unknownClassifiedCases);
+			if ( ClassFreq[c] > 0.1 && ClassFreq[c] < ClassFreq[Least] )
+			{
+				Least = c;
+			}
 	}
 
-	return;
-    }
+	/*  Ignoring the cases which have UNKNOWN class values while computing
+	    the total Cases.  */
+	ForEach(c, 1, MaxClass)
+	{
+		Cases += ClassFreq[c];
+	}
 
-    /*  Calculate base information  */
+	MaxLeaves = ( LEAFRATIO > 0 ? rint(LEAFRATIO * Cases) : 1E6 );
 
-    GlobalBaseInfo = TotalInfo(ClassFreq, 1, MaxClass) / Cases;
+	*Result = Node =
+		Leaf(ClassFreq, BestLeaf, Cases, Cases - ClassFreq[BestLeaf]);
 
-    /*  Perform preliminary evaluation if using subsampling.
-	Must expect at least 10 of least prevalent class  */
-
-    ValThresh = 0;
-    if ( Subsample && No(Fp, Lp) > 5 * MaxClass * SAMPLEUNIT &&
-	 (ClassFreq[Least] * MaxClass * SAMPLEUNIT) / No(Fp, Lp) >= 10 )
-    {
-	assert (false);
-
-	SampleEstimate(Fp, Lp, Cases);
-	Sampled   = true;
-    }
-    else
-    {
-	Sampled = false;
-    }
-
-    BestAtt = ChooseSplit(Fp, Lp, Cases, Sampled, upper, lower);
-	assert (lower <= BestAtt && BestAtt <= upper);
-	
-    /*  Decide whether to branch or not  */
-
-    if ( BestAtt == None )
-    {
-	Verbosity(1, fprintf(Of, "\tno sensible splits\n"))
-	if ( Now == FORMTREE ) Progress(Cases);
-    }
-    else
-    {
 	Verbosity(1,
-	    fprintf(Of, "\tbest attribute %s", AttName[BestAtt]);
-	    if ( Continuous(BestAtt) )
-	    {
-		fprintf(Of, " cut %.3f", Bar[BestAtt]);
-	    }
-	    fprintf(Of, " inf %.3f gain %.3f val %.3f\n",
-		   Info[BestAtt], Gain[BestAtt], Gain[BestAtt] / Info[BestAtt]))
+			fprintf(Of, "\n<%d> %d cases", Level, No(Fp,Lp));
+			if ( fabs(No(Fp,Lp) - Cases) >= 0.1 )
+			{
+			fprintf(Of, ", total weight %.1f", Cases);
+			}
+			fprintf(Of, "\n"))
 
-	/*  Build a node of the selected test  */
+		/*  Do not try to split if:
+		    - all cases are of the same class
+		    - there are not enough cases to split  */
 
-	if ( Discrete(BestAtt) )
+		// Pranav: Return only if there are no errors; otherwise split further. 
+		//if ( ClassFreq[BestLeaf] >= 0.999 * Cases  ||
+		if ( ClassFreq[BestLeaf] >= Cases  ||
+				Cases < 2 * MINITEMS ||
+				MaxLeaves < 2 )
+		{
+			if ( Now == FORMTREE ) Progress(Cases);
+
+			// Pranav: Propagate the classification at the leaf to even nodes labeled unknown.
+
+			int numAllCases = Lp - Fp + 1;
+			int numUnknownClassifiedCases = numAllCases - Cases ;
+
+			if ( numUnknownClassifiedCases > 0 )
+			{
+
+				struct array * unknownClassifiedCases = new_array(numUnknownClassifiedCases);
+
+				int i, j = 0;
+
+				ForEach(i, Fp, Lp)
+				{
+#if false
+					printf("Class Attr of Case %d: %d\n", i, Class(Case[i]));
+					printf("Class Attr of Case %d: %d\n", i, DVal(Case[i], ClassAtt));
+#endif
+					if ( Class(Case[i]) == 0 )	
+					{
+						assert(DVal(Case[i], ClassAtt) == 0);
+						unknownClassifiedCases->entries[j] = i;
+						j++;
+					}
+					else
+						assert(DVal(Case[i], ClassAtt) != 0);
+				}
+
+				assert (j == numUnknownClassifiedCases) ;
+
+				int success = cmap_propagate(unknownClassifiedCases, Implications, BestLeaf, & assignClass);
+
+				assert (success > 0);
+
+				delete_array(unknownClassifiedCases);
+			}
+
+			return;
+		}
+
+	/*  Calculate base information  */
+
+	GlobalBaseInfo = TotalInfo(ClassFreq, 1, MaxClass) / Cases;
+
+	/*  Perform preliminary evaluation if using subsampling.
+	    Must expect at least 10 of least prevalent class  */
+
+	ValThresh = 0;
+	if ( Subsample && No(Fp, Lp) > 5 * MaxClass * SAMPLEUNIT &&
+			(ClassFreq[Least] * MaxClass * SAMPLEUNIT) / No(Fp, Lp) >= 10 )
 	{
-	    printf("BestAtt is: %d %s\n", BestAtt, AttName[BestAtt]);
-	    assert (false);
+		assert (false);
 
-	    if ( SUBSET && MaxAttVal[BestAtt] > 3 && ! Ordered(BestAtt) )
-	    {
-		SubsetTest(Node, BestAtt);
-	    }
-	    else
-	    {
-		DiscreteTest(Node, BestAtt);
-	    }
+		SampleEstimate(Fp, Lp, Cases);
+		Sampled   = true;
 	}
 	else
 	{
-	    ContinTest(Node, BestAtt);
+		Sampled = false;
 	}
 
-	/*  Carry out the recursive divide-and-conquer  */
+	BestAtt = ChooseSplit(Fp, Lp, Cases, Sampled, upper, lower);
+	assert (lower <= BestAtt && BestAtt <= upper);
 
-	++Tested[BestAtt];
-
-	Divide(Node, Fp, Lp, Level, upper, lower);
-
-	--Tested[BestAtt];
-
-	/*  See whether we would have been no worse off with a leaf  */
-
-	ForEach(v, 1, Node->Forks)
+	/*  Decide whether to branch or not  */
+	// printf("Best attr is %d\n", BestAtt);
+	if ( BestAtt == None )
 	{
-	    TreeErrs += Node->Branch[v]->Errors;
-	}
-
-	if ( TreeErrs >= 0.999 * Node->Errors )
-	{
-	    assert (false);
-
-	    Verbosity(1,
-		fprintf(Of, "<%d> Collapse tree for %d cases to leaf %s\n",
-			    Level, No(Fp,Lp), ClassName[BestLeaf]))
-
-	    UnSprout(Node);
+		printf("---------------------------------------Can not find Best Attr.\n");
+		Verbosity(1, fprintf(Of, "\tno sensible splits\n"))
+			if ( Now == FORMTREE ) Progress(Cases);
 	}
 	else
 	{
-	    Node->Errors = TreeErrs;
+		Verbosity(1,
+				fprintf(Of, "\tbest attribute %s", AttName[BestAtt]);
+				if ( Continuous(BestAtt) )
+				{
+				fprintf(Of, " cut %.3f", Bar[BestAtt]);
+				}
+				fprintf(Of, " inf %.3f gain %.3f val %.3f\n",
+					Info[BestAtt], Gain[BestAtt], Gain[BestAtt] / Info[BestAtt]))
+
+			/*  Build a node of the selected test  */
+
+			if ( Discrete(BestAtt) )
+			{
+				// printf("BestAtt is: %d %s\n", BestAtt, AttName[BestAtt]);
+				assert (false);
+
+				if ( SUBSET && MaxAttVal[BestAtt] > 3 && ! Ordered(BestAtt) )
+				{
+					SubsetTest(Node, BestAtt);
+				}
+				else
+				{
+					DiscreteTest(Node, BestAtt);
+				}
+			}
+			else
+			{
+				ContinTest(Node, BestAtt);
+			}
+
+		/*  Carry out the recursive divide-and-conquer  */
+
+		++Tested[BestAtt];
+
+		Divide(Node, Fp, Lp, Level, upper, lower);
+
+		--Tested[BestAtt];
+
+		/*  See whether we would have been no worse off with a leaf  */
+
+		ForEach(v, 1, Node->Forks)
+		{
+			TreeErrs += Node->Branch[v]->Errors;
+		}
+
+		if ( TreeErrs >= 0.999 * Node->Errors )
+		{
+			assert (false);
+
+			Verbosity(1,
+					fprintf(Of, "<%d> Collapse tree for %d cases to leaf %s\n",
+						Level, No(Fp,Lp), ClassName[BestLeaf]))
+
+				UnSprout(Node);
+		}
+		else
+		{
+			Node->Errors = TreeErrs;
+		}
 	}
-    }
 }
 
 
@@ -3134,54 +3131,54 @@ void FormTree(CaseNo Fp, CaseNo Lp, int Level, Tree *Result, Attribute upper, At
 
 
 void SampleEstimate(CaseNo Fp, CaseNo Lp, CaseCount Cases)
-/*   --------------  */
+	/*   --------------  */
 {
-    CaseNo	SLp, SampleSize;
-    CaseCount	NewCases;
-    Attribute	Att;
-    float	GR;
+	CaseNo	SLp, SampleSize;
+	CaseCount	NewCases;
+	Attribute	Att;
+	float	GR;
 
-    /*  Phase 1: evaluate all discrete attributes and record best GR  */
+	/*  Phase 1: evaluate all discrete attributes and record best GR  */
 
-    ForEach(Att, 1, MaxAtt)
-    { 
-	Gain[Att] = None;
+	ForEach(Att, 1, MaxAtt)
+	{ 
+		Gain[Att] = None;
 
-	if ( Discrete(Att) )
-	{
-	    EvalDiscrSplit(Att, Cases);
+		if ( Discrete(Att) )
+		{
+			EvalDiscrSplit(Att, Cases);
 
-	    if ( Info[Att] > Epsilon &&
-		 (GR = Gain[Att] / Info[Att]) > ValThresh )
-	    {
-		ValThresh = GR;
-	    }
+			if ( Info[Att] > Epsilon &&
+					(GR = Gain[Att] / Info[Att]) > ValThresh )
+			{
+				ValThresh = GR;
+			}
+		}
 	}
-    }
 
-    /*  Phase 2: generate sample  */
+	/*  Phase 2: generate sample  */
 
-    SampleSize = MaxClass * SAMPLEUNIT;
-    Sample(Fp, Lp, SampleSize);
-    SLp = Fp + SampleSize - 1;
+	SampleSize = MaxClass * SAMPLEUNIT;
+	Sample(Fp, Lp, SampleSize);
+	SLp = Fp + SampleSize - 1;
 
-    /*  Phase 3: evaluate continuous attributes using sample  */
+	/*  Phase 3: evaluate continuous attributes using sample  */
 
-    NewCases   = CountCases(Fp, SLp);
-    SampleFrac = NewCases / Cases;
-    NWaiting   = 0;
+	NewCases   = CountCases(Fp, SLp);
+	SampleFrac = NewCases / Cases;
+	NWaiting   = 0;
 
-    ForEach(Att, 1, MaxAtt) 
-    { 
-	if ( Continuous(Att) )
-	{
-	    Waiting[NWaiting++] = Att;
-	}
-    } 
+	ForEach(Att, 1, MaxAtt) 
+	{ 
+		if ( Continuous(Att) )
+		{
+			Waiting[NWaiting++] = Att;
+		}
+	} 
 
-    ProcessQueue(Fp, SLp, NewCases);
+	ProcessQueue(Fp, SLp, NewCases);
 
-    SampleFrac = 1.0;
+	SampleFrac = 1.0;
 }
 
 
@@ -3194,21 +3191,21 @@ void SampleEstimate(CaseNo Fp, CaseNo Lp, CaseCount Cases)
 
 
 void Sample(CaseNo Fp, CaseNo Lp, CaseNo N)
-/*   ------  */
+	/*   ------  */
 {
-    CaseNo	i, j;
-    double	Interval;
+	CaseNo	i, j;
+	double	Interval;
 
-    Interval = No(Fp, Lp) / (double) N;
+	Interval = No(Fp, Lp) / (double) N;
 
-    ForEach(i, 0, N-1)
-    {
-	j = (i + 0.5) * Interval;
+	ForEach(i, 0, N-1)
+	{
+		j = (i + 0.5) * Interval;
 
-	assert(j >= 0 && Fp + j <= Lp);
+		assert(j >= 0 && Fp + j <= Lp);
 
-	Swap(Fp + i, Fp + j);
-    }
+		Swap(Fp + i, Fp + j);
+	}
 }
 
 
@@ -3221,166 +3218,63 @@ void Sample(CaseNo Fp, CaseNo Lp, CaseNo N)
 /*							 	 */
 /*************************************************************************/
 // Daniel: upper and lower define an interval of attributes from which the split can be performed  
+Attribute ChooseSplit(CaseNo Fp, CaseNo Lp, CaseCount Cases, Boolean Sampled, Attribute upper, Attribute lower) /*        -----------  */ {
+	// printf("**** Choose Split: ");
+	Attribute	Att;
+	int		i, j;
 
-Attribute ChooseSplit(CaseNo Fp, CaseNo Lp, CaseCount Cases, Boolean Sampled, Attribute upper, Attribute lower)
-/*        -----------  */
-{
-    Attribute	Att;
-    int		i, j;
-
-
-    /*  For each available attribute, find the information and gain  */
-
-    NWaiting = 0;
-
-    if ( Sampled )
-    {
-	assert (false);
-
-	/*  If samples have been used, do not re-evaluate discrete atts
-	    or atts that have low GR  */
-
-	for ( Att = MaxAtt ; Att > 0 ; Att-- )
-	{
-	    if ( ! Continuous(Att) ) continue;
-
-	    if ( EstMaxGR[Att] >= ValThresh )
-	    {
-		/*  Add attributes in reverse order of estimated max GR  */
-
-		for ( i = 0 ;
-		      i < NWaiting && EstMaxGR[Waiting[i]] < EstMaxGR[Att] ;
-		      i++ )
-		    ;
-
-		for ( j = NWaiting-1 ; j >= i ; j-- )
-		{
-		    Waiting[j+1] = Waiting[j];
-		}
-		NWaiting++;
-
-		Waiting[i] = Att;
-	    }
-	    else
-	    {
-		/*  Don't use -- attribute hasn't been fully evaluated.
-		    Leave Gain unchanged to get correct count for Possible  */
-
-		Info[Att] = -1E6;	/* negative so GR also negative */
-	    }
-	}
-    }
-    else
-    {
+	/*  For each available attribute, find the information and gain  */
+	NWaiting = 0;
 
 	// Daniel: We only want to consider attributes within the allowed interval of attributes
-	//for ( Att = MaxAtt ; Att > 0 ; Att-- )
-	for ( Att = upper ; Att >= lower ; Att-- )
-	{
-	    Gain[Att] = None;
-
-	    if ( Skip(Att) || Att == ClassAtt )
-	    {
-		continue;
-	    }
-
+	// printf("Considering attributes within range: [%d ~ %d]\n", MaxAtt, 0);
+	// for ( Att = MaxAtt ; Att > 0 ; Att-- )
+	// printf("Considering attributes within range: [%d ~ %d]\n", upper, lower);
+	for ( Att = upper ; Att >= lower ; Att-- ) {
+		Gain[Att] = None;
+		if ( Skip(Att) || Att == ClassAtt ) {
+			continue;
+		}
 		//printf ("Adding %s (%d) to worklist; lower is %d, upper is %d\n", AttName[Att], Att, lower, upper);
-	    Waiting[NWaiting++] = Att;
+		Waiting[NWaiting++] = Att;
 	}
-    }
 
-    ProcessQueue(Fp, Lp, Cases);
+	ProcessQueue(Fp, Lp, Cases);
+	Attribute BestAttr = FindBestAttNew(Cases, upper, lower);
+	// assert (BestAttr != None);
 
-    Attribute BestAttr = FindBestAttNew(Cases, upper, lower);
-    assert (BestAttr != None);
-
-    /*
-    if(BestAttr == None)
-    {
-    	ProcessQueue(Fp, Lp, Cases);
-	BestAttr = FindBestAttNew(Cases, upper, lower);
-    }
-    assert (BestAttr != None);
-    */
-    return BestAttr;
+	/*
+	   if(BestAttr == None)
+	   {
+	   ProcessQueue(Fp, Lp, Cases);
+	   BestAttr = FindBestAttNew(Cases, upper, lower);
+	   }
+	   assert (BestAttr != None);
+	   */
+	return BestAttr;
 }
 
 
 /*  Pranav: WCases is the total number of cases classified as TRUE or FALSE. Does not 
     include cases with UNKNOWN class attribute  */
-void ProcessQueue(CaseNo WFp, CaseNo WLp, CaseCount WCases)
-/*   ------------  */
-{
-    Attribute	Att;
-    float	GR;
+void ProcessQueue(CaseNo WFp, CaseNo WLp, CaseCount WCases) /*   ------------  */ {
+	Attribute	Att;
+	float	GR;
 
-    for ( ; NWaiting > 0 ; )
-    {
-	Att = Waiting[--NWaiting];
-
-	if ( Discrete(Att) )
-	{
-	    assert (false);
-	    EvalDiscrSplit(Att, WCases);
-	}
-	else
-	if ( SampleFrac < 1 )
-	{
-	    assert (false);
-	    EstimateMaxGR(Att, WFp, WLp);
-	}
-	else
-	if ( Sampled )
-	{
-	    assert (false);
-
-	    Info[Att] = -1E16;
-
-	    if ( EstMaxGR[Att] > ValThresh )
-	    {
-		EvalContinuousAtt(Att, WFp, WLp);
-
-		if ( Info[Att] > Epsilon &&
-		     (GR = Gain[Att] / Info[Att]) > ValThresh )
-		{
-		    if ( GR > ValThresh ) ValThresh = GR;
-		}
-	    }
-	}
-	else
-	{
-	    if (0)
-	    	/* Ignores the implication data points while computing the entropy/gain 
-	       	   for a particular cut. */
-	        EvalContinuousAttAlg1(Att, WFp, WLp);
-
-	    else if (0)
-
-		/* Penalty for the number of Implications cut. */
-	        EvalContinuousAttAlg2(Att, WFp, WLp);
-
+	for ( ; NWaiting > 0 ; ) {
+		Att = Waiting[--NWaiting];
+		if (1)
+			/* Ignores the implication data points while computing the entropy/gain for a particular cut. */
+			EvalContinuousAttAlg1(Att, WFp, WLp);
 #ifndef PENALTY
-	    else if (1)
-
-		/* Entropy for the Implication sample */
-	        EvalContinuousAttAlg3(Att, WFp, WLp);
+		else if (1) /* Entropy for the Implication sample */
+			EvalContinuousAttAlg3(Att, WFp, WLp);
 #endif
-
-	    else if (0)
-	        EvalContinuousAttAlg4(Att, WFp, WLp);
-	
-	    else if (0)
-		/* Alg 2 + 3 */
-	        EvalContinuousAttAlg5(Att, WFp, WLp);
-
 #ifdef PENALTY
-	    else
-		/* Penalty for Implications cut but not those from neg -> pos */
-	        EvalContinuousAttAlg6(Att, WFp, WLp);
-
+		else /* Penalty for Implications cut but not those from neg -> pos */
+			EvalContinuousAttAlg6(Att, WFp, WLp);
 #endif
 	}
-    }
 }
 
 /*************************************************************************/
@@ -3390,75 +3284,75 @@ void ProcessQueue(CaseNo WFp, CaseNo WLp, CaseCount WCases)
 /*								 	 */
 /*************************************************************************/
 
-#if false
+// #if false
 Attribute FindBestAtt(CaseCount Cases)
-/*	  -----------  */
+	/*	  -----------  */
 {
-    double	BestVal, Val, MinGain=1E6, AvGain=0, MDL;
-    Attribute	Att, BestAtt, Possible=0;
-    DiscrValue	NBr, BestNBr=MaxDiscrVal+1;
+	double	BestVal, Val, MinGain=1E6, AvGain=0, MDL;
+	Attribute	Att, BestAtt, Possible=0;
+	DiscrValue	NBr, BestNBr=MaxDiscrVal+1;
 
-    ForEach(Att, 1, MaxAtt)
-    {
-	/*  Update the number of possible attributes for splitting and
-	    average gain (unless very many values)  */
-
-	// TODO Pranav: consider the gain regardless of the value of Gain, MaxAttVal, etc.
-	if ( Gain[Att] >= Epsilon &&
-	     ( MultiVal || MaxAttVal[Att] < 0.3 * (MaxCase + 1) ) )
+	ForEach(Att, 1, MaxAtt)
 	{
-	    Possible++;
-	    AvGain += Gain[Att];
+		/*  Update the number of possible attributes for splitting and
+		    average gain (unless very many values)  */
+
+		// TODO Pranav: consider the gain regardless of the value of Gain, MaxAttVal, etc.
+		if ( Gain[Att] >= Epsilon &&
+				( MultiVal || MaxAttVal[Att] < 0.3 * (MaxCase + 1) ) )
+		{
+			Possible++;
+			AvGain += Gain[Att];
+		}
+		else
+		{
+			Gain[Att] = None;
+		}
 	}
-	else
+
+	/*  Set threshold on minimum gain  */
+
+	if ( ! Possible ) return None;
+
+	AvGain /= Possible;
+	MDL     = Log(Possible) / Cases;
+	MinGain = AvGain * AvGainWt + MDL * MDLWt;
+
+	Verbosity(2,
+			fprintf(Of, "\tav gain=%.3f, MDL (%d) = %.3f, min=%.3f\n",
+				AvGain, Possible, MDL, MinGain))
+
+		/*  Find best attribute according to Gain Ratio criterion subject
+		    to threshold on minimum gain  */
+
+		// TODO Pranav: Set BestVal to -LargeVal to encourage it to be even negative.
+		BestVal = -Epsilon;
+	BestAtt = None;
+	ForEach(Att, 1, MaxAtt)
 	{
-	    Gain[Att] = None;
+		// Pranav: Dont introduce errors if all splits have gain < MinGain.
+		//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
+		if ( Info[Att] > 0 )
+		{
+			Val = Gain[Att] / Info[Att];
+			NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 :
+					SUBSET ? Subsets[Att] : MaxAttVal[Att] );
+
+			if ( Val > BestVal ||
+					Val > 0.999 * BestVal &&
+					( NBr < BestNBr ||
+					  NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) )
+			{
+				BestAtt = Att;
+				BestVal = Val;
+				BestNBr = NBr;
+			}
+		}
 	}
-    }
 
-    /*  Set threshold on minimum gain  */
-
-    if ( ! Possible ) return None;
-
-    AvGain /= Possible;
-    MDL     = Log(Possible) / Cases;
-    MinGain = AvGain * AvGainWt + MDL * MDLWt;
-
-    Verbosity(2,
-	fprintf(Of, "\tav gain=%.3f, MDL (%d) = %.3f, min=%.3f\n",
-		    AvGain, Possible, MDL, MinGain))
-
-    /*  Find best attribute according to Gain Ratio criterion subject
-	to threshold on minimum gain  */
-
-    // TODO Pranav: Set BestVal to -LargeVal to encourage it to be even negative.
-    BestVal = -Epsilon;
-    BestAtt = None;
-    ForEach(Att, 1, MaxAtt)
-    {
-	// Pranav: Dont introduce errors if all splits have gain < MinGain.
-	//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
-	if ( Info[Att] > 0 )
-	{
-	    Val = Gain[Att] / Info[Att];
-	    NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 :
-		    SUBSET ? Subsets[Att] : MaxAttVal[Att] );
-
-	    if ( Val > BestVal ||
-		 Val > 0.999 * BestVal &&
-		 ( NBr < BestNBr ||
-		   NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) )
-	    {
-		BestAtt = Att;
-		BestVal = Val;
-		BestNBr = NBr;
-	    }
-	}
-    }
-
-    return BestAtt;
+	return BestAtt;
 }
-#endif
+// #endif
 
 
 /*************************************************************************/
@@ -3467,110 +3361,85 @@ Attribute FindBestAtt(CaseCount Cases)
 /*	select att with maximum GR					 */
 /*								 	 */
 /*************************************************************************/
-
-
-Attribute FindBestAttNew(CaseCount Cases, Attribute upperBound, Attribute lowerBound)
-/*	  -----------  */
+Attribute FindBestAttNew(CaseCount Cases, Attribute upperBound, Attribute lowerBound) /*	  -----------  */
 {
-    double	BestVal, Val, MinGain=1E6, AvGain=0, MDL;
-    Attribute	Att, BestAtt, Possible=0;
-    DiscrValue	NBr, BestNBr=MaxDiscrVal+1;
+	// return FindBestAtt(Cases);
+	double	BestVal, Val, MinGain=1E6, AvGain=0, MDL;
+	Attribute	Att, BestAtt, Possible=0;
+	DiscrValue	NBr, BestNBr=MaxDiscrVal+1;
 
-    ForEach(Att, lowerBound, upperBound)
-    {
-	/*  Update the number of possible attributes for splitting and
-	    average gain (unless very many values)  */
-
-	// Pranav: consider the gain regardless of the value of Gain, MaxAttVal, etc.
-	if ( Gain[Att] >= Epsilon &&
-	     ( MultiVal || MaxAttVal[Att] < 0.3 * (MaxCase + 1) ) )
-	{
-	    Possible++;
-	    AvGain += Gain[Att];
+	// printf("** Setted Gains: \n");
+	ForEach(Att, lowerBound, upperBound) {
+		/*  Update the number of possible attributes for splitting and average gain (unless very many values)  */
+		// Pranav: consider the gain regardless of the value of Gain, MaxAttVal, etc.
+		// printf(" - [Att:%d Info:%lf Gain:%.3f]\n", Att, Info[Att], Gain[Att]);
+		if ( Gain[Att] >= Epsilon && ( MultiVal || MaxAttVal[Att] < 0.3 * (MaxCase + 1) ) ) {
+			Possible++;
+			AvGain += Gain[Att];
+		}
 	}
-    }
+	// printf("\n");
 
-    /*  Set threshold on minimum gain  */
+	/*  Set threshold on minimum gain  */
+	AvGain /= Possible;
+	MDL     = Log(Possible) / Cases;
+	MinGain = AvGain * AvGainWt + MDL * MDLWt;
 
-    AvGain /= Possible;
-    MDL     = Log(Possible) / Cases;
-    MinGain = AvGain * AvGainWt + MDL * MDLWt;
+	Verbosity(2, fprintf(Of, "\tav gain=%.3f, MDL (%d) = %.3f, min=%.3f\n", AvGain, Possible, MDL, MinGain))
 
-    Verbosity(2,
-	fprintf(Of, "\tav gain=%.3f, MDL (%d) = %.3f, min=%.3f\n",
-		    AvGain, Possible, MDL, MinGain))
+	/*  Find best attribute according to Gain Ratio criterion subject to threshold on minimum gain  */
+	BestVal = NegInfinity;
+	BestAtt = None;
 
-    /*  Find best attribute according to Gain Ratio criterion subject
-	to threshold on minimum gain  */
+	// ForEach(Att, 1, MaxAtt)
+	ForEach(Att, lowerBound, upperBound) {
+		if ( Skip(Att) || Att == ClassAtt ) { continue; }
+		// Pranav: Dont introduce errors if all splits have gain < MinGain.
+		//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
+		if ( Info[Att] > 0 ) {
+			Val = Gain[Att] / Info[Att];
+			NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 : SUBSET ? Subsets[Att] : MaxAttVal[Att] );
 
-    BestVal = NegInfinity;
-    BestAtt = None;
-
-    ForEach(Att, lowerBound, upperBound)
-    {
-	if ( Skip(Att) || Att == ClassAtt )
-	{
-	    continue;
-	}
-	// Pranav: Dont introduce errors if all splits have gain < MinGain.
-	//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
-	if ( Info[Att] > 0 )
-	{
-	    Val = Gain[Att] / Info[Att];
-	    NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 :
-		    SUBSET ? Subsets[Att] : MaxAttVal[Att] );
-
-	    if ( Val > BestVal ||
-	         (Val == BestVal && fabs(Bar[Att]) < fabs(Bar[BestAtt])) || 
-		  Val > 0.999 * BestVal &&
-		   ( NBr < BestNBr ||
-		      NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) ) 
-	    {
-
-		BestAtt = Att;
-		BestVal = Val;
-		BestNBr = NBr;
-	    }
-	    /*
-	    else if (Val == BestVal && fabs(Bar[Att]) < fabs(Bar[BestAtt]))
-	    {
-		BestAtt = Att;
-		BestVal = Val;
-		BestNBr = NBr;	
-	    }*/
-	}
-    }
-
-    if (BestAtt != None)
-        return BestAtt;
-
-    printf("Info is probably zero for all attributes\n");
-    BestVal = NegInfinity;
-    ForEach(Att, lowerBound, upperBound)
-    {
-	if ( Skip(Att) || Att == ClassAtt )
-	{
-	    continue;
+			if ( Val > BestVal ||
+					(Val == BestVal && fabs(Bar[Att]) < fabs(Bar[BestAtt])) || 
+					Val > 0.999 * BestVal &&
+					( NBr < BestNBr || NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) ) 
+			{
+				BestAtt = Att;
+				BestVal = Val;
+				BestNBr = NBr;
+			}
+			// printf(" oo> Att:%d Gain:%lf Nbr:%d [BestSet: %d, %lf, %d]\n", Att, Val, NBr, BestAtt, BestVal, BestNBr);
+		}
 	}
 
-	// Pranav: Dont introduce errors if all splits have gain < MinGain.
-	//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
-	    Val = Gain[Att] ;
-	    NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 :
-		    SUBSET ? Subsets[Att] : MaxAttVal[Att] );
+	if (BestAtt != None)
+		return BestAtt;
 
-	    if ( Val > BestVal ||
-		 Val > 0.999 * BestVal &&
-		 ( NBr < BestNBr ||
-		   NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) )
-	    {
-		BestAtt = Att;
-		BestVal = Val;
-		BestNBr = NBr;
-	    }
-    }
+	printf("Info is probably zero for all attributes\n");
+	pout = true;
+	// printf("     >>> BUG! BUG! BUG!");
+	// LOG();
+	BestVal = NegInfinity;
+	ForEach(Att, lowerBound, upperBound) {
+		if ( Skip(Att) || Att == ClassAtt ) { continue; }
+		// Pranav: Dont introduce errors if all splits have gain < MinGain.
+		//if ( Gain[Att] >= 0.999 * MinGain && Info[Att] > 0 )
+		Val = Gain[Att] ;
+		NBr = ( MaxAttVal[Att] <= 3 || Ordered(Att) ? 3 : SUBSET ? Subsets[Att] : MaxAttVal[Att] );
 
-    return BestAtt;
+		if ( Val > BestVal ||
+				Val > 0.999 * BestVal &&
+				( NBr < BestNBr || NBr == BestNBr && Gain[Att] > Gain[BestAtt] ) )
+		{
+			BestAtt = Att;
+			BestVal = Val;
+			BestNBr = NBr;
+		}
+		// printf("  --> Att:%d Gain:%lf Nbr:%d [BestSet: %d, %lf, %d]\n", Att, Val, NBr, BestAtt, BestVal, BestNBr);
+	}
+
+	return BestAtt;
 
 }
 
@@ -3584,50 +3453,50 @@ Attribute FindBestAttNew(CaseCount Cases, Attribute upperBound, Attribute lowerB
 
 
 void EvalDiscrSplit(Attribute Att, CaseCount Cases)
-/*   --------------  */
+	/*   --------------  */
 {
-    DiscrValue	v, NBr;
-
-    Gain[Att] = None;
-
-    if ( Skip(Att) || Att == ClassAtt ) return;
-
-    if ( Ordered(Att) )
-    {
-	EvalOrderedAtt(Att, Cases);
-	NBr = ( GEnv.ValFreq[1] > 0.5 ? 3 : 2 );
-    }
-    else
-    if ( SUBSET && MaxAttVal[Att] > 3 )
-    {
-	EvalSubset(Att, Cases);
-	NBr = Subsets[Att];
-    }
-    else
-    if ( ! Tested[Att] )
-    {
-	EvalDiscreteAtt(Att, Cases);
-
-	NBr = 0;
-	ForEach(v, 1, MaxAttVal[Att])
-	{
-	    if ( GEnv.ValFreq[v] > 0.5 ) NBr++;
-	}
-    }
-    else
-    {
-	NBr = 0;
-    }
-
-    /*  Check that this test will not give too many leaves  */
-
-    if ( NBr > MaxLeaves + 1 )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\t(cancelled -- %d leaves, max %d)\n", NBr, MaxLeaves))
+	DiscrValue	v, NBr;
 
 	Gain[Att] = None;
-    }
+
+	if ( Skip(Att) || Att == ClassAtt ) return;
+
+	if ( Ordered(Att) )
+	{
+		EvalOrderedAtt(Att, Cases);
+		NBr = ( GEnv.ValFreq[1] > 0.5 ? 3 : 2 );
+	}
+	else
+		if ( SUBSET && MaxAttVal[Att] > 3 )
+		{
+			EvalSubset(Att, Cases);
+			NBr = Subsets[Att];
+		}
+		else
+			if ( ! Tested[Att] )
+			{
+				EvalDiscreteAtt(Att, Cases);
+
+				NBr = 0;
+				ForEach(v, 1, MaxAttVal[Att])
+				{
+					if ( GEnv.ValFreq[v] > 0.5 ) NBr++;
+				}
+			}
+			else
+			{
+				NBr = 0;
+			}
+
+	/*  Check that this test will not give too many leaves  */
+
+	if ( NBr > MaxLeaves + 1 )
+	{
+		Verbosity(2,
+				fprintf(Of, "\t(cancelled -- %d leaves, max %d)\n", NBr, MaxLeaves))
+
+			Gain[Att] = None;
+	}
 }
 
 
@@ -3640,114 +3509,120 @@ void EvalDiscrSplit(Attribute Att, CaseCount Cases)
 
 
 void Divide(Tree T, CaseNo Fp, CaseNo Lp, int Level, Attribute upper, Attribute lower)
-/*   ------  */
+	/*   ------  */
 {
-    CaseNo	Bp, Ep, Missing, Cases, i;
-    CaseCount	KnownCases, MissingCases, BranchCases;
-    Attribute	Att;
-    double	Factor;
-    DiscrValue	v;
-    Boolean	PrevUnitWeights;
+	// for(int i = 0; i < Level; i++)
+	//		printf("     ");
+	// printf(" |-Divide() Tree:0x%08x Fp: %d, LP: %d, level: %d, upper: %d, lower: %d\n", (int)&T, Fp, Lp, Level, upper, lower);
+	// if (Level >= 8)
+	//	return;
+	// printf(" |-Divide() Fp: %d, LP: %d, level: %d, upper: %d, lower: %d\n", Fp, Lp, Level, upper, lower);
+	CaseNo	Bp, Ep, Missing, Cases, i;
+	CaseCount	KnownCases, MissingCases, BranchCases;
+	Attribute	Att;
+	double	Factor;
+	DiscrValue	v;
+	Boolean	PrevUnitWeights;
 
-    PrevUnitWeights = UnitWeights;
+	PrevUnitWeights = UnitWeights;
 
-    Att = T->Tested;
-    Missing = (Ep = Group(0, Fp, Lp, T)) - Fp + 1;
+	Att = T->Tested;
+	Missing = (Ep = Group(0, Fp, Lp, T)) - Fp + 1;
 
-    KnownCases = T->Cases - (MissingCases = CountCases(Fp, Ep));
+	KnownCases = T->Cases - (MissingCases = CountCases(Fp, Ep));
 
-    if ( Missing )
-    {
-	assert (false);
-
-	UnitWeights = false;
-
-	/*  If using costs, must adjust branch factors to undo effects of
-	    reweighting cases  */
-
-	if ( CostWeights )
+	if ( Missing )
 	{
-	    KnownCases = SumNocostWeights(Ep+1, Lp);
-	}
+		assert (false);
 
-	/*  If there are many cases with missing values and many branches,
-	    skip cases whose weight < 0.1  */
+		UnitWeights = false;
 
-	if ( (Cases = No(Fp,Lp)) > 1000 &&
-	     Missing > 0.5 * Cases &&
-	     T->Forks >= 10 )
-	{
-	    ForEach(i, Fp, Ep)
-	    {
-		if ( Weight(Case[i]) < 0.1 )
+		/*  If using costs, must adjust branch factors to undo effects of
+		    reweighting cases  */
+
+		if ( CostWeights )
 		{
-		    Missing--;
-		    MissingCases -= Weight(Case[i]);
-		    Swap(Fp, i);
-		    Fp++;
+			KnownCases = SumNocostWeights(Ep+1, Lp);
 		}
-	    }
 
-	    assert(Missing >= 0);
-	}
-    }
+		/*  If there are many cases with missing values and many branches,
+		    skip cases whose weight < 0.1  */
 
-    Bp = Fp;
-    ForEach(v, 1, T->Forks)
-    {
-	Ep = Group(v, Bp + Missing, Lp, T);
-
-	assert(Bp + Missing <= Lp+1 && Ep <= Lp);
-
-	/*  Bp -> first value in missing + remaining values
-	    Ep -> last value in missing + current group  */
-
-        /* Pranav: BranchCases counts the total number of points flowing to the particular branch under 
-	   consideration. It also counts the points participating in implications. */
-	BranchCases = CountCases(Bp + Missing, Ep);
-
-	Factor = ( ! Missing ? 0 :
-		   ! CostWeights ? BranchCases / KnownCases :
-		   SumNocostWeights(Bp + Missing, Ep) / KnownCases );
-
-	if ( BranchCases + Factor * MissingCases >= MinLeaf )
-	{
-	    if ( Missing )
-	    {
-		/*  Adjust weights of cases with missing values  */
-
-		ForEach(i, Bp, Bp + Missing - 1)
+		if ( (Cases = No(Fp,Lp)) > 1000 &&
+				Missing > 0.5 * Cases &&
+				T->Forks >= 10 )
 		{
-		    Weight(Case[i]) *= Factor;
+			ForEach(i, Fp, Ep)
+			{
+				if ( Weight(Case[i]) < 0.1 )
+				{
+					Missing--;
+					MissingCases -= Weight(Case[i]);
+					Swap(Fp, i);
+					Fp++;
+				}
+			}
+
+			assert(Missing >= 0);
 		}
-	    }
-
-	    FormTree(Bp, Ep, Level+1, &T->Branch[v], upper, lower);
-
-	    /*  Restore weights if changed  */
-
-	    if ( Missing )
-	    {
-		for ( i = Ep ; i >= Bp ; i-- )
-		{
-		    if ( Unknown(Case[i], Att) )
-		    {
-			Weight(Case[i]) /= Factor;
-			Swap(i, Ep);
-			Ep--;
-		    }
-		}
-	    }
-
-	    Bp = Ep+1;
 	}
-	else
+
+	Bp = Fp;
+	ForEach(v, 1, T->Forks)
 	{
-	    T->Branch[v] = Leaf(Nil, T->Leaf, 0.0, 0.0);
-	}
-    }
+		Ep = Group(v, Bp + Missing, Lp, T);
 
-    UnitWeights = PrevUnitWeights;
+		assert(Bp + Missing <= Lp+1 && Ep <= Lp);
+
+		/*  Bp -> first value in missing + remaining values
+		    Ep -> last value in missing + current group  */
+
+		/* Pranav: BranchCases counts the total number of points flowing to the particular branch under 
+		   consideration. It also counts the points participating in implications. */
+		BranchCases = CountCases(Bp + Missing, Ep);
+
+		Factor = ( ! Missing ? 0 :
+				! CostWeights ? BranchCases / KnownCases :
+				SumNocostWeights(Bp + Missing, Ep) / KnownCases );
+
+		if ( BranchCases + Factor * MissingCases >= MinLeaf )
+		{
+			if ( Missing )
+			{
+				/*  Adjust weights of cases with missing values  */
+
+				ForEach(i, Bp, Bp + Missing - 1)
+				{
+					Weight(Case[i]) *= Factor;
+				}
+			}
+
+			FormTree(Bp, Ep, Level+1, &T->Branch[v], upper, lower);
+
+			/*  Restore weights if changed  */
+
+			if ( Missing )
+			{
+				for ( i = Ep ; i >= Bp ; i-- )
+				{
+					if ( Unknown(Case[i], Att) )
+					{
+						Weight(Case[i]) /= Factor;
+						Swap(i, Ep);
+						Ep--;
+					}
+				}
+			}
+
+			Bp = Ep+1;
+		}
+		else
+		{
+			T->Branch[v] = Leaf(Nil, T->Leaf, 0.0, 0.0);
+		}
+	}
+
+	UnitWeights = PrevUnitWeights;
 }
 
 
@@ -3763,111 +3638,111 @@ void Divide(Tree T, CaseNo Fp, CaseNo Lp, int Level, Attribute upper, Attribute 
 
 
 CaseNo Group(DiscrValue V, CaseNo Bp, CaseNo Ep, Tree TestNode)
-/*     -----  */
+	/*     -----  */
 {
-    CaseNo	i;
-    Attribute	Att;
-    ContValue	Thresh;
-    Set		SS;
+	CaseNo	i;
+	Attribute	Att;
+	ContValue	Thresh;
+	Set		SS;
 
-    Att = TestNode->Tested;
+	Att = TestNode->Tested;
 
-    if ( ! V )
-    {
-	/*  Group together unknown values (if any)  */
-
-	if ( SomeMiss[Att] )
+	if ( ! V )
 	{
-	    //assert (false);
+		/*  Group together unknown values (if any)  */
 
-	    ForEach(i, Bp, Ep)
-	    {
-		if ( Unknown(Case[i], Att) )
+		if ( SomeMiss[Att] )
 		{
-		    Swap(Bp, i);
-		    Bp++;
+			//assert (false);
+
+			ForEach(i, Bp, Ep)
+			{
+				if ( Unknown(Case[i], Att) )
+				{
+					Swap(Bp, i);
+					Bp++;
+				}
+			}
 		}
-	    }
 	}
-    }
-    else				/* skip non-existant N/A values */
-    if ( V != 1 || TestNode->NodeType == BrSubset || SomeNA[Att] )
-    {
-	/*  Group cases on the value of attribute Att, and depending
-	    on the type of branch  */
-
-	switch ( TestNode->NodeType )
-	{
-	    case BrDiscr:
-
-		assert (false);	
-
-		ForEach(i, Bp, Ep)
+	else				/* skip non-existant N/A values */
+		if ( V != 1 || TestNode->NodeType == BrSubset || SomeNA[Att] )
 		{
-		    if ( DVal(Case[i], Att) == V )
-		    {
-			Swap(Bp, i);
-			Bp++;
-		    }
+			/*  Group cases on the value of attribute Att, and depending
+			    on the type of branch  */
+
+			switch ( TestNode->NodeType )
+			{
+				case BrDiscr:
+
+					assert (false);	
+
+					ForEach(i, Bp, Ep)
+					{
+						if ( DVal(Case[i], Att) == V )
+						{
+							Swap(Bp, i);
+							Bp++;
+						}
+					}
+					break;
+
+				case BrThresh:
+
+					Thresh = TestNode->Cut;
+
+					// Daniel: Also swap the implications
+					struct array * permutation = new_array(MaxCase+1);
+					int tmp = 0;
+					for(; tmp <= MaxCase; tmp++) {
+						permutation->entries[tmp] = tmp;
+					}
+
+					ForEach(i, Bp, Ep)
+					{
+						if ( V == 1 ? NotApplic(Case[i], Att) :
+								(CVal(Case[i], Att) <= Thresh) == (V == 2) )
+						{
+							SwapWithImplications(Bp, i);
+
+							// Daniel: Swap entries
+							tmp = permutation->entries[Bp]; 
+							permutation->entries[Bp] = permutation->entries[i];
+							permutation->entries[i] = tmp;
+
+							Bp++;
+						}
+					}
+
+					// Daniel: Swap and clean up
+					struct array * inverse_permutation = array_invert(permutation); 
+					struct cmap * renamed_implications = cmap_copy_and_rename(Implications, inverse_permutation);
+					delete_cmap(Implications);
+					Implications = renamed_implications;
+					renamed_implications = NULL;
+					delete_array(permutation);
+					delete_array(inverse_permutation);
+
+					break;
+
+				case BrSubset:
+
+					assert (false);	
+
+					SS = TestNode->Subset[V];
+					ForEach(i, Bp, Ep)
+					{
+						if ( In(XDVal(Case[i], Att), SS) )
+						{
+							Swap(Bp, i);
+							Bp++;
+						}
+					}
+					break;
+			}
 		}
-		break;
 
-	    case BrThresh:
-
-		Thresh = TestNode->Cut;
-
-		// Daniel: Also swap the implications
-		struct array * permutation = new_array(MaxCase+1);
-		int tmp = 0;
-		for(; tmp <= MaxCase; tmp++) {
-			permutation->entries[tmp] = tmp;
-		}
-
-		ForEach(i, Bp, Ep)
-		{
-		    if ( V == 1 ? NotApplic(Case[i], Att) :
-			 (CVal(Case[i], Att) <= Thresh) == (V == 2) )
-		    {
-			SwapWithImplications(Bp, i);
-
-			// Daniel: Swap entries
-			tmp = permutation->entries[Bp]; 
-			permutation->entries[Bp] = permutation->entries[i];
-			permutation->entries[i] = tmp;
-
-			Bp++;
-		    }
-		}
-
-		// Daniel: Swap and clean up
-	        struct array * inverse_permutation = array_invert(permutation); 
-		struct cmap * renamed_implications = cmap_copy_and_rename(Implications, inverse_permutation);
-		delete_cmap(Implications);
-		Implications = renamed_implications;
-		renamed_implications = NULL;
-		delete_array(permutation);
-		delete_array(inverse_permutation);
-
-		break;
-
-	    case BrSubset:
-
-		assert (false);	
-
-		SS = TestNode->Subset[V];
-		ForEach(i, Bp, Ep)
-		{
-		    if ( In(XDVal(Case[i], Att), SS) )
-		    {
-			Swap(Bp, i);
-			Bp++;
-		    }
-		}
-		break;
-	}
-    }
-
-    return Bp - 1;
+	return Bp - 1;
 }
 
 
@@ -3880,19 +3755,19 @@ CaseNo Group(DiscrValue V, CaseNo Bp, CaseNo Ep, Tree TestNode)
 
 
 CaseCount SumWeights(CaseNo Fp, CaseNo Lp)
-/*        ----------  */
+	/*        ----------  */
 {
-    double	Sum=0.0;
-    CaseNo	i;
+	double	Sum=0.0;
+	CaseNo	i;
 
-    assert(Fp >= 0 && Lp >= Fp-1 && Lp <= MaxCase);
+	assert(Fp >= 0 && Lp >= Fp-1 && Lp <= MaxCase);
 
-    ForEach(i, Fp, Lp)
-    {
-	Sum += Weight(Case[i]);
-    }
+	ForEach(i, Fp, Lp)
+	{
+		Sum += Weight(Case[i]);
+	}
 
-    return Sum;
+	return Sum;
 }
 
 
@@ -3905,19 +3780,19 @@ CaseCount SumWeights(CaseNo Fp, CaseNo Lp)
 
 
 CaseCount SumNocostWeights(CaseNo Fp, CaseNo Lp)
-/*        ----------------  */
+	/*        ----------------  */
 {
-    double	Sum=0.0;
-    CaseNo	i;
+	double	Sum=0.0;
+	CaseNo	i;
 
-    assert(Fp >= 0 && Lp >= Fp-1 && Lp <= MaxCase);
+	assert(Fp >= 0 && Lp >= Fp-1 && Lp <= MaxCase);
 
-    ForEach(i, Fp, Lp)
-    {
-	Sum += Weight(Case[i]) / WeightMul[Class(Case[i])];
-    }
+	ForEach(i, Fp, Lp)
+	{
+		Sum += Weight(Case[i]) / WeightMul[Class(Case[i])];
+	}
 
-    return Sum;
+	return Sum;
 }
 
 
@@ -3930,24 +3805,24 @@ CaseCount SumNocostWeights(CaseNo Fp, CaseNo Lp)
 
 
 void FindClassFreq(double *CF, CaseNo Fp, CaseNo Lp)
-/*   -------------  */
+	/*   -------------  */
 {
-    ClassNo	c;
-    CaseNo	i;
+	ClassNo	c;
+	CaseNo	i;
 
-    assert(Fp >= 0 && Lp >= Fp && Lp <= MaxCase);
+	assert(Fp >= 0 && Lp >= Fp && Lp <= MaxCase);
 
-    ForEach(c, 0, MaxClass)
-    {
-	CF[c] = 0;
-    }
+	ForEach(c, 0, MaxClass)
+	{
+		CF[c] = 0;
+	}
 
-    ForEach(i, Fp, Lp)
-    {
-	assert(Class(Case[i]) >= 1 && Class(Case[i]) <= MaxClass);
+	ForEach(i, Fp, Lp)
+	{
+		assert(Class(Case[i]) >= 1 && Class(Case[i]) <= MaxClass);
 
-	CF[ Class(Case[i]) ] += Weight(Case[i]);
-    }
+		CF[ Class(Case[i]) ] += Weight(Case[i]);
+	}
 }
 
 
@@ -3960,46 +3835,46 @@ void FindClassFreq(double *CF, CaseNo Fp, CaseNo Lp)
 
 
 void FindAllFreq(CaseNo Fp, CaseNo Lp)
-/*   -----------  */
+	/*   -----------  */
 {
-    ClassNo	c;
-    CaseNo	i;
-    Attribute	Att, a;
-    CaseCount	w;
-    int		x;
+	ClassNo	c;
+	CaseNo	i;
+	Attribute	Att, a;
+	CaseCount	w;
+	int		x;
 
-    /*  Zero all values  */
+	/*  Zero all values  */
 
-    ForEach(c, 0, MaxClass)
-    {
-	ClassFreq[c] = 0;
-    }
-
-    for ( a = 0 ; a < NDList ; a++ )
-    {
-		//assert (false);
-
-	Att = DList[a];
-	for ( x = MaxClass * (MaxAttVal[Att]+1) - 1 ; x >= 0 ; x-- )
+	ForEach(c, 0, MaxClass)
 	{
-	    DFreq[Att][x] = 0;
+		ClassFreq[c] = 0;
 	}
-    }
-
-    /*  Scan cases  */
-
-    ForEach(i, Fp, Lp)
-    {
-	ClassFreq[ (c=Class(Case[i])) ] += (w=Weight(Case[i]));
 
 	for ( a = 0 ; a < NDList ; a++ )
 	{
-    	    //assert (false);
+		//assert (false);
 
-	    Att = DList[a];
-	    DFreq[Att][ MaxClass * XDVal(Case[i], Att) + (c-1) ] += w;
+		Att = DList[a];
+		for ( x = MaxClass * (MaxAttVal[Att]+1) - 1 ; x >= 0 ; x-- )
+		{
+			DFreq[Att][x] = 0;
+		}
 	}
-    }
+
+	/*  Scan cases  */
+
+	ForEach(i, Fp, Lp)
+	{
+		ClassFreq[ (c=Class(Case[i])) ] += (w=Weight(Case[i]));
+
+		for ( a = 0 ; a < NDList ; a++ )
+		{
+			//assert (false);
+
+			Att = DList[a];
+			DFreq[Att][ MaxClass * XDVal(Case[i], Att) + (c-1) ] += w;
+		}
+	}
 }
 
 
@@ -4008,20 +3883,307 @@ void FindAllFreq(CaseNo Fp, CaseNo Lp)
 int assignClass(int caseNo, int classValue)
 {
 
-    assert (0 <= caseNo && caseNo <= MaxCase) ;
-    assert (1 <= classValue && classValue <= MaxClass) ;
+	assert (0 <= caseNo && caseNo <= MaxCase) ;
+	assert (1 <= classValue && classValue <= MaxClass) ;
 
-    assert (Class(Case[caseNo]) == 0 || Class(Case[caseNo]) == classValue);
-    assert (DVal(Case[caseNo], ClassAtt) == 0 || DVal(Case[caseNo], ClassAtt) == classValue);
+	assert (Class(Case[caseNo]) == 0 || Class(Case[caseNo]) == classValue);
+	assert (DVal(Case[caseNo], ClassAtt) == 0 || DVal(Case[caseNo], ClassAtt) == classValue);
 
-    Class(Case[caseNo]) = classValue ;
-    DVal(Case[caseNo], ClassAtt) = classValue ;
-   
-    return 1;
+	Class(Case[caseNo]) = classValue ;
+	DVal(Case[caseNo], ClassAtt) = classValue ;
+
+	return 1;
 }
 
 
 
+/*************************************************************************/
+/*									 */
+/*  Copyright 2010 Rulequest Research Pty Ltd.				 */
+/*									 */
+/*  This file is part of C5.0 GPL Edition, a single-threaded version	 */
+/*  of C5.0 release 2.07.						 */
+/*									 */
+/*  C5.0 GPL Edition is free software: you can redistribute it and/or	 */
+/*  modify it under the terms of the GNU General Public License as	 */
+/*  published by the Free Software Foundation, either version 3 of the	 */
+/*  License, or (at your option) any later version.			 */
+/*									 */
+/*  C5.0 GPL Edition is distributed in the hope that it will be useful,	 */
+/*  but WITHOUT ANY WARRANTY; without even the implied warranty of	 */
+/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU	 */
+/*  General Public License for more details.				 */
+/*									 */
+/*  You should have received a copy of the GNU General Public License	 */
+/*  (gpl.txt) along with C5.0 GPL Edition.  If not, see 		 */
+/*									 */
+/*      <http://www.gnu.org/licenses/>.					 */
+/*									 */
+/*************************************************************************/
+
+
+
+/*************************************************************************/
+/*									 */
+/*	Sorting utilities						 */
+/*	-----------------						 */
+/*									 */
+/*************************************************************************/
+
+
+
+#define SwapSRec(a,b)	{Xab=SRec[a]; SRec[a]=SRec[b]; SRec[b]=Xab;}
+
+#define SwapSRecWithImplications(a,b)	{Xab=SRec[a]; SRec[a]=SRec[b]; SRec[b]=Xab; \
+					 tmp = permutation->entries[a]; \
+					 permutation->entries[a] = permutation->entries[b]; \
+					 permutation->entries[b] = tmp; \
+					}
+
+#define	QuicksortSwapWithImplications(a,b) {\
+		DataRec xab;\
+		assert(a >= 0 && a <= MaxCase &&\
+		b >= 0 && b <= MaxCase);\
+		xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
+		tmp = permutation->entries[a]; \
+		permutation->entries[a] = permutation->entries[b]; \
+		permutation->entries[b] = tmp; \
+		}
+		
+/*************************************************************************/
+/*									 */
+/*	Sort elements Fp to Lp of SRec					 */
+/*									 */
+/*************************************************************************/
+
+
+void Cachesort(CaseNo Fp, CaseNo Lp, SortRec *SRec)
+/*   ---------  */
+{
+    CaseNo	i, Middle, High;
+    ContValue	Thresh, Val;
+    SortRec	Xab;
+
+
+    while ( Fp < Lp )
+    {
+	Thresh = SRec[(Fp+Lp) / 2].V;
+
+	/*  Divide elements into three groups:
+		Fp .. Middle-1: values < Thresh
+		Middle .. High: values = Thresh
+		High+1 .. Lp:   values > Thresh  */
+
+	for ( Middle = Fp ; SRec[Middle].V < Thresh ; Middle++ )
+	    ;
+
+	for ( High = Lp ; SRec[High].V > Thresh ; High-- )
+	    ;
+
+	for ( i = Middle ; i <= High ; )
+	{
+	    if ( (Val = SRec[i].V) < Thresh )
+	    {
+		SwapSRec(Middle, i);
+		Middle++;
+		i++;
+	    }
+	    else
+	    if ( Val > Thresh )
+	    {
+		SwapSRec(High, i);
+		High--;
+	    }
+	    else
+	    {
+		i++;
+	    }
+	}
+
+	/*  Sort the first group  */
+
+	Cachesort(Fp, Middle-1, SRec);
+
+	/*  Continue with the last group  */
+
+	Fp = High+1;
+    }
+}
+
+
+/*************************************************************************/
+/*									 */
+/*	Sort elements Fp to Lp of SRec; also record the permutation in	 */
+/*	the permutation array.						 */
+/*************************************************************************/
+
+
+void CachesortWithImplications(CaseNo Fp, CaseNo Lp, SortRec *SRec, 
+						struct array * permutation)
+/*   ---------  */
+{
+    CaseNo	i, Middle, High;
+    ContValue	Thresh, Val;
+    SortRec	Xab;
+    int 	tmp;
+
+    while ( Fp < Lp )
+    {
+	Thresh = SRec[(Fp+Lp) / 2].V;
+
+	/*  Divide elements into three groups:
+		Fp .. Middle-1: values < Thresh
+		Middle .. High: values = Thresh
+		High+1 .. Lp:   values > Thresh  */
+
+	for ( Middle = Fp ; SRec[Middle].V < Thresh ; Middle++ )
+	    ;
+
+	for ( High = Lp ; SRec[High].V > Thresh ; High-- )
+	    ;
+
+	for ( i = Middle ; i <= High ; )
+	{
+	    if ( (Val = SRec[i].V) < Thresh )
+	    {
+		SwapSRecWithImplications(Middle, i);
+		Middle++;
+		i++;
+	    }
+	    else
+	    if ( Val > Thresh )
+	    {
+		SwapSRecWithImplications(High, i);
+		High--;
+	    }
+	    else
+	    {
+		i++;
+	    }
+	}
+
+	/*  Sort the first group  */
+
+	CachesortWithImplications(Fp, Middle-1, SRec, permutation);
+
+	/*  Continue with the last group  */
+
+	Fp = High+1;
+    }
+}
+
+
+
+/*************************************************************************/
+/*									 */
+/*	Sort cases from Fp to Lp on attribute Att			 */
+/*									 */
+/*************************************************************************/
+
+
+void Quicksort(CaseNo Fp, CaseNo Lp, Attribute Att)
+/*   ---------  */
+{
+    CaseNo	i, Middle, High;
+    ContValue	Thresh, Val;
+
+    if ( Fp < Lp )
+    {
+	Thresh = CVal(Case[(Fp+Lp) / 2], Att);
+
+	/*  Divide cases into three groups:
+		Fp .. Middle-1: values < Thresh
+		Middle .. High: values = Thresh
+		High+1 .. Lp:   values > Thresh  */
+
+	for ( Middle = Fp ; CVal(Case[Middle], Att) < Thresh ; Middle++ )
+	    ;
+
+	for ( High = Lp ; CVal(Case[High], Att) > Thresh ; High-- )
+	    ;
+
+	for ( i = Middle ; i <= High ; )
+	{
+	    if ( (Val = CVal(Case[i], Att)) < Thresh )
+	    {
+		Swap(Middle, i);
+		Middle++;
+		i++;
+	    }
+	    else
+	    if ( Val > Thresh )
+	    {
+		Swap(High, i);
+		High--;
+	    }
+	    else
+	    {
+		i++;
+	    }
+	}
+
+	/*  Sort the first and third groups  */
+
+	Quicksort(Fp, Middle-1, Att);
+	Quicksort(High+1, Lp, Att);
+    }
+}
+
+
+/*************************************************************************/
+/*									 */
+/*	Sort cases from Fp to Lp on attribute Att			 */
+/*									 */
+/*************************************************************************/
+
+
+void QuicksortWithImplications(CaseNo Fp, CaseNo Lp, Attribute Att, struct array * permutation)
+/*   ---------  */
+{
+    CaseNo	i, Middle, High, tmp;
+    ContValue	Thresh, Val;
+
+    if ( Fp < Lp )
+    {
+	Thresh = CVal(Case[(Fp+Lp) / 2], Att);
+
+	/*  Divide cases into three groups:
+		Fp .. Middle-1: values < Thresh
+		Middle .. High: values = Thresh
+		High+1 .. Lp:   values > Thresh  */
+
+	for ( Middle = Fp ; CVal(Case[Middle], Att) < Thresh ; Middle++ )
+	    ;
+
+	for ( High = Lp ; CVal(Case[High], Att) > Thresh ; High-- )
+	    ;
+
+	for ( i = Middle ; i <= High ; )
+	{
+	    if ( (Val = CVal(Case[i], Att)) < Thresh )
+	    {
+		QuicksortSwapWithImplications(Middle, i);
+		Middle++;
+		i++;
+	    }
+	    else
+	    if ( Val > Thresh )
+	    {
+		QuicksortSwapWithImplications(High, i);
+		High--;
+	    }
+	    else
+	    {
+		i++;
+	    }
+	}
+
+	/*  Sort the first and third groups  */
+
+	QuicksortWithImplications(Fp, Middle-1, Att, permutation);
+	QuicksortWithImplications(High+1, Lp, Att, permutation);
+    }
+}
 /*************************************************************************/
 /*									 */
 /*  Copyright 2010 Rulequest Research Pty Ltd.				 */
@@ -4552,6 +4714,8 @@ void DiscreteTest(Tree Node, Attribute Att)
 
 #define IntrinsicValueImplications(n, T)  ( -(n/T)*Log( n/T ) )
 
+#define PLoc() do {printf("%d\n", __LINE__);}while(0)
+
 /*************************************************************************/
 /*								  	 */
 /*	Continuous attributes are treated as if they have possible	 */
@@ -4564,155 +4728,149 @@ void DiscreteTest(Tree Node, Attribute Att)
 
 
 void EvalContinuousAtt(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
+	/*   -----------------  */
 {
-    CaseNo	i, j, BestI, Tries=0;
-    double	LowInfo, LHInfo, LeastInfo=1E38,
+	// printf("EvalContinuousAtt -----> \n");
+	CaseNo	i, j, BestI, Tries=0;
+	double	LowInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain, BestInfo, ThreshCost=1;
-    ClassNo	c;
-    ContValue	Interval;
+	ClassNo	c;
+	ContValue	Interval;
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = None;
-    PrepareForContin(Att, Fp, Lp);
+		Gain[Att] = None;
+	PrepareForContin(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    GEnv.MinSplit = 0.10 * GEnv.KnownCases / MaxClass;
-    if ( GEnv.MinSplit > 25 ) GEnv.MinSplit = 25;
-    if ( GEnv.MinSplit < MINITEMS ) GEnv.MinSplit = MINITEMS;
-
-    /*	Find first possible cut point and initialise scan parameters  */
-
-    i = PrepareForScan(Lp);
-
-    /*  Repeatedly check next possible cut  */
-
-    for ( ; i <= GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	assert(c >= 1 && c <= MaxClass);
-
-	GEnv.LowCases   += w;
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-
-	GEnv.HighVal = GEnv.SRec[i+1].V;
-	if ( GEnv.HighVal > GEnv.LowVal )
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    Tries++;
+		Verbosity(2, fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n", AttName[Att]))
+			return;
+	}
 
-	    GEnv.LowClass  = GEnv.HighClass;
-	    GEnv.HighClass = GEnv.SRec[i+1].C;
-	    for ( j = i+2 ;
-		  GEnv.HighClass && j <= GEnv.Ep && GEnv.SRec[j].V == GEnv.HighVal ;
-		  j++ )
-	    {
-		if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
-	    }
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
+	GEnv.MinSplit = 0.10 * GEnv.KnownCases / MaxClass;
+	if ( GEnv.MinSplit > 25 ) GEnv.MinSplit = 25;
+	// if ( GEnv.MinSplit < MINITEMS ) GEnv.MinSplit = MINITEMS;
 
-	    if ( ! GEnv.LowClass || GEnv.LowClass != GEnv.HighClass || j > GEnv.Ep )
-	    {
-		LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+	/*	Find first possible cut point and initialise scan parameters  */
+	i = PrepareForScan(Lp);
+	/*  Repeatedly check next possible cut  */
+	for ( ; i <= GEnv.Ep ; i++ ) {
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		assert(c >= 1 && c <= MaxClass);
 
-		/*  If cannot improve on best so far, count remaining
-		    possible cuts and break  */
+		GEnv.LowCases   += w;
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
 
-		if ( LowInfo >= LeastInfo )
+		GEnv.HighVal = GEnv.SRec[i+1].V;
+		if ( GEnv.HighVal > GEnv.LowVal )
 		{
-		    for ( i++ ; i <= GEnv.Ep ; i++ )
-		    {
-			if ( GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+			Tries++;
+
+			GEnv.LowClass  = GEnv.HighClass;
+			GEnv.HighClass = GEnv.SRec[i+1].C;
+			for ( j = i+2 ;
+					GEnv.HighClass && j <= GEnv.Ep && GEnv.SRec[j].V == GEnv.HighVal ;
+					j++ )
 			{
-			    Tries++;
+				if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
 			}
-		    }
-		    break;
+
+			if ( ! GEnv.LowClass || GEnv.LowClass != GEnv.HighClass || j > GEnv.Ep )
+			{
+				LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+
+				/*  If cannot improve on best so far, count remaining
+				    possible cuts and break  */
+
+				if ( LowInfo >= LeastInfo )
+				{
+					for ( i++ ; i <= GEnv.Ep ; i++ )
+					{
+						if ( GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+						{
+							Tries++;
+						}
+					}
+					break;
+				}
+
+				LHInfo = LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass);
+				if ( LHInfo < LeastInfo )
+				{
+					LeastInfo = LHInfo;
+					BestI     = i;
+
+					BestInfo = (GEnv.FixedSplitInfo
+							+ PartInfo(GEnv.LowCases)
+							+ PartInfo(GEnv.ApplicCases - GEnv.LowCases))
+						/ GEnv.Cases;
+				}
+
+				Verbosity(3,
+						{
+						fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
+								(GEnv.LowVal + GEnv.HighVal) / 2,
+								(1 - GEnv.UnknownRate) *
+								(GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases));
+						PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+						})
+			}
+
+			GEnv.LowVal = GEnv.HighVal;
 		}
-
-		LHInfo = LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass);
-		if ( LHInfo < LeastInfo )
-		{
-		    LeastInfo = LHInfo;
-		    BestI     = i;
-
-		    BestInfo = (GEnv.FixedSplitInfo
-				+ PartInfo(GEnv.LowCases)
-				+ PartInfo(GEnv.ApplicCases - GEnv.LowCases))
-			       / GEnv.Cases;
-		}
-
-		Verbosity(3,
-		{
-		    fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
-			   (GEnv.LowVal + GEnv.HighVal) / 2,
-			   (1 - GEnv.UnknownRate) *
-			   (GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases));
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
-	    }
-
-	    GEnv.LowVal = GEnv.HighVal;
 	}
-    }
 
-    BestGain = (1 - GEnv.UnknownRate) *
-	       (GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo) / GEnv.KnownCases);
+	BestGain = (1 - GEnv.UnknownRate) *
+		(GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo) / GEnv.KnownCases);
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
 
-    if ( BestGain > 0 )
-    {
-	Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-		   (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		     / GEnv.Cases;
-    }
-
-    BestGain -= ThreshCost;
-
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
-
-    if ( BestGain <= 0 )
-    {
-	Verbosity(2, fprintf(Of, "\tAtt %s\tno gain\n", AttName[Att]))
-    }
-    else
-    {
-	Gain[Att] = BestGain;
-	Info[Att] = BestInfo;
-
-	GEnv.LowVal  = GEnv.SRec[BestI].V;
-	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-
-	/*  Set threshold, making sure that rounding problems do not
-	    cause it to reach upper value  */
-
-	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-	     >= GEnv.HighVal )
+	if ( BestGain > 0 )
 	{
-	    Bar[Att] = GEnv.LowVal;
+		Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+			(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+		ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+			/ GEnv.Cases;
 	}
 
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
-		   AttName[Att], Bar[Att], Info[Att], Gain[Att]))
-    }
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	if ( BestGain <= 0 )
+	{
+		Verbosity(2, fprintf(Of, "\tAtt %s\tno gain\n", AttName[Att]))
+	}
+	else
+	{
+		Gain[Att] = BestGain;
+		Info[Att] = BestInfo;
+
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+
+		/*  Set threshold, making sure that rounding problems do not
+		    cause it to reach upper value  */
+
+		if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+				>= GEnv.HighVal )
+		{
+			Bar[Att] = GEnv.LowVal;
+		}
+
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
+					AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+	}
 }
 
 /*************************************************************************/
@@ -4726,165 +4884,134 @@ void EvalContinuousAtt(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*	computing the entropy/gain for a particular cut			 */				
 /*				  	 				 */
 /*************************************************************************/
-
 // Pranav: Simplified the method-- sans optimizations
-void EvalContinuousAttAlg1(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
-{
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, LHInfo, LeastInfo=1E38,
+void EvalContinuousAttAlg1(Attribute Att, CaseNo Fp, CaseNo Lp) /*   -----------------  */ {
+	// printf("\n[%s] @%d Evaluate Continuous Attribute, from Case %d - %d ----------", AttName[Att], Att, Fp, Lp);
+	// printf("  init Info:%.3f Gain:%.3f]\n",  Info[Att], Gain[Att]);
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1;
-    ClassNo	c;
-    ContValue	Interval;
+	ClassNo	c;
+	ContValue	Interval;
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    PrepareForContinAlg1(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	PrepareForContinAlg1(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
-
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    /*  Pranav: We have to be wary of splitting a small number of cases off one end,
-	as this has little predictive power.  The minimum split GEnv.MinSplit is
-	the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
-	per class).
-	Set MinSplit to MINITEMS.  */
-
-    GEnv.MinSplit = MINITEMS;
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	// Pranav: Add to LowCases only those points whose class attribute is not zero!
-	if (c > 0)
-	{
-	    GEnv.LowCases   += w;
+	/*  Special case when very few known values  */
+	if ( GEnv.ApplicCases < 2 * MINITEMS ) {
+		Verbosity(2, fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n", AttName[Att]))
+			// printf("<<<<<<\n");
+		return;
 	}
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
 
-	//GEnv.HighVal = GEnv.SRec[i+1].V;
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
-	{
-	    Tries++;
-	    
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
 
-	    LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+	/*  Pranav: We have to be wary of splitting a small number of cases off one end,
+	    as this has little predictive power.  The minimum split GEnv.MinSplit is
+	    the maximum of MINITEMS or (the minimum of 25 and 10% of the cases per class).
+	    Set MinSplit to MINITEMS.  */
+	GEnv.MinSplit = MINITEMS;
 
-	    /*  If cannot improve on best so far, count remaining
-	        possible cuts and break  */
+	/*  Repeatedly check next possible cut  */
+	// printf(" in range: [%d~%d]\n", GEnv.Xp, GEnv.Ep);
+	// printf("  trying... ");
+	/* for (i = GEnv.Xp ; i <= GEnv.Ep ; i++ ) {
+		printf("  [%d]: %f,", i, GEnv.SRec[i].V);
+	}
+	printf("\n");
+	*/
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ ) {
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
 
-	    /* Cannot ascertain the corectness in the presence of UNKNOWNS, so ignore.
-	    if ( LowInfo >= LeastInfo )
-	    {
-	        for ( i++ ; i <= GEnv.Ep ; i++ )
-	        {
-	    	    if ( GEnv.SRec[i+1].V > GEnv.SRec[i].V )
-		    {
-		        Tries++;
-		    }
+		// Pranav: Add to LowCases only those points whose class attribute is not zero!
+		if (c > 0) {
+			GEnv.LowCases   += w;
 		}
-	        break;
-	    }*/
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
 
-	    LHInfo = LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass);
-	    if ( LHInfo < LeastInfo )
-	    {
-	        LeastInfo = LHInfo;
-	        BestI     = i;
+		//GEnv.HighVal = GEnv.SRec[i+1].V;
+		// printf("   > i:%d, GEnv.Ep:%d, GEnv.SRec[i].V: %f, GEnv.SRec[i+1].V: %f\n", i, GEnv.Ep, GEnv.SRec[i].V, GEnv.SRec[i+1].V);
+		// printf("   > i:%d, [i]: %f, [i+1].: %f\n", i, GEnv.SRec[i].V, GEnv.SRec[i+1].V);
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V ) {
+			Tries++;
 
-	        BestInfo = (GEnv.FixedSplitInfo
-	    		    + PartInfo(GEnv.LowCases)
-			    + PartInfo(GEnv.ApplicCases - GEnv.LowCases))
-			    / GEnv.Cases;
-	    }
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
 
-	    Verbosity(3,
-	    {
-	        fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
-	        	(GEnv.LowVal + GEnv.HighVal) / 2,
-			(1 - GEnv.UnknownRate) *
-			(GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases));
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
+			LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+
+			/*  If cannot improve on best so far, count remaining possible cuts and break  */
+			LHInfo = LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass);
+			if ( LHInfo < LeastInfo ) {
+				LeastInfo = LHInfo;
+				BestI     = i;
+				BestInfo = (GEnv.FixedSplitInfo + PartInfo(GEnv.LowCases) + PartInfo(GEnv.ApplicCases - GEnv.LowCases)) / GEnv.Cases;
+			}
+
+			// printf("   > %d > ==== Cut at %.3f  (gain %.3f):\n", i, (GEnv.LowVal + GEnv.HighVal) / 2, (1 - GEnv.UnknownRate) * (GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases));
+			Verbosity(3, {
+					fprintf(Of, "\t\tCut at %.3f  (gain %.3f):", (GEnv.LowVal + GEnv.HighVal) / 2,
+							(1 - GEnv.UnknownRate) *
+							(GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases));
+					PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+					})
+		}
 	}
-    }
 
-    if (BestI < 0)
-  	return;
-
-
-
-    BestGain = (1 - GEnv.UnknownRate) *
-	       (GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo) / GEnv.KnownCases);
-
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
-
-    if ( BestGain > 0 )
-    {
-	if ( BestI < GEnv.Ep )
-	{
-	    Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	    	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	    ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / GEnv.Cases;
-	}	
-	else
-	{
-	    ThreshCost = Log(Tries) / GEnv.Cases ;
+	if (BestI < 0) {
+		// printf(" <<<<<< !!!! BestI < 0 <>\n");
+		return;
 	}
-    }
 
-    BestGain -= ThreshCost;
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+	BestGain = (1 - GEnv.UnknownRate) * (GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo) / GEnv.KnownCases);
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
+	if ( BestGain > 0 ) {
+		if ( BestI < GEnv.Ep ) {
+			Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) / (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+			ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) ) / GEnv.Cases;
+		} else {
+			ThreshCost = Log(Tries) / GEnv.Cases ;
+		}
+	}
 
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
+	BestGain -= ThreshCost;
 
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
 
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
 
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+	if ( BestI < GEnv.Ep ) {
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	} else {
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
+	}
+
+	/*  Set threshold, making sure that rounding problems do not cause it to reach upper value  */
+#if USE_ENDPOINT
+	Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal));
+#else
+	/* use midpoint, and roundoff to integer avoid roundoff*/
+	Bar[Att] = (ContValue) (int) (0.5 * (GEnv.LowVal + GEnv.HighVal));
+#endif
+	 if (Bar[Att] >= GEnv.HighVal) {
+		Bar[Att] = GEnv.LowVal;
+	}
+
+	Verbosity(2, fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n", AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+		// printf(" <<< [Att:%d[%s] Info:%.3f Gain:%.3f]\n", Att, AttName[Att], Info[Att], Gain[Att]);
 }
 
 
@@ -4898,166 +5025,166 @@ void EvalContinuousAttAlg1(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*************************************************************************/
 
 void EvalContinuousAttAlg2(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
+	/*   -----------------  */
 {
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, LHInfo, LeastInfo=1E38,
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1, penalty = 0;
-    ClassNo	c;
-    ContValue	Interval;
-    int		numImplicationsCut = 0, totalImplications;
+	ClassNo	c;
+	ContValue	Interval;
+	int		numImplicationsCut = 0, totalImplications;
 
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    PrepareForContinAlg2(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	PrepareForContinAlg2(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    /* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
-    //totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);	
-    //printf("total Implications: %d\n", totalImplications);
-
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    /*  Pranav: We have to be wary of splitting a small number of cases off one end,
-	as this has little predictive power.  The minimum split GEnv.MinSplit is
-	the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
-	per class).
-	Set MinSplit to MINITEMS.  */
-
-    GEnv.MinSplit = MINITEMS;
-
-    /*	Find first possible cut point and initialise scan parameters  */
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	// Pranav: Add to LowCases only those points whose class attribute is not zero!
-	if (c > 0)
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    GEnv.LowCases   += w;
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
+					AttName[Att]))
+			return;
 	}
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
 
-	numImplicationsCut += numImplicationsCutAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
+	/* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
+	//totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);	
+	//printf("total Implications: %d\n", totalImplications);
 
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
+
+	/*  Pranav: We have to be wary of splitting a small number of cases off one end,
+	    as this has little predictive power.  The minimum split GEnv.MinSplit is
+	    the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
+	    per class).
+	    Set MinSplit to MINITEMS.  */
+
+	GEnv.MinSplit = MINITEMS;
+
+	/*	Find first possible cut point and initialise scan parameters  */
+
+	/*  Repeatedly check next possible cut  */
+
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
 	{
-	    //printf("numImplications cut = %d\n", numImplicationsCut);	
-	    Tries++;
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
 
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+		// Pranav: Add to LowCases only those points whose class attribute is not zero!
+		if (c > 0)
+		{
+			GEnv.LowCases   += w;
+		}
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+
+		numImplicationsCut += numImplicationsCutAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
+
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+		{
+			//printf("numImplications cut = %d\n", numImplicationsCut);	
+			Tries++;
+
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
 
 
-	    LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+			LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
 
-	    LHInfo = (LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass)) / GEnv.KnownCases;
+			LHInfo = (LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass)) / GEnv.KnownCases;
 
-	    /* Calculating the penalty depending upon the number of implications cut. */
-    	    //printf("number of Implications Cut: %d, Cases: %.3f\n", numImplicationsCut, GEnv.Cases);
-	    //penalty = Log(1 + numImplicationsCut) / GEnv.Cases;
-	    //penalty = numImplicationsCut / GEnv.Cases;
-	    penalty = (2 * numImplicationsCut) / (GEnv.Cases + 2 * numImplicationsCut);
+			/* Calculating the penalty depending upon the number of implications cut. */
+			//printf("number of Implications Cut: %d, Cases: %.3f\n", numImplicationsCut, GEnv.Cases);
+			//penalty = Log(1 + numImplicationsCut) / GEnv.Cases;
+			//penalty = numImplicationsCut / GEnv.Cases;
+			penalty = (2 * numImplicationsCut) / (GEnv.Cases + 2 * numImplicationsCut);
 
-	    LHInfo = LHInfo + 1 * penalty ;
-	
-	    if ( LHInfo < LeastInfo )
-	    {
-	        LeastInfo = LHInfo;
-	        BestI     = i;
+			LHInfo = LHInfo + 1 * penalty ;
 
-	        BestInfo = (GEnv.FixedSplitInfo
-	    		    + PartInfo(GEnv.LowCases)
-			    + PartInfo(GEnv.ApplicCases - GEnv.LowCases))
-			    / GEnv.Cases;
-	    }
+			if ( LHInfo < LeastInfo )
+			{
+				LeastInfo = LHInfo;
+				BestI     = i;
 
-	    Verbosity(3,
-	    {
-	        fprintf(Of, "\t\tCut at %.3f  (gain %.3f) (penalty %.3f):",
-	        	(GEnv.LowVal + GEnv.HighVal) / 2,
-			(1 - GEnv.UnknownRate) *
-			GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) , penalty);
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
+				BestInfo = (GEnv.FixedSplitInfo
+						+ PartInfo(GEnv.LowCases)
+						+ PartInfo(GEnv.ApplicCases - GEnv.LowCases))
+					/ GEnv.Cases;
+			}
+
+			Verbosity(3,
+					{
+					fprintf(Of, "\t\tCut at %.3f  (gain %.3f) (penalty %.3f):",
+							(GEnv.LowVal + GEnv.HighVal) / 2,
+							(1 - GEnv.UnknownRate) *
+							GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) , penalty);
+					PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+					})
+		}
 	}
-    }
 
-    if (BestI < 0)
-        return;
+	if (BestI < 0)
+		return;
 
 
-    BestGain = (1 - GEnv.UnknownRate) *
-	       (GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo)) ;
+	BestGain = (1 - GEnv.UnknownRate) *
+		(GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo)) ;
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
 
-    if ( BestGain > 0 )
-    {
+	if ( BestGain > 0 )
+	{
+		if ( BestI < GEnv.Ep )
+		{
+			Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+				(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+			ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+				/ GEnv.Cases;
+		}	
+		else
+		{
+			ThreshCost = Log(Tries) / GEnv.Cases ;
+		}
+	}
+
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
+
 	if ( BestI < GEnv.Ep )
 	{
-	    Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	    	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	    ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / GEnv.Cases;
-	}	
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	}
 	else
 	{
-	    ThreshCost = Log(Tries) / GEnv.Cases ;
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
 	}
-    }
 
-    BestGain -= ThreshCost;
+	/*  Set threshold, making sure that rounding problems do not
+	    cause it to reach upper value  */
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+			>= GEnv.HighVal )
+	{
+		Bar[Att] = GEnv.LowVal;
+	}
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
-
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
-
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
-
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
-
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f, penalty %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att], penalty))
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f, penalty %.3f\n",
+				AttName[Att], Bar[Att], Info[Att], Gain[Att], penalty))
 }
 
 
@@ -5072,180 +5199,180 @@ void EvalContinuousAttAlg2(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*************************************************************************/
 
 void EvalContinuousAttAlg6(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
+	/*   -----------------  */
 {
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, LHInfo, LeastInfo=1E38,
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1, penalty = 0;
-    ClassNo	c;
-    ContValue	Interval;
-    int		numImplicationsCut = 0, totalImplications;
-    int 	numImplicationsCutLeft2Right = 0, numImplicationsCutRight2Left = 0;
-    double	reductionL2R, reductionR2L;
+	ClassNo	c;
+	ContValue	Interval;
+	int		numImplicationsCut = 0, totalImplications;
+	int 	numImplicationsCutLeft2Right = 0, numImplicationsCutRight2Left = 0;
+	double	reductionL2R, reductionR2L;
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    PrepareForContinAlg2(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	PrepareForContinAlg2(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    /* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
-    //totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);	
-    //printf("total Implications: %d\n", totalImplications);
-
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    /*  Pranav: We have to be wary of splitting a small number of cases off one end,
-	as this has little predictive power.  The minimum split GEnv.MinSplit is
-	the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
-	per class).
-	Set MinSplit to MINITEMS.  */
-
-    GEnv.MinSplit = MINITEMS;
-
-    /*	Find first possible cut point and initialise scan parameters  */
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	// Pranav: Add to LowCases only those points whose class attribute is not zero!
-	if (c > 0)
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    GEnv.LowCases   += w;
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
+					AttName[Att]))
+			return;
 	}
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
 
-	numImplicationsCutAtLeftRightSep(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &numImplicationsCutLeft2Right, &numImplicationsCutRight2Left);
-
-	/*if (GEnv.SRec[i].V > 10 || GEnv.SRec[i].V < -10)
-		continue;
-	*/
+	/* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
+	//totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);	
+	//printf("total Implications: %d\n", totalImplications);
 
 
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
+
+	/*  Pranav: We have to be wary of splitting a small number of cases off one end,
+	    as this has little predictive power.  The minimum split GEnv.MinSplit is
+	    the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
+	    per class).
+	    Set MinSplit to MINITEMS.  */
+
+	GEnv.MinSplit = MINITEMS;
+
+	/*	Find first possible cut point and initialise scan parameters  */
+
+	/*  Repeatedly check next possible cut  */
+
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
 	{
-	    //printf("numImplications cut = %d\n", numImplicationsCut);	
-	    Tries++;
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
 
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+		// Pranav: Add to LowCases only those points whose class attribute is not zero!
+		if (c > 0)
+		{
+			GEnv.LowCases   += w;
+		}
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+
+		numImplicationsCutAtLeftRightSep(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &numImplicationsCutLeft2Right, &numImplicationsCutRight2Left);
+
+		/*if (GEnv.SRec[i].V > 10 || GEnv.SRec[i].V < -10)
+		  continue;
+		  */
 
 
-	    LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+		{
+			//printf("numImplications cut = %d\n", numImplicationsCut);	
+			Tries++;
 
-	    LHInfo = (LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass)) / GEnv.KnownCases;
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
 
-	    /* Calculating the penalty depending upon the number of implications cut. */
-    	    //printf("number of Implications Cut: %d, Cases: %.3f\n", numImplicationsCut, GEnv.Cases);
-	    //penalty = Log(1 + numImplicationsCut) / GEnv.Cases;
-	    //penalty = numImplicationsCut / GEnv.Cases;
 
-	    double nleft = GEnv.Freq[2][2] == 0 ? 0 : GEnv.Freq[2][2] / (GEnv.Freq[2][1] + GEnv.Freq[2][2]);
-	    double pleft = GEnv.Freq[2][1] == 0 ? 0 : GEnv.Freq[2][1] / (GEnv.Freq[2][1] + GEnv.Freq[2][2]);
-	    double nright = GEnv.Freq[3][2] == 0 ? 0 : GEnv.Freq[3][2] / (GEnv.Freq[3][1] + GEnv.Freq[3][2]);
-	    double pright = GEnv.Freq[3][1] == 0 ? 0 : GEnv.Freq[3][1] / (GEnv.Freq[3][1] + GEnv.Freq[3][2]);
+			LowInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass);
 
-	    penalty = (1 - nleft * pright) * numImplicationsCutLeft2Right + (1 - nright * pleft) * numImplicationsCutRight2Left;
-	    //penalty = penalty / GEnv.Cases;
-	    penalty = (2 * penalty) / (GEnv.Cases + 2 * (numImplicationsCutLeft2Right + numImplicationsCutRight2Left));
+			LHInfo = (LowInfo + TotalInfo(GEnv.Freq[3], 1, MaxClass)) / GEnv.KnownCases;
 
-	    LHInfo = LHInfo + 1 * penalty ;
-	
-	    if ( LHInfo < LeastInfo )
-	    {
-	        LeastInfo = LHInfo;
-	        BestI     = i;
+			/* Calculating the penalty depending upon the number of implications cut. */
+			//printf("number of Implications Cut: %d, Cases: %.3f\n", numImplicationsCut, GEnv.Cases);
+			//penalty = Log(1 + numImplicationsCut) / GEnv.Cases;
+			//penalty = numImplicationsCut / GEnv.Cases;
 
-	        BestInfo = (GEnv.FixedSplitInfo
-	    		    + PartInfo(GEnv.LowCases)
-			    + PartInfo(GEnv.ApplicCases - GEnv.LowCases))
-			    / GEnv.Cases;
-	    }
+			double nleft = GEnv.Freq[2][2] == 0 ? 0 : GEnv.Freq[2][2] / (GEnv.Freq[2][1] + GEnv.Freq[2][2]);
+			double pleft = GEnv.Freq[2][1] == 0 ? 0 : GEnv.Freq[2][1] / (GEnv.Freq[2][1] + GEnv.Freq[2][2]);
+			double nright = GEnv.Freq[3][2] == 0 ? 0 : GEnv.Freq[3][2] / (GEnv.Freq[3][1] + GEnv.Freq[3][2]);
+			double pright = GEnv.Freq[3][1] == 0 ? 0 : GEnv.Freq[3][1] / (GEnv.Freq[3][1] + GEnv.Freq[3][2]);
 
-	    Verbosity(3,
-	    {
-	        fprintf(Of, "\t\tCut at %.3f  (gain %.3f) (penalty %.3f):",
-	        	(GEnv.LowVal + GEnv.HighVal) / 2,
-			(1 - GEnv.UnknownRate) *
-			GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) , penalty);
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
+			penalty = (1 - nleft * pright) * numImplicationsCutLeft2Right + (1 - nright * pleft) * numImplicationsCutRight2Left;
+			//penalty = penalty / GEnv.Cases;
+			penalty = (2 * penalty) / (GEnv.Cases + 2 * (numImplicationsCutLeft2Right + numImplicationsCutRight2Left));
+
+			LHInfo = LHInfo + 1 * penalty ;
+
+			if ( LHInfo < LeastInfo )
+			{
+				LeastInfo = LHInfo;
+				BestI     = i;
+
+				BestInfo = (GEnv.FixedSplitInfo
+						+ PartInfo(GEnv.LowCases)
+						+ PartInfo(GEnv.ApplicCases - GEnv.LowCases))
+					/ GEnv.Cases;
+			}
+
+			Verbosity(3,
+					{
+					fprintf(Of, "\t\tCut at %.3f  (gain %.3f) (penalty %.3f):",
+							(GEnv.LowVal + GEnv.HighVal) / 2,
+							(1 - GEnv.UnknownRate) *
+							GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) , penalty);
+					PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+					})
+		}
 	}
-    }
 
-    if (BestI < 0)
-        return;
+	if (BestI < 0)
+		return;
 
 
-    BestGain = (1 - GEnv.UnknownRate) *
-	       (GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo)) ;
+	BestGain = (1 - GEnv.UnknownRate) *
+		(GEnv.BaseInfo - (GEnv.NAInfo + LeastInfo)) ;
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
 
-    if ( BestGain > 0 )
-    {
+	if ( BestGain > 0 )
+	{
+		if ( BestI < GEnv.Ep )
+		{
+			Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+				(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+			ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+				/ GEnv.Cases;
+		}	
+		else
+		{
+			ThreshCost = Log(Tries) / GEnv.Cases ;
+		}
+	}
+
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
+
 	if ( BestI < GEnv.Ep )
 	{
-	    Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	    	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	    ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / GEnv.Cases;
-	}	
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	}
 	else
 	{
-	    ThreshCost = Log(Tries) / GEnv.Cases ;
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
 	}
-    }
 
-    BestGain -= ThreshCost;
+	/*  Set threshold, making sure that rounding problems do not
+	    cause it to reach upper value  */
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+			>= GEnv.HighVal )
+	{
+		Bar[Att] = GEnv.LowVal;
+	}
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
-
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
-
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
-
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
-
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f, penalty %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att], penalty))
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f, penalty %.3f\n",
+				AttName[Att], Bar[Att], Info[Att], Gain[Att], penalty))
 }
 
 
@@ -5258,177 +5385,176 @@ void EvalContinuousAttAlg6(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*	sample directly. 						 */				
 /*				  	 				 */
 /*************************************************************************/
-
-void EvalContinuousAttAlg3(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
-{
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, HighInfo, LHInfo, LeastInfo=1E38,
+void EvalContinuousAttAlg3(Attribute Att, CaseNo Fp, CaseNo Lp) /*   -----------------  */ {
+	printf(" >>> [Att:%d[%s] Info:%.3f Gain:%.3f]", Att, AttName[Att], Info[Att], Gain[Att]);
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, HighInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1;
-    ClassNo	c;
-    ContValue	Interval;
-    double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
-    double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
-    int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
+	ClassNo	c;
+	ContValue	Interval;
+	double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
+	double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
+	int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
 					 right partition to the left*/
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    Info[Att] = 0;
-    PrepareForContinAlg3(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	Info[Att] = 0;
+	PrepareForContinAlg3(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    //printf("Info: %.3f\n", Info[Att]);
-
-    /* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
-    numImplicationsOnRight = totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
-    totalPoints = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * totalImplications;
-    GEnv.BaseInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], totalImplications);
-    //printf("total Implications: %f\n", totalImplications);
-
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    /*  Pranav: We have to be wary of splitting a small number of cases off one end,
-	as this has little predictive power.  The minimum split GEnv.MinSplit is
-	the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
-	per class).
-	Set MinSplit to MINITEMS.  */
-
-    GEnv.MinSplit = MINITEMS;
-
-    /*	Find first possible cut point and initialise scan parameters  */
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-
- 	processImplicationsAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &right2cut, &cut2left);
-	numImplicationsOnRight = numImplicationsOnRight - right2cut;
-	numImplicationsCut = numImplicationsCut + right2cut - cut2left;
-	numImplicationsOnLeft = numImplicationsOnLeft + cut2left;	
-
-	assert (numImplicationsOnRight + numImplicationsCut + numImplicationsOnLeft == totalImplications);
-
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    Tries++;
-
-	    /*if (GEnv.SRec[i].V < -10 || GEnv.SRec[i].V > 10)
-		    continue;
-*/
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
-
-	    // TODO: Find how many chains are there in our samples usually? Are we overcounting numImplications by too much!
-	
-	    numPointsOnLeft = GEnv.Freq[2][1] + GEnv.Freq[2][2] + 2 * numImplicationsOnLeft;
-	    numPointsOnRight = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * numImplicationsOnRight;
-
-	    LowInfo = ImplicationInfo(GEnv.Freq[2][1], GEnv.Freq[2][2], numImplicationsOnLeft);
-	    HighInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], numImplicationsOnRight);
-
-	    LHInfo = (numPointsOnLeft * LowInfo + numPointsOnRight * HighInfo) / ( numPointsOnLeft + numPointsOnRight ) ;
-
-	    if ( LHInfo < LeastInfo )
-	    {
-	        LeastInfo = LHInfo;
-	        BestI     = i;
-
-		BestInfo = IntrinsicValueImplications(numPointsOnLeft, totalPoints)
-				+ IntrinsicValueImplications(numPointsOnRight, totalPoints) ;
-	    }
-
-	    Verbosity(3,
-	    {
-	        fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
-	        	(GEnv.LowVal + GEnv.HighVal) / 2, GEnv.BaseInfo - LHInfo);
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
+					AttName[Att]))
+			return;
 	}
-    }
 
-    // No threshold set
-    if (BestI < 0)
-        return;
+	//printf("Info: %.3f\n", Info[Att]);
+
+	/* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
+	numImplicationsOnRight = totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
+	totalPoints = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * totalImplications;
+	GEnv.BaseInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], totalImplications);
+	//printf("total Implications: %f\n", totalImplications);
 
 
-    BestGain = GEnv.BaseInfo - LeastInfo ;
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
 
-    /*
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, baseInfo %.3f, leastInfo %.3f\n",
-    	   AttName[Att], Bar[Att], GEnv.BaseInfo, LeastInfo))
-    */
+	/*  Pranav: We have to be wary of splitting a small number of cases off one end,
+	    as this has little predictive power.  The minimum split GEnv.MinSplit is
+	    the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
+	    per class).
+	    Set MinSplit to MINITEMS.  */
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+	GEnv.MinSplit = MINITEMS;
 
-    if ( BestGain > 0 )
-    {
+	/*	Find first possible cut point and initialise scan parameters  */
+
+	/*  Repeatedly check next possible cut  */
+
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
+	{
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
+
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+
+		processImplicationsAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &right2cut, &cut2left);
+		numImplicationsOnRight = numImplicationsOnRight - right2cut;
+		numImplicationsCut = numImplicationsCut + right2cut - cut2left;
+		numImplicationsOnLeft = numImplicationsOnLeft + cut2left;	
+
+		assert (numImplicationsOnRight + numImplicationsCut + numImplicationsOnLeft == totalImplications);
+
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+		{
+			Tries++;
+
+			/*if (GEnv.SRec[i].V < -10 || GEnv.SRec[i].V > 10)
+			  continue;
+			  */
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+
+			// TODO: Find how many chains are there in our samples usually? Are we overcounting numImplications by too much!
+
+			numPointsOnLeft = GEnv.Freq[2][1] + GEnv.Freq[2][2] + 2 * numImplicationsOnLeft;
+			numPointsOnRight = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * numImplicationsOnRight;
+
+			LowInfo = ImplicationInfo(GEnv.Freq[2][1], GEnv.Freq[2][2], numImplicationsOnLeft);
+			HighInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], numImplicationsOnRight);
+
+			LHInfo = (numPointsOnLeft * LowInfo + numPointsOnRight * HighInfo) / ( numPointsOnLeft + numPointsOnRight ) ;
+
+			if ( LHInfo < LeastInfo )
+			{
+				LeastInfo = LHInfo;
+				BestI     = i;
+
+				BestInfo = IntrinsicValueImplications(numPointsOnLeft, totalPoints)
+					+ IntrinsicValueImplications(numPointsOnRight, totalPoints) ;
+			}
+
+			Verbosity(3,
+					{
+					fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
+							(GEnv.LowVal + GEnv.HighVal) / 2, GEnv.BaseInfo - LHInfo);
+					PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+					})
+		}
+	}
+
+	// No threshold set
+	if (BestI < 0)
+		return;
+
+
+	BestGain = GEnv.BaseInfo - LeastInfo ;
+
+	/*
+	   Verbosity(2,
+	   fprintf(Of, "\tAtt %s\tcut=%.3f, baseInfo %.3f, leastInfo %.3f\n",
+	   AttName[Att], Bar[Att], GEnv.BaseInfo, LeastInfo))
+	   */
+
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
+
+	if ( BestGain > 0 )
+	{
+		if ( BestI < GEnv.Ep )
+		{
+			Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+				(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+			ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+				/ totalPoints;
+		}	
+		else
+		{
+			ThreshCost = Log(Tries) / totalPoints ;
+		}
+	}
+
+	//TODO: check if this helps??
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
+
 	if ( BestI < GEnv.Ep )
 	{
-	    Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	    	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	    ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / totalPoints;
-	}	
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	}
 	else
 	{
-	    ThreshCost = Log(Tries) / totalPoints ;
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
 	}
-    }
 
-    //TODO: check if this helps??
-    BestGain -= ThreshCost;
+	/*  Set threshold, making sure that rounding problems do not
+	    cause it to reach upper value  */
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+			>= GEnv.HighVal )
+	{
+		Bar[Att] = GEnv.LowVal;
+	}
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
-
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
-
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
-
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
-
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
+				AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+		printf(" <<< [Att:%d[%s] Info:%.3f Gain:%.3f]", Att, AttName[Att], Info[Att], Gain[Att]);
 }
 
 
@@ -5445,231 +5571,231 @@ void EvalContinuousAttAlg3(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*************************************************************************/
 
 void EvalContinuousAttAlg4(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
+	/*   -----------------  */
 {
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, HighInfo, LHInfo, WeightedAvgInfo, LeastInfo=1E38,
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, HighInfo, LHInfo, WeightedAvgInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1, curBestGain;
-		
-    ClassNo	c;
-    ContValue	Interval;
-    double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
-    double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
-    int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
+
+	ClassNo	c;
+	ContValue	Interval;
+	double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
+	double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
+	int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
 					 right partition to the left*/
 
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    Info[Att] = 0;
-    PrepareForContinAlg3(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	Info[Att] = 0;
+	PrepareForContinAlg3(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    Tries++;
-
-	    int t = 0, r = 0, s = 0, w = 0;
-
-	    /* Compute number of implications of the different types. */
-	    int p, q;
-	    for(p = GEnv.Xp; p <= i; p++)
-	    {
-		struct array * rhs = cmap_get(GEnv.Implications, p);
-		for(q = 0; q < rhs->size; q++)
-		{
-		    /* Counting the implications completely on the lhs of the cut. */
-		    if( rhs->entries[q] >= GEnv.Xp && rhs->entries[q] <= i)
-			t++;
-
-		    /* Counting the implications from left to right across the cut. */
-		    else if( rhs->entries[q] > i && rhs->entries[q] <= GEnv.Ep)
-			r++;
-
-		}
-		delete_array(rhs);
-
-	     }
-
-	    for(p = i + 1; p <= GEnv.Ep; p++)
-	    {
-		struct array * rhs = cmap_get(GEnv.Implications, p);
-		for(q = 0; q < rhs->size; q++)
-		{
-		    /* Counting the implications from right to left across the cut. */
-		    if( rhs->entries[q] >= GEnv.Xp && rhs->entries[q] <= i)
-			s++;
-
-		    /* Counting the implications completely on the right of the cut. */
-		    else if( rhs->entries[q] > i && rhs->entries[q] <= GEnv.Ep)
-			w++;
-		}
-		delete_array(rhs);
-	     }
-
-	     curBestGain = NegInfinity;	     
-	     /* If var = 0, then the implication is (-,-). If var = 1, implication is (+,+). */
-	     /* a corresponds to type of implications completely on lhs of the cut. */
-	     /* b corresponds to implications from left to right of the cut. */
-	     /* c corresponds to implications from right to left of the cut. */
-	     /* d corresponds to type of implications completely on rhs of the cut. */
-	     int a, b, c, d;
-	     for(a = 0; a < 2; a++)
-	     {
-		 for(b = 0; b < 2; b++)
-		 {
-		     for(c = 0; c < 2; c++)
-		     {
-			for(d = 0; d < 2; d++)
-			{
-
-			    /* Computing frequencies of the positive and negative points on the lhs/rhs of the cut. */
-			    int curPl = GEnv.Freq[2][1];
-			    int curNl = GEnv.Freq[2][2];
-
-			    int curPr = GEnv.Freq[3][1];
-			    int curNr = GEnv.Freq[3][2];
-
-			    if(a == 0)
-			    {
-				curNl += 2 * t;
-			    }
-			    else
-			    { 
-				curPl += 2 * t;
-			    }
-
-
-			    if(b == 0)
-			    {
-				curNl += r;
-				curNr += r;
-			    }
-			    else
-			    { 
-				curPl += r;
-				curPr += r;
-			    }
-
-			    if(c == 0)
-			    {
-				curNl += s;
-				curNr += s;
-			    }
-			    else
-			    { 
-				curPl += s;
-				curPr += s;
-			    }
-
-			    if(d == 0)
-			    {
-				curNr += 2 * w;
-			    }
-			    else
-			    { 
-				curPr += 2 * w;
-			    }
-
-
-			    /* Computing the entropy for the particular choice of r,s,t,w. */
-	    		    LowInfo = ImplicationInfo(curPl, curNl, 0);
-	    		    HighInfo = ImplicationInfo(curPr, curNr, 0);
-			    totalPoints = curPl + curNl + curPr + curNr;
-
-	    		    WeightedAvgInfo = ((curPl + curNl) * LowInfo + (curPr + curNr) * HighInfo) / ( totalPoints ) ;
-			   
-			    if (WeightedAvgInfo < LeastInfo)
-			    { 
-			   	LeastInfo = WeightedAvgInfo; 
-				BestI = i;
-			        BestInfo = IntrinsicValueImplications((curPl + curNl), totalPoints) 
-		                                + IntrinsicValueImplications((curPr + curNr), totalPoints) ;
-			    }
-			}
-		    }
-	     	} 
-	     } 
-
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
-
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
+					AttName[Att]))
+			return;
 	}
-    }
 
-    // No threshold set
-    if (BestI < 0)
-        return;
+	/*  Repeatedly check next possible cut  */
 
-    BestGain = -1 * LeastInfo ;
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
+	{
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
 
-    if ( BestI < GEnv.Ep )
-    {
-     	Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	   	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / totalPoints;
-    }	
-    else
-    {
-    	ThreshCost = Log(Tries) / totalPoints ;
-    }
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+		{
+			Tries++;
 
-    BestGain -= ThreshCost;
+			int t = 0, r = 0, s = 0, w = 0;
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+			/* Compute number of implications of the different types. */
+			int p, q;
+			for(p = GEnv.Xp; p <= i; p++)
+			{
+				struct array * rhs = cmap_get(GEnv.Implications, p);
+				for(q = 0; q < rhs->size; q++)
+				{
+					/* Counting the implications completely on the lhs of the cut. */
+					if( rhs->entries[q] >= GEnv.Xp && rhs->entries[q] <= i)
+						t++;
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
+					/* Counting the implications from left to right across the cut. */
+					else if( rhs->entries[q] > i && rhs->entries[q] <= GEnv.Ep)
+						r++;
 
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
+				}
+				delete_array(rhs);
 
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
+			}
 
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
+			for(p = i + 1; p <= GEnv.Ep; p++)
+			{
+				struct array * rhs = cmap_get(GEnv.Implications, p);
+				for(q = 0; q < rhs->size; q++)
+				{
+					/* Counting the implications from right to left across the cut. */
+					if( rhs->entries[q] >= GEnv.Xp && rhs->entries[q] <= i)
+						s++;
 
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+					/* Counting the implications completely on the right of the cut. */
+					else if( rhs->entries[q] > i && rhs->entries[q] <= GEnv.Ep)
+						w++;
+				}
+				delete_array(rhs);
+			}
+
+			curBestGain = NegInfinity;	     
+			/* If var = 0, then the implication is (-,-). If var = 1, implication is (+,+). */
+			/* a corresponds to type of implications completely on lhs of the cut. */
+			/* b corresponds to implications from left to right of the cut. */
+			/* c corresponds to implications from right to left of the cut. */
+			/* d corresponds to type of implications completely on rhs of the cut. */
+			int a, b, c, d;
+			for(a = 0; a < 2; a++)
+			{
+				for(b = 0; b < 2; b++)
+				{
+					for(c = 0; c < 2; c++)
+					{
+						for(d = 0; d < 2; d++)
+						{
+
+							/* Computing frequencies of the positive and negative points on the lhs/rhs of the cut. */
+							int curPl = GEnv.Freq[2][1];
+							int curNl = GEnv.Freq[2][2];
+
+							int curPr = GEnv.Freq[3][1];
+							int curNr = GEnv.Freq[3][2];
+
+							if(a == 0)
+							{
+								curNl += 2 * t;
+							}
+							else
+							{ 
+								curPl += 2 * t;
+							}
+
+
+							if(b == 0)
+							{
+								curNl += r;
+								curNr += r;
+							}
+							else
+							{ 
+								curPl += r;
+								curPr += r;
+							}
+
+							if(c == 0)
+							{
+								curNl += s;
+								curNr += s;
+							}
+							else
+							{ 
+								curPl += s;
+								curPr += s;
+							}
+
+							if(d == 0)
+							{
+								curNr += 2 * w;
+							}
+							else
+							{ 
+								curPr += 2 * w;
+							}
+
+
+							/* Computing the entropy for the particular choice of r,s,t,w. */
+							LowInfo = ImplicationInfo(curPl, curNl, 0);
+							HighInfo = ImplicationInfo(curPr, curNr, 0);
+							totalPoints = curPl + curNl + curPr + curNr;
+
+							WeightedAvgInfo = ((curPl + curNl) * LowInfo + (curPr + curNr) * HighInfo) / ( totalPoints ) ;
+
+							if (WeightedAvgInfo < LeastInfo)
+							{ 
+								LeastInfo = WeightedAvgInfo; 
+								BestI = i;
+								BestInfo = IntrinsicValueImplications((curPl + curNl), totalPoints) 
+									+ IntrinsicValueImplications((curPr + curNr), totalPoints) ;
+							}
+						}
+					}
+				} 
+			} 
+
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+
+		}
+	}
+
+	// No threshold set
+	if (BestI < 0)
+		return;
+
+	BestGain = -1 * LeastInfo ;
+
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
+
+	if ( BestI < GEnv.Ep )
+	{
+		Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+			(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+		ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+			/ totalPoints;
+	}	
+	else
+	{
+		ThreshCost = Log(Tries) / totalPoints ;
+	}
+
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
+
+	if ( BestI < GEnv.Ep )
+	{
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	}
+	else
+	{
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
+	}
+
+	/*  Set threshold, making sure that rounding problems do not
+	    cause it to reach upper value  */
+
+	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+			>= GEnv.HighVal )
+	{
+		Bar[Att] = GEnv.LowVal;
+	}
+
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
+				AttName[Att], Bar[Att], Info[Att], Gain[Att]))
 }
 
 
@@ -5685,185 +5811,185 @@ void EvalContinuousAttAlg4(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*************************************************************************/
 
 void EvalContinuousAttAlg5(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -----------------  */
+	/*   -----------------  */
 {
-    CaseNo	i, j, BestI = -1, Tries=0;
-    double	LowInfo, HighInfo, LHInfo, LeastInfo=1E38,
+	CaseNo	i, j, BestI = -1, Tries=0;
+	double	LowInfo, HighInfo, LHInfo, LeastInfo=1E38,
 		w, BestGain=NegInfinity, BestInfo=1E38, ThreshCost=1;
-    ClassNo	c;
-    ContValue	Interval;
-    double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
-    double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
-    int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
+	ClassNo	c;
+	ContValue	Interval;
+	double	totalImplications = 0, numImplicationsOnLeft = 0, numImplicationsOnRight = 0, numImplicationsCut = 0;
+	double	numPointsOnLeft = 0, numPointsOnRight = 0, totalPoints = 0;
+	int 	right2cut, cut2left;  /* counters to track implications as they flow from the 
 					 right partition to the left*/
 	int numImplicationsCutAccordingToAlg2 = 0;
 
 
-    Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
+	Verbosity(3, fprintf(Of, "\tAtt %s\n", AttName[Att]))
 
-    Gain[Att] = NegInfinity;
-    Info[Att] = 0;
-    PrepareForContinAlg3(Att, Fp, Lp);
+		Gain[Att] = NegInfinity;
+	Info[Att] = 0;
+	PrepareForContinAlg3(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS )
-    {
-	Verbosity(2,
-	    fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
-			AttName[Att]))
-	return;
-    }
-
-    //printf("Info: %.3f\n", Info[Att]);
-
-    /* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
-    numImplicationsOnRight = totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
-    totalPoints = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * totalImplications;
-    GEnv.BaseInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], totalImplications);
-    //printf("total Implications: %f\n", totalImplications);
-
-
-    /*  Try possible cuts between cases i and i+1, and determine the
-	information and gain of the split in each case  */
-
-    /*  Pranav: We have to be wary of splitting a small number of cases off one end,
-	as this has little predictive power.  The minimum split GEnv.MinSplit is
-	the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
-	per class).
-	Set MinSplit to MINITEMS.  */
-
-    GEnv.MinSplit = MINITEMS;
-
-    /*	Find first possible cut point and initialise scan parameters  */
-
-    /*  Repeatedly check next possible cut  */
-
-    for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// Pranav: class attribute can be zero!
-	//assert(c >= 1 && c <= MaxClass);
-
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-
- 	processImplicationsAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &right2cut, &cut2left);
-	numImplicationsOnRight = numImplicationsOnRight - right2cut;
-	numImplicationsCut = numImplicationsCut + right2cut - cut2left;
-	numImplicationsOnLeft = numImplicationsOnLeft + cut2left;	
-
-	assert (numImplicationsOnRight + numImplicationsCut + numImplicationsOnLeft == totalImplications);
-
-	// Alg 2
-	numImplicationsCutAccordingToAlg2 += numImplicationsCutAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
-	// end
-
-	if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+	if ( GEnv.ApplicCases < 2 * MINITEMS )
 	{
-	    Tries++;
-
-	    /*if (GEnv.SRec[i].V < -10 || GEnv.SRec[i].V > 10)
-		    continue;
-*/
-	    GEnv.LowVal = GEnv.SRec[i].V;
-	    GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
-
-	    // TODO: Find how many chains are there in our samples usually? Are we overcounting numImplications by too much!
-	
-	    numPointsOnLeft = GEnv.Freq[2][1] + GEnv.Freq[2][2] + 2 * numImplicationsOnLeft;
-	    numPointsOnRight = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * numImplicationsOnRight;
-
-	    LowInfo = ImplicationInfo(GEnv.Freq[2][1], GEnv.Freq[2][2], numImplicationsOnLeft);
-	    HighInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], numImplicationsOnRight);
-
-	    LHInfo = (numPointsOnLeft * LowInfo + numPointsOnRight * HighInfo) / ( numPointsOnLeft + numPointsOnRight ) ;
-
-		// Add penalty according to Alg 2
-		LHInfo += 1 * (((double) numImplicationsCutAccordingToAlg2) / ((double) GEnv.Cases));
-		// End
-
-	    if ( LHInfo < LeastInfo )
-	    {
-	        LeastInfo = LHInfo;
-	        BestI     = i;
-
-		BestInfo = IntrinsicValueImplications(numPointsOnLeft, totalPoints)
-				+ IntrinsicValueImplications(numPointsOnRight, totalPoints) ;
-	    }
-
-	    Verbosity(3,
-	    {
-	        fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
-	        	(GEnv.LowVal + GEnv.HighVal) / 2, GEnv.BaseInfo - LHInfo);
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
+		Verbosity(2,
+				fprintf(Of, "\tAtt %s\tinsufficient cases with known values\n",
+					AttName[Att]))
+			return;
 	}
-    }
 
-    // No threshold set
-    if (BestI < 0)
-        return;
+	//printf("Info: %.3f\n", Info[Att]);
+
+	/* Find totalImplications that lie entirely between GEnv.Xp and GEnv.Ep */	
+	numImplicationsOnRight = totalImplications = computeTotalImplications(GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
+	totalPoints = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * totalImplications;
+	GEnv.BaseInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], totalImplications);
+	//printf("total Implications: %f\n", totalImplications);
 
 
-    BestGain = GEnv.BaseInfo - LeastInfo ;
+	/*  Try possible cuts between cases i and i+1, and determine the
+	    information and gain of the split in each case  */
 
-    /*
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, baseInfo %.3f, leastInfo %.3f\n",
-    	   AttName[Att], Bar[Att], GEnv.BaseInfo, LeastInfo))
-    */
+	/*  Pranav: We have to be wary of splitting a small number of cases off one end,
+	    as this has little predictive power.  The minimum split GEnv.MinSplit is
+	    the maximum of MINITEMS or (the minimum of 25 and 10% of the cases
+	    per class).
+	    Set MinSplit to MINITEMS.  */
 
-    /*  The threshold cost is the lesser of the cost of indicating the
-	cases to split between or the interval containing the split  */
+	GEnv.MinSplit = MINITEMS;
 
-    if ( BestGain > 0 )
-    {
+	/*	Find first possible cut point and initialise scan parameters  */
+
+	/*  Repeatedly check next possible cut  */
+
+	for (i = GEnv.Xp ; i < GEnv.Ep ; i++ )
+	{
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// Pranav: class attribute can be zero!
+		//assert(c >= 1 && c <= MaxClass);
+
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+
+		processImplicationsAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr, &right2cut, &cut2left);
+		numImplicationsOnRight = numImplicationsOnRight - right2cut;
+		numImplicationsCut = numImplicationsCut + right2cut - cut2left;
+		numImplicationsOnLeft = numImplicationsOnLeft + cut2left;	
+
+		assert (numImplicationsOnRight + numImplicationsCut + numImplicationsOnLeft == totalImplications);
+
+		// Alg 2
+		numImplicationsCutAccordingToAlg2 += numImplicationsCutAt(i, GEnv.Xp, GEnv.Ep, GEnv.Implications, GEnv.classAttr);
+		// end
+
+		if ( i == GEnv.Ep || GEnv.SRec[i+1].V > GEnv.SRec[i].V )
+		{
+			Tries++;
+
+			/*if (GEnv.SRec[i].V < -10 || GEnv.SRec[i].V > 10)
+			  continue;
+			  */
+			GEnv.LowVal = GEnv.SRec[i].V;
+			GEnv.HighVal = (i == GEnv.Ep) ? GEnv.LowVal : GEnv.SRec[i+1].V;
+
+			// TODO: Find how many chains are there in our samples usually? Are we overcounting numImplications by too much!
+
+			numPointsOnLeft = GEnv.Freq[2][1] + GEnv.Freq[2][2] + 2 * numImplicationsOnLeft;
+			numPointsOnRight = GEnv.Freq[3][1] + GEnv.Freq[3][2] + 2 * numImplicationsOnRight;
+
+			LowInfo = ImplicationInfo(GEnv.Freq[2][1], GEnv.Freq[2][2], numImplicationsOnLeft);
+			HighInfo = ImplicationInfo(GEnv.Freq[3][1], GEnv.Freq[3][2], numImplicationsOnRight);
+
+			LHInfo = (numPointsOnLeft * LowInfo + numPointsOnRight * HighInfo) / ( numPointsOnLeft + numPointsOnRight ) ;
+
+			// Add penalty according to Alg 2
+			LHInfo += 1 * (((double) numImplicationsCutAccordingToAlg2) / ((double) GEnv.Cases));
+			// End
+
+			if ( LHInfo < LeastInfo )
+			{
+				LeastInfo = LHInfo;
+				BestI     = i;
+
+				BestInfo = IntrinsicValueImplications(numPointsOnLeft, totalPoints)
+					+ IntrinsicValueImplications(numPointsOnRight, totalPoints) ;
+			}
+
+			Verbosity(3,
+					{
+					fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
+							(GEnv.LowVal + GEnv.HighVal) / 2, GEnv.BaseInfo - LHInfo);
+					PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+					})
+		}
+	}
+
+	// No threshold set
+	if (BestI < 0)
+		return;
+
+
+	BestGain = GEnv.BaseInfo - LeastInfo ;
+
+	/*
+	   Verbosity(2,
+	   fprintf(Of, "\tAtt %s\tcut=%.3f, baseInfo %.3f, leastInfo %.3f\n",
+	   AttName[Att], Bar[Att], GEnv.BaseInfo, LeastInfo))
+	   */
+
+	/*  The threshold cost is the lesser of the cost of indicating the
+	    cases to split between or the interval containing the split  */
+
+	if ( BestGain > 0 )
+	{
+		if ( BestI < GEnv.Ep )
+		{
+			Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
+				(GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
+			ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
+				/ totalPoints;
+		}	
+		else
+		{
+			ThreshCost = Log(Tries) / totalPoints ;
+		}
+	}
+
+	//TODO: check if this helps??
+	BestGain -= ThreshCost;
+
+	/*  If a test on the attribute is able to make a gain,
+	    set the best break point, gain and information  */
+
+	Gain[Att] = BestGain;
+	Info[Att] = BestInfo;
+
 	if ( BestI < GEnv.Ep )
 	{
-	    Interval = (GEnv.SRec[Lp].V - GEnv.SRec[GEnv.Xp].V) /
-	    	       (GEnv.SRec[BestI+1].V - GEnv.SRec[BestI].V);
-	    ThreshCost = ( Interval < Tries ? Log(Interval) : Log(Tries) )
-		         / totalPoints;
-	}	
+		GEnv.LowVal  = GEnv.SRec[BestI].V;
+		GEnv.HighVal = GEnv.SRec[BestI+1].V;
+	}
 	else
 	{
-	    ThreshCost = Log(Tries) / totalPoints ;
+		GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
 	}
-    }
 
-    //TODO: check if this helps??
-    BestGain -= ThreshCost;
+	/*  Set threshold, making sure that rounding problems do not
+	    cause it to reach upper value  */
 
-    /*  If a test on the attribute is able to make a gain,
-	set the best break point, gain and information  */
+	if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
+			>= GEnv.HighVal )
+	{
+		Bar[Att] = GEnv.LowVal;
+	}
 
-    Gain[Att] = BestGain;
-    Info[Att] = BestInfo;
-
-    if ( BestI < GEnv.Ep )
-    {
-        GEnv.LowVal  = GEnv.SRec[BestI].V;
-    	GEnv.HighVal = GEnv.SRec[BestI+1].V;
-    }
-    else
-    {
-        GEnv.LowVal  = GEnv.HighVal = GEnv.SRec[BestI].V;
-    }
-
-    /*  Set threshold, making sure that rounding problems do not
-    cause it to reach upper value  */
-
-    if ( (Bar[Att] = (ContValue) (0.5 * (GEnv.LowVal + GEnv.HighVal)))
-         >= GEnv.HighVal )
-    {
-        Bar[Att] = GEnv.LowVal;
-    }
-
-    Verbosity(2,
-        fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
-    	   AttName[Att], Bar[Att], Info[Att], Gain[Att]))
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s\tcut=%.3f, inf %.3f, gain %.3f\n",
+				AttName[Att], Bar[Att], Info[Att], Gain[Att]))
 }
 
 
@@ -5881,96 +6007,96 @@ void EvalContinuousAttAlg5(Attribute Att, CaseNo Fp, CaseNo Lp)
 
 
 void EstimateMaxGR(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   -------------  */
+	/*   -------------  */
 {
-    CaseNo	i, j;
-    double	LHInfo, w, SplitInfo, ThisGain, GR;
-    ClassNo	c;
+	CaseNo	i, j;
+	double	LHInfo, w, SplitInfo, ThisGain, GR;
+	ClassNo	c;
 
-    EstMaxGR[Att] = 0;
+	EstMaxGR[Att] = 0;
 
-    if ( Skip(Att) || Att == ClassAtt ) return;
+	if ( Skip(Att) || Att == ClassAtt ) return;
 
-    PrepareForContin(Att, Fp, Lp);
+	PrepareForContin(Att, Fp, Lp);
 
-    /*  Special case when very few known values  */
+	/*  Special case when very few known values  */
 
-    if ( GEnv.ApplicCases < 2 * MINITEMS * SampleFrac )
-    {
-	return;
-    }
-
-    /*  Try possible cuts between cases i and i+1.  Use conservative
-	value of GEnv.MinSplit to allow for sampling  */
-
-    GEnv.MinSplit = 0.10 * GEnv.KnownCases / MaxClass;
-    if ( GEnv.MinSplit > 25 ) GEnv.MinSplit = 25;
-    if ( GEnv.MinSplit < MINITEMS ) GEnv.MinSplit = MINITEMS;
-
-    GEnv.MinSplit *= SampleFrac * 0.33;
-
-    i = PrepareForScan(Lp);
-
-    /*  Repeatedly check next possible cut  */
-
-    for ( ; i <= GEnv.Ep ; i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	assert(c >= 1 && c <= MaxClass);
-
-	GEnv.LowCases   += w;
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-
-	GEnv.HighVal = GEnv.SRec[i+1].V;
-	if ( GEnv.HighVal > GEnv.LowVal )
+	if ( GEnv.ApplicCases < 2 * MINITEMS * SampleFrac )
 	{
-	    GEnv.LowClass  = GEnv.HighClass;
-	    GEnv.HighClass = GEnv.SRec[i+1].C;
-	    for ( j = i+2 ;
-		  GEnv.HighClass && j <= GEnv.Ep && GEnv.SRec[j].V == GEnv.HighVal ;
-		  j++ )
-	    {
-		if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
-	    }
-
-	    if ( ! GEnv.LowClass || GEnv.LowClass != GEnv.HighClass || j > GEnv.Ep )
-	    {
-		LHInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass)
-			 + TotalInfo(GEnv.Freq[3], 1, MaxClass);
-
-		SplitInfo = (GEnv.FixedSplitInfo
-			    + PartInfo(GEnv.LowCases)
-			    + PartInfo(GEnv.ApplicCases - GEnv.LowCases)) / GEnv.Cases;
-
-		ThisGain = (1 - GEnv.UnknownRate) *
-			   (GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases);
-		if ( ThisGain > Gain[Att] ) Gain[Att] = ThisGain;
-
-		/*  Adjust GR to make it more conservative upper bound  */
-
-		GR = (ThisGain + 1E-5) / SplitInfo;
-		if ( GR > EstMaxGR[Att] )
-		{
-		    EstMaxGR[Att] = GR;
-		}
-
-		Verbosity(3,
-		{
-		    fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
-			   (GEnv.LowVal + GEnv.HighVal) / 2, ThisGain);
-		    PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
-		})
-	    }
-
-	    GEnv.LowVal = GEnv.HighVal;
+		return;
 	}
-    }
 
-    Verbosity(2,
-	fprintf(Of, "\tAtt %s: max GR estimate %.3f\n",
-		    AttName[Att], EstMaxGR[Att]))
+	/*  Try possible cuts between cases i and i+1.  Use conservative
+	    value of GEnv.MinSplit to allow for sampling  */
+
+	GEnv.MinSplit = 0.10 * GEnv.KnownCases / MaxClass;
+	if ( GEnv.MinSplit > 25 ) GEnv.MinSplit = 25;
+	if ( GEnv.MinSplit < MINITEMS ) GEnv.MinSplit = MINITEMS;
+
+	GEnv.MinSplit *= SampleFrac * 0.33;
+
+	i = PrepareForScan(Lp);
+
+	/*  Repeatedly check next possible cut  */
+
+	for ( ; i <= GEnv.Ep ; i++ )
+	{
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		assert(c >= 1 && c <= MaxClass);
+
+		GEnv.LowCases   += w;
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+
+		GEnv.HighVal = GEnv.SRec[i+1].V;
+		if ( GEnv.HighVal > GEnv.LowVal )
+		{
+			GEnv.LowClass  = GEnv.HighClass;
+			GEnv.HighClass = GEnv.SRec[i+1].C;
+			for ( j = i+2 ;
+					GEnv.HighClass && j <= GEnv.Ep && GEnv.SRec[j].V == GEnv.HighVal ;
+					j++ )
+			{
+				if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
+			}
+
+			if ( ! GEnv.LowClass || GEnv.LowClass != GEnv.HighClass || j > GEnv.Ep )
+			{
+				LHInfo = TotalInfo(GEnv.Freq[2], 1, MaxClass)
+					+ TotalInfo(GEnv.Freq[3], 1, MaxClass);
+
+				SplitInfo = (GEnv.FixedSplitInfo
+						+ PartInfo(GEnv.LowCases)
+						+ PartInfo(GEnv.ApplicCases - GEnv.LowCases)) / GEnv.Cases;
+
+				ThisGain = (1 - GEnv.UnknownRate) *
+					(GEnv.BaseInfo - (GEnv.NAInfo + LHInfo) / GEnv.KnownCases);
+				if ( ThisGain > Gain[Att] ) Gain[Att] = ThisGain;
+
+				/*  Adjust GR to make it more conservative upper bound  */
+
+				GR = (ThisGain + 1E-5) / SplitInfo;
+				if ( GR > EstMaxGR[Att] )
+				{
+					EstMaxGR[Att] = GR;
+				}
+
+				Verbosity(3,
+						{
+						fprintf(Of, "\t\tCut at %.3f  (gain %.3f):",
+								(GEnv.LowVal + GEnv.HighVal) / 2, ThisGain);
+						PrintDistribution(Att, 2, 3, GEnv.Freq, GEnv.ValFreq, true);
+						})
+			}
+
+			GEnv.LowVal = GEnv.HighVal;
+		}
+	}
+
+	Verbosity(2,
+			fprintf(Of, "\tAtt %s: max GR estimate %.3f\n",
+				AttName[Att], EstMaxGR[Att]))
 }
 
 
@@ -5984,122 +6110,122 @@ void EstimateMaxGR(Attribute Att, CaseNo Fp, CaseNo Lp)
 
 
 void PrepareForContin(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   ----------------  */
+	/*   ----------------  */
 {
-    CaseNo	i;
-    ClassNo	c;
-    DiscrValue	v;
+	CaseNo	i;
+	ClassNo	c;
+	DiscrValue	v;
 
-    /*  Reset frequency tables  */
+	/*  Reset frequency tables  */
 
-    ForEach(v, 0, 3)
-    {
-	// Pranav: Set Freq also when c = 0
-	ForEach(c, 0, MaxClass)
+	ForEach(v, 0, 3)
 	{
-	    GEnv.Freq[v][c] = 0;
-	}
-	GEnv.ValFreq[v] = 0;
-    }
-
-    /*  Omit and count unknown and N/A values */
-
-    GEnv.Cases = 0;
-
-    if ( SomeMiss[Att] || SomeNA[Att] )
-    {
-	assert (false);
-
-	GEnv.Xp = Lp+1;
-
-	ForEach(i, Fp, Lp)
-	{
-	    assert(Class(Case[i]) >= 1 && Class(Case[i]) <= MaxClass);
-
-	    GEnv.Cases += Weight(Case[i]);
-
-	    if ( Unknown(Case[i], Att) )
-	    {
-		GEnv.Freq[ 0 ][ Class(Case[i]) ] += Weight(Case[i]);
-	    }
-	    else
-	    if ( NotApplic(Case[i], Att) )
-	    {
-		GEnv.Freq[ 1 ][ Class(Case[i]) ] += Weight(Case[i]);
-	    }
-	    else
-	    {
-		GEnv.Freq[ 3 ][ Class(Case[i]) ] += Weight(Case[i]);
-		GEnv.Xp--;
-		GEnv.SRec[GEnv.Xp].V = CVal(Case[i], Att);
-		GEnv.SRec[GEnv.Xp].W = Weight(Case[i]);
-		GEnv.SRec[GEnv.Xp].C = Class(Case[i]);
-	    }
+		// Pranav: Set Freq also when c = 0
+		ForEach(c, 0, MaxClass)
+		{
+			GEnv.Freq[v][c] = 0;
+		}
+		GEnv.ValFreq[v] = 0;
 	}
 
-	ForEach(c, 1, MaxClass)
+	/*  Omit and count unknown and N/A values */
+
+	GEnv.Cases = 0;
+
+	if ( SomeMiss[Att] || SomeNA[Att] )
 	{
-	    GEnv.ValFreq[0] += GEnv.Freq[0][c];
-	    GEnv.ValFreq[1] += GEnv.Freq[1][c];
+		assert (false);
+
+		GEnv.Xp = Lp+1;
+
+		ForEach(i, Fp, Lp)
+		{
+			assert(Class(Case[i]) >= 1 && Class(Case[i]) <= MaxClass);
+
+			GEnv.Cases += Weight(Case[i]);
+
+			if ( Unknown(Case[i], Att) )
+			{
+				GEnv.Freq[ 0 ][ Class(Case[i]) ] += Weight(Case[i]);
+			}
+			else
+				if ( NotApplic(Case[i], Att) )
+				{
+					GEnv.Freq[ 1 ][ Class(Case[i]) ] += Weight(Case[i]);
+				}
+				else
+				{
+					GEnv.Freq[ 3 ][ Class(Case[i]) ] += Weight(Case[i]);
+					GEnv.Xp--;
+					GEnv.SRec[GEnv.Xp].V = CVal(Case[i], Att);
+					GEnv.SRec[GEnv.Xp].W = Weight(Case[i]);
+					GEnv.SRec[GEnv.Xp].C = Class(Case[i]);
+				}
+		}
+
+		ForEach(c, 1, MaxClass)
+		{
+			GEnv.ValFreq[0] += GEnv.Freq[0][c];
+			GEnv.ValFreq[1] += GEnv.Freq[1][c];
+		}
+
+		GEnv.NAInfo = TotalInfo(GEnv.Freq[1], 1, MaxClass);
+		GEnv.FixedSplitInfo = PartInfo(GEnv.ValFreq[0]) + PartInfo(GEnv.ValFreq[1]);
+
+		Verbosity(3, PrintDistribution(Att, 0, 1, GEnv.Freq, GEnv.ValFreq, true))
+	}
+	else
+	{
+		GEnv.Xp = Fp;
+
+		ForEach(i, Fp, Lp)
+		{
+			GEnv.SRec[i].V = CVal(Case[i], Att);
+			GEnv.SRec[i].W = Weight(Case[i]);
+			GEnv.SRec[i].C = Class(Case[i]);
+
+			GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
+		}
+
+		ForEach(c, 1, MaxClass)
+		{
+			GEnv.Cases += GEnv.Freq[3][c];
+		}
+
+		GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
 	}
 
-	GEnv.NAInfo = TotalInfo(GEnv.Freq[1], 1, MaxClass);
-	GEnv.FixedSplitInfo = PartInfo(GEnv.ValFreq[0]) + PartInfo(GEnv.ValFreq[1]);
+	/*  GEnv.Cases is only capturing the number of cases who have known class 
+	    attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
 
-	Verbosity(3, PrintDistribution(Att, 0, 1, GEnv.Freq, GEnv.ValFreq, true))
-    }
-    else
-    {
-	GEnv.Xp = Fp;
+	GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
+	GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
 
-	ForEach(i, Fp, Lp)
+	GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
+
+	assert (GEnv.UnknownRate == 0);
+
+	Cachesort(GEnv.Xp, Lp, GEnv.SRec);
+
+	/*  If unknowns or using sampling, must recompute base information  */
+
+	if ( GEnv.ValFreq[0] > 0 || SampleFrac < 1 )
 	{
-	    GEnv.SRec[i].V = CVal(Case[i], Att);
-	    GEnv.SRec[i].W = Weight(Case[i]);
-	    GEnv.SRec[i].C = Class(Case[i]);
+		assert (false);
 
-	    GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
+		/*  Determine base information using GEnv.Freq[0] as temp buffer  */
+
+		ForEach(c, 1, MaxClass)
+		{
+			GEnv.Freq[0][c] = GEnv.Freq[1][c] + GEnv.Freq[3][c];
+		}
+
+		GEnv.BaseInfo = TotalInfo(GEnv.Freq[0], 1, MaxClass) / GEnv.KnownCases;
 	}
-
-	ForEach(c, 1, MaxClass)
+	else
 	{
-	    GEnv.Cases += GEnv.Freq[3][c];
+		GEnv.BaseInfo = GlobalBaseInfo;
 	}
-
-	GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
-    }
-
-    /*  GEnv.Cases is only capturing the number of cases who have known class 
-        attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
-
-    GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
-    GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
-
-    GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
-
-    assert (GEnv.UnknownRate == 0);
-
-    Cachesort(GEnv.Xp, Lp, GEnv.SRec);
-
-    /*  If unknowns or using sampling, must recompute base information  */
-
-    if ( GEnv.ValFreq[0] > 0 || SampleFrac < 1 )
-    {
-	assert (false);
-
-	/*  Determine base information using GEnv.Freq[0] as temp buffer  */
-
-	ForEach(c, 1, MaxClass)
-	{
-	    GEnv.Freq[0][c] = GEnv.Freq[1][c] + GEnv.Freq[3][c];
-	}
-
-	GEnv.BaseInfo = TotalInfo(GEnv.Freq[0], 1, MaxClass) / GEnv.KnownCases;
-    }
-    else
-    {
-	GEnv.BaseInfo = GlobalBaseInfo;
-    }
 }
 
 
@@ -6109,128 +6235,59 @@ void PrepareForContin(Attribute Att, CaseNo Fp, CaseNo Lp)
 /*	EvalContinuousAtt and EstimateMaxGR				 */
 /*								  	 */
 /*************************************************************************/
-
-
 void PrepareForContinAlg1(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   ----------------  */
+	/*   ----------------  */
 {
-    CaseNo	i;
-    ClassNo	c;
-    DiscrValue	v;
+	CaseNo	i;
+	ClassNo	c;
+	DiscrValue	v;
 
-    /*  Reset frequency tables  */
-
-    ForEach(v, 0, 3)
-    {
-	// Pranav: Set Freq also when c = 0
-	ForEach(c, 0, MaxClass)
-	{
-	    GEnv.Freq[v][c] = 0;
-	}
-	GEnv.ValFreq[v] = 0;
-    }
-
-    /*  Omit and count unknown and N/A values */
-
-    GEnv.Cases = 0;
-
-    if ( SomeMiss[Att] || SomeNA[Att] )
-    {
-	assert (false);
-
-	GEnv.Xp = Lp+1;
-
-	ForEach(i, Fp, Lp)
-	{
-	    assert(Class(Case[i]) >= 1 && Class(Case[i]) <= MaxClass);
-
-	    GEnv.Cases += Weight(Case[i]);
-
-	    if ( Unknown(Case[i], Att) )
-	    {
-		GEnv.Freq[ 0 ][ Class(Case[i]) ] += Weight(Case[i]);
-	    }
-	    else
-	    if ( NotApplic(Case[i], Att) )
-	    {
-		GEnv.Freq[ 1 ][ Class(Case[i]) ] += Weight(Case[i]);
-	    }
-	    else
-	    {
-		GEnv.Freq[ 3 ][ Class(Case[i]) ] += Weight(Case[i]);
-		GEnv.Xp--;
-		GEnv.SRec[GEnv.Xp].V = CVal(Case[i], Att);
-		GEnv.SRec[GEnv.Xp].W = Weight(Case[i]);
-		GEnv.SRec[GEnv.Xp].C = Class(Case[i]);
-	    }
+	/*  Reset frequency tables  */
+	ForEach(v, 0, 3) { // Pranav: Set Freq also when c = 0
+		ForEach(c, 0, MaxClass) {
+			GEnv.Freq[v][c] = 0;
+		}
+		GEnv.ValFreq[v] = 0;
 	}
 
-	ForEach(c, 1, MaxClass)
-	{
-	    GEnv.ValFreq[0] += GEnv.Freq[0][c];
-	    GEnv.ValFreq[1] += GEnv.Freq[1][c];
-	}
-
-	GEnv.NAInfo = TotalInfo(GEnv.Freq[1], 1, MaxClass);
-	GEnv.FixedSplitInfo = PartInfo(GEnv.ValFreq[0]) + PartInfo(GEnv.ValFreq[1]);
-
-	Verbosity(3, PrintDistribution(Att, 0, 1, GEnv.Freq, GEnv.ValFreq, true))
-    }
-    else
-    {
+	/*  Omit and count unknown and N/A values */
+	GEnv.Cases = 0;
 	GEnv.Xp = Fp;
 
-	ForEach(i, Fp, Lp)
-	{
-	    GEnv.SRec[i].V = CVal(Case[i], Att);
-	    GEnv.SRec[i].W = Weight(Case[i]);
-	    GEnv.SRec[i].C = Class(Case[i]);
+	
+	// printf("Attr [%s]: ", AttName[Att]);
+	// ForEach(i, Fp, Lp) {
+	// 	printf("[%d]:%f, ", i, CVal(Case[i], Att));
+	// }
+	printf("\n");
+	ForEach(i, Fp, Lp) {
+		GEnv.SRec[i].V = CVal(Case[i], Att);
+		GEnv.SRec[i].W = Weight(Case[i]);
+		GEnv.SRec[i].C = Class(Case[i]);
 
-	    GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
+		GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
 	}
 
-	ForEach(c, 1, MaxClass)
-	{
-	    GEnv.Cases += GEnv.Freq[3][c];
+	ForEach(c, 1, MaxClass) {
+		GEnv.Cases += GEnv.Freq[3][c];
 	}
 
 	GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
-    }
-        
-    GEnv.LowCases = 0;
-    GEnv.Ep = Lp ;
 
-    /*  GEnv.Cases is only capturing the number of cases who have known class 
-        attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
+	GEnv.LowCases = 0;
+	GEnv.Ep = Lp ;
 
-    GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
-    GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
+	/*  GEnv.Cases is only capturing the number of cases who have known class 
+	    attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
+	GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
+	GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
 
-    GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
+	GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
 
-    assert (GEnv.UnknownRate == 0);
+	assert (GEnv.UnknownRate == 0);
 
-    Cachesort(GEnv.Xp, Lp, GEnv.SRec);
-
-    /*  If unknowns or using sampling, must recompute base information  */
-
-    if ( GEnv.ValFreq[0] > 0 || SampleFrac < 1 )
-    {
-	assert (false);
-
-	/*  Determine base information using GEnv.Freq[0] as temp buffer  */
-
-	ForEach(c, 1, MaxClass)
-	{
-	    GEnv.Freq[0][c] = GEnv.Freq[1][c] + GEnv.Freq[3][c];
-	}
-
-	GEnv.BaseInfo = TotalInfo(GEnv.Freq[0], 1, MaxClass) / GEnv.KnownCases;
-    }
-    else
-    {
+	Cachesort(GEnv.Xp, Lp, GEnv.SRec);
 	GEnv.BaseInfo = GlobalBaseInfo;
-    }
 }
 
 
@@ -6243,117 +6300,117 @@ void PrepareForContinAlg1(Attribute Att, CaseNo Fp, CaseNo Lp)
 
 
 void PrepareForContinAlg2(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   ----------------  */
+	/*   ----------------  */
 {
-    CaseNo	i;
-    ClassNo	c;
-    DiscrValue	v;
+	CaseNo	i;
+	ClassNo	c;
+	DiscrValue	v;
 
-    /*  Reset frequency tables  */
+	/*  Reset frequency tables  */
 
-    ForEach(v, 0, 3)
-    {
-	// Pranav: Set Freq also when c = 0
-	ForEach(c, 0, MaxClass)
+	ForEach(v, 0, 3)
 	{
-	    GEnv.Freq[v][c] = 0;
+		// Pranav: Set Freq also when c = 0
+		ForEach(c, 0, MaxClass)
+		{
+			GEnv.Freq[v][c] = 0;
+		}
+		GEnv.ValFreq[v] = 0;
 	}
-	GEnv.ValFreq[v] = 0;
-    }
 
-    /*  Omit and count unknown and N/A values */
+	/*  Omit and count unknown and N/A values */
 
-    GEnv.Cases = 0;
-    GEnv.LowCases = 0;
+	GEnv.Cases = 0;
+	GEnv.LowCases = 0;
 
-    GEnv.Ep = Lp ;
-    GEnv.Xp = Fp;
+	GEnv.Ep = Lp ;
+	GEnv.Xp = Fp;
 
-    ForEach(i, Fp, Lp)
-    {
-        GEnv.SRec[i].V = CVal(Case[i], Att);
-        GEnv.SRec[i].W = Weight(Case[i]);
-        GEnv.SRec[i].C = Class(Case[i]);
-
-        GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
-    }
-
-    ForEach(c, 1, MaxClass)
-    {
-        GEnv.Cases += GEnv.Freq[3][c];
-    }
-
-
-    GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
-
-    /*  GEnv.Cases is only capturing the number of cases who have known class 
-        attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
-
-    GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
-    GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
-
-    GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
-
-    assert (GEnv.UnknownRate == 0);
-
-
-    // Initialize permutation array
-    ForEach(i, 0, MaxCase)
-    {
-        GEnv.permutation->entries[i] = i;
-    }
-
-    #if false
-    array_print(GEnv.permutation);
-    #endif
-
-    CachesortWithImplications(GEnv.Xp, Lp, GEnv.SRec, GEnv.permutation);
-    struct array * inverse_permutation = array_invert(GEnv.permutation);
-
-    delete_cmap(GEnv.Implications);
-    GEnv.Implications = cmap_copy_and_rename(Implications, inverse_permutation);
-
-    #if false
-    cmap_print(Implications);
-    array_print(GEnv.permutation);
-    array_print(inverse_permutation);
-    cmap_print(GEnv.Implications);
-    #endif
-
-    delete_array(inverse_permutation);
-
-    // Initialize classAttr array
-    ForEach(i, 0, MaxCase)
-    {
-	if (i >= Fp && i <= Lp)
+	ForEach(i, Fp, Lp)
 	{
-            GEnv.classAttr->entries[i] = GEnv.SRec[i].C;
+		GEnv.SRec[i].V = CVal(Case[i], Att);
+		GEnv.SRec[i].W = Weight(Case[i]);
+		GEnv.SRec[i].C = Class(Case[i]);
+
+		GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
 	}
-	else
-	{ 
-	    GEnv.classAttr->entries[i] = 0;
-	}
-    }
-
-    /*  If unknowns or using sampling, must recompute base information  */
-
-    if ( GEnv.ValFreq[0] > 0 || SampleFrac < 1 )
-    {
-	assert (false);
-
-	/*  Determine base information using GEnv.Freq[0] as temp buffer  */
 
 	ForEach(c, 1, MaxClass)
 	{
-	    GEnv.Freq[0][c] = GEnv.Freq[1][c] + GEnv.Freq[3][c];
+		GEnv.Cases += GEnv.Freq[3][c];
 	}
 
-	GEnv.BaseInfo = TotalInfo(GEnv.Freq[0], 1, MaxClass) / GEnv.KnownCases;
-    }
-    else
-    {
-	GEnv.BaseInfo = GlobalBaseInfo;
-    }
+
+	GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
+
+	/*  GEnv.Cases is only capturing the number of cases who have known class 
+	    attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
+
+	GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
+	GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
+
+	GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
+
+	assert (GEnv.UnknownRate == 0);
+
+
+	// Initialize permutation array
+	ForEach(i, 0, MaxCase)
+	{
+		GEnv.permutation->entries[i] = i;
+	}
+
+#if false
+	array_print(GEnv.permutation);
+#endif
+
+	CachesortWithImplications(GEnv.Xp, Lp, GEnv.SRec, GEnv.permutation);
+	struct array * inverse_permutation = array_invert(GEnv.permutation);
+
+	delete_cmap(GEnv.Implications);
+	GEnv.Implications = cmap_copy_and_rename(Implications, inverse_permutation);
+
+#if false
+	cmap_print(Implications);
+	array_print(GEnv.permutation);
+	array_print(inverse_permutation);
+	cmap_print(GEnv.Implications);
+#endif
+
+	delete_array(inverse_permutation);
+
+	// Initialize classAttr array
+	ForEach(i, 0, MaxCase)
+	{
+		if (i >= Fp && i <= Lp)
+		{
+			GEnv.classAttr->entries[i] = GEnv.SRec[i].C;
+		}
+		else
+		{ 
+			GEnv.classAttr->entries[i] = 0;
+		}
+	}
+
+	/*  If unknowns or using sampling, must recompute base information  */
+
+	if ( GEnv.ValFreq[0] > 0 || SampleFrac < 1 )
+	{
+		assert (false);
+
+		/*  Determine base information using GEnv.Freq[0] as temp buffer  */
+
+		ForEach(c, 1, MaxClass)
+		{
+			GEnv.Freq[0][c] = GEnv.Freq[1][c] + GEnv.Freq[3][c];
+		}
+
+		GEnv.BaseInfo = TotalInfo(GEnv.Freq[0], 1, MaxClass) / GEnv.KnownCases;
+	}
+	else
+	{
+		GEnv.BaseInfo = GlobalBaseInfo;
+	}
 }
 
 
@@ -6366,103 +6423,103 @@ void PrepareForContinAlg2(Attribute Att, CaseNo Fp, CaseNo Lp)
 
 
 void PrepareForContinAlg3(Attribute Att, CaseNo Fp, CaseNo Lp)
-/*   ----------------  */
+	/*   ----------------  */
 {
-    CaseNo	i;
-    ClassNo	c;
-    DiscrValue	v;
+	CaseNo	i;
+	ClassNo	c;
+	DiscrValue	v;
 
-    /*  Reset frequency tables  */
+	/*  Reset frequency tables  */
 
-    ForEach(v, 0, 3)
-    {
-	// Pranav: Set Freq also when c = 0
-	ForEach(c, 0, MaxClass)
+	ForEach(v, 0, 3)
 	{
-	    GEnv.Freq[v][c] = 0;
+		// Pranav: Set Freq also when c = 0
+		ForEach(c, 0, MaxClass)
+		{
+			GEnv.Freq[v][c] = 0;
+		}
+		GEnv.ValFreq[v] = 0;
 	}
-	GEnv.ValFreq[v] = 0;
-    }
 
-    /*  Omit and count unknown and N/A values */
+	/*  Omit and count unknown and N/A values */
 
-    GEnv.Cases = 0;
-    GEnv.LowCases = 0;
+	GEnv.Cases = 0;
+	GEnv.LowCases = 0;
 
-    GEnv.Ep = Lp ;
-    GEnv.Xp = Fp;
+	GEnv.Ep = Lp ;
+	GEnv.Xp = Fp;
 
-    ForEach(i, Fp, Lp)
-    {
-        GEnv.SRec[i].V = CVal(Case[i], Att);
-        GEnv.SRec[i].W = Weight(Case[i]);
-        GEnv.SRec[i].C = Class(Case[i]);
-
-        GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
-    }
-
-    ForEach(c, 1, MaxClass)
-    {
-        GEnv.Cases += GEnv.Freq[3][c];
-    }
-
-    GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
-
-    /*  GEnv.Cases is only capturing the number of cases who have known class 
-        attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
-
-    GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
-    GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
-
-    GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
-
-    assert (GEnv.UnknownRate == 0);
-
-
-    // Initialize permutation array
-    ForEach(i, 0, MaxCase)
-    {
-        GEnv.permutation->entries[i] = i;
-    }
-
-    #if false
-    array_print(GEnv.permutation);
-    #endif
-
-    CachesortWithImplications(GEnv.Xp, Lp, GEnv.SRec, GEnv.permutation);
-    struct array * inverse_permutation = array_invert(GEnv.permutation);
-
-    delete_cmap(GEnv.Implications);
-    GEnv.Implications = cmap_copy_and_rename(Implications, inverse_permutation);
-    
-
-    #if false
-    cmap_print(Implications);
-    array_print(GEnv.permutation);
-    array_print(inverse_permutation);
-    cmap_print(GEnv.Implications);
-    #endif
-
-    delete_array(inverse_permutation);
-    
-    // Initialize classAttr array
-    ForEach(i, 0, MaxCase)
-    {
-	if (i >= Fp && i <= Lp)
+	ForEach(i, Fp, Lp)
 	{
-            GEnv.classAttr->entries[i] = GEnv.SRec[i].C;
-	}
-	else
-	{ 
-	    GEnv.classAttr->entries[i] = 0;
-	}
-    }
-    #if false
-    array_print(GEnv.classAttr);
-    cmap_print(GEnv.Implications);
-    #endif
+		GEnv.SRec[i].V = CVal(Case[i], Att);
+		GEnv.SRec[i].W = Weight(Case[i]);
+		GEnv.SRec[i].C = Class(Case[i]);
 
-    GEnv.BaseInfo = 0;
+		GEnv.Freq[3][Class(Case[i])] += Weight(Case[i]);
+	}
+
+	ForEach(c, 1, MaxClass)
+	{
+		GEnv.Cases += GEnv.Freq[3][c];
+	}
+
+	GEnv.NAInfo = GEnv.FixedSplitInfo = 0;
+
+	/*  GEnv.Cases is only capturing the number of cases who have known class 
+	    attribute. Also GEnv.ValFreq[v] = 0 for all v.  */
+
+	GEnv.KnownCases  = GEnv.Cases - GEnv.ValFreq[0];
+	GEnv.ApplicCases = GEnv.KnownCases - GEnv.ValFreq[1];
+
+	GEnv.UnknownRate = 1.0 - GEnv.KnownCases / GEnv.Cases;
+
+	assert (GEnv.UnknownRate == 0);
+
+
+	// Initialize permutation array
+	ForEach(i, 0, MaxCase)
+	{
+		GEnv.permutation->entries[i] = i;
+	}
+
+#if false
+	array_print(GEnv.permutation);
+#endif
+
+	CachesortWithImplications(GEnv.Xp, Lp, GEnv.SRec, GEnv.permutation);
+	struct array * inverse_permutation = array_invert(GEnv.permutation);
+
+	delete_cmap(GEnv.Implications);
+	GEnv.Implications = cmap_copy_and_rename(Implications, inverse_permutation);
+
+
+#if false
+	cmap_print(Implications);
+	array_print(GEnv.permutation);
+	array_print(inverse_permutation);
+	cmap_print(GEnv.Implications);
+#endif
+
+	delete_array(inverse_permutation);
+
+	// Initialize classAttr array
+	ForEach(i, 0, MaxCase)
+	{
+		if (i >= Fp && i <= Lp)
+		{
+			GEnv.classAttr->entries[i] = GEnv.SRec[i].C;
+		}
+		else
+		{ 
+			GEnv.classAttr->entries[i] = 0;
+		}
+	}
+#if false
+	array_print(GEnv.classAttr);
+	cmap_print(GEnv.Implications);
+#endif
+
+	GEnv.BaseInfo = 0;
 }
 
 
@@ -6475,51 +6532,51 @@ void PrepareForContinAlg3(Attribute Att, CaseNo Fp, CaseNo Lp)
 
 
 CaseNo PrepareForScan(CaseNo Lp)
-/*     --------------  */
+	/*     --------------  */
 {
-    CaseNo	i, j;
-    ClassNo	c;
-    double	w;
+	CaseNo	i, j;
+	ClassNo	c;
+	double	w;
 
-    /*  Find last possible split  */
+	/*  Find last possible split  */
 
-    GEnv.HighCases = GEnv.LowCases = 0;
+	GEnv.HighCases = GEnv.LowCases = 0;
 
-    for ( GEnv.Ep = Lp ; GEnv.Ep >= GEnv.Xp && GEnv.HighCases < GEnv.MinSplit ; GEnv.Ep-- )
-    {
-	GEnv.HighCases += GEnv.SRec[GEnv.Ep].W;
-    }
+	for ( GEnv.Ep = Lp ; GEnv.Ep >= GEnv.Xp && GEnv.HighCases < GEnv.MinSplit ; GEnv.Ep-- )
+	{
+		GEnv.HighCases += GEnv.SRec[GEnv.Ep].W;
+	}
 
-    /*  Skip cases before first possible cut  */
+	/*  Skip cases before first possible cut  */
 
-    for ( i = GEnv.Xp ;
-	  i <= GEnv.Ep &&
-	  ( GEnv.LowCases + GEnv.SRec[i].W < GEnv.MinSplit - 1E-5 ||
-	    GEnv.SRec[i].V == GEnv.SRec[i+1].V ) ;
-	  i++ )
-    {
-	c = GEnv.SRec[i].C;
-	w = GEnv.SRec[i].W;
-	// assert(c >= 1 && c <= MaxClass);
+	for ( i = GEnv.Xp ;
+			i <= GEnv.Ep &&
+			( GEnv.LowCases + GEnv.SRec[i].W < GEnv.MinSplit - 1E-5 ||
+			  GEnv.SRec[i].V == GEnv.SRec[i+1].V ) ;
+			i++ )
+	{
+		c = GEnv.SRec[i].C;
+		w = GEnv.SRec[i].W;
+		// assert(c >= 1 && c <= MaxClass);
 
-	GEnv.LowCases   += w;
-	GEnv.Freq[2][c] += w;
-	GEnv.Freq[3][c] -= w;
-    }
+		GEnv.LowCases   += w;
+		GEnv.Freq[2][c] += w;
+		GEnv.Freq[3][c] -= w;
+	}
 
-    /*  Find the class key for the first interval  */
+	/*  Find the class key for the first interval  */
 
-    GEnv.HighClass = GEnv.SRec[i].C;
-    for ( j = i-1; GEnv.HighClass && j >= GEnv.Xp ; j-- )
-    {
-	if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
-    }
-    assert(GEnv.HighClass <= MaxClass);
-    assert(j+1 >= GEnv.Xp);
+	GEnv.HighClass = GEnv.SRec[i].C;
+	for ( j = i-1; GEnv.HighClass && j >= GEnv.Xp ; j-- )
+	{
+		if ( GEnv.SRec[j].C != GEnv.HighClass ) GEnv.HighClass = 0;
+	}
+	assert(GEnv.HighClass <= MaxClass);
+	assert(j+1 >= GEnv.Xp);
 
-    GEnv.LowVal = GEnv.SRec[i].V;
+	GEnv.LowVal = GEnv.SRec[i].V;
 
-    return i;
+	return i;
 }
 
 
@@ -6531,15 +6588,15 @@ CaseNo PrepareForScan(CaseNo Lp)
 
 
 void ContinTest(Tree Node, Attribute Att)
-/*   ----------  */
+	/*   ----------  */
 {
-    Sprout(Node, 3);
+	Sprout(Node, 3);
 
-    Node->NodeType = BrThresh;
-    Node->Tested   = Att;
-    Node->Cut 	   =
-    Node->Lower	   =
-    Node->Upper    = Bar[Att];
+	Node->NodeType = BrThresh;
+	Node->Tested   = Att;
+	Node->Cut 	   =
+		Node->Lower	   =
+		Node->Upper    = Bar[Att];
 }
 
 
@@ -6553,64 +6610,66 @@ void ContinTest(Tree Node, Attribute Att)
 
 
 void AdjustAllThresholds(Tree T)
-/*   -------------------  */
+	/*   -------------------  */
 {
-    Attribute	Att;
-    CaseNo	Ep;
+	Attribute	Att;
+	CaseNo	Ep;
 
-    ForEach(Att, 1, MaxAtt)
-    {
-	if ( Continuous(Att) )
+	ForEach(Att, 1, MaxAtt)
 	{
-	    Ep = -1;
-	    AdjustThresholds(T, Att, &Ep);
+		if ( Continuous(Att) )
+		{
+			Ep = -1;
+			AdjustThresholds(T, Att, &Ep);
+		}
 	}
-    }
 }
 
 
 
 void AdjustThresholds(Tree T, Attribute Att, CaseNo *Ep)
-/*   ----------------  */
+	/*   ----------------  */
 {
-    DiscrValue	v;
-    CaseNo	i;
+	DiscrValue	v;
+	CaseNo	i;
 
-    if ( T->NodeType == BrThresh && T->Tested == Att )
-    {
-	if ( *Ep == -1 )
+	if ( T->NodeType == BrThresh && T->Tested == Att )
 	{
-	    ForEach(i, 0, MaxCase)
-	    {
-		if ( ! Unknown(Case[i], Att) && ! NotApplic(Case[i], Att) )
+		if ( *Ep == -1 )
 		{
-		    (&GEnv)->SRec[++(*Ep)].V = CVal(Case[i], Att);
-		}
-	    }
-	    Cachesort(0, *Ep, (&GEnv)->SRec);
+			ForEach(i, 0, MaxCase)
+			{
+				if ( ! Unknown(Case[i], Att) && ! NotApplic(Case[i], Att) )
+				{
+					(&GEnv)->SRec[++(*Ep)].V = CVal(Case[i], Att);
+				}
+			}
+			Cachesort(0, *Ep, (&GEnv)->SRec);
 
-	    if ( PossibleCuts && Trial == 0 )
-	    {
-		int Cuts=0;
+			if ( PossibleCuts && Trial == 0 )
+			{
+				int Cuts=0;
 
-		ForEach(i, 1, *Ep)
-		{
-		    if ( (&GEnv)->SRec[i].V != (&GEnv)->SRec[i-1].V ) Cuts++;
+				ForEach(i, 1, *Ep)
+				{
+					if ( (&GEnv)->SRec[i].V != (&GEnv)->SRec[i-1].V ) Cuts++;
+				}
+				PossibleCuts[Att] = Cuts;
+			}
 		}
-		PossibleCuts[Att] = Cuts;
-	    }
+
+		T->Lower = GreatestValueBelow(T->Cut, Ep);
+		T->Upper = LeastValueAbove(T->Cut, Ep);
+		T->Cut = 0.5 * (T->Lower + T->Upper);
 	}
 
-	T->Cut = T->Lower = T->Upper = GreatestValueBelow(T->Cut, Ep);
-    }
-
-    if ( T->NodeType )
-    {
-	ForEach(v, 1, T->Forks)
+	if ( T->NodeType )
 	{
-	    AdjustThresholds(T->Branch[v], Att, Ep);
+		ForEach(v, 1, T->Forks)
+		{
+			AdjustThresholds(T->Branch[v], Att, Ep);
+		}
 	}
-    }
 }
 
 
@@ -6624,28 +6683,67 @@ void AdjustThresholds(Tree T, Attribute Att, CaseNo *Ep)
 
 
 ContValue GreatestValueBelow(ContValue Th, CaseNo *Ep)
-/*	  ------------------  */
+	/*	  ------------------  */
 {
-    CaseNo	Low, Mid, High;
+	CaseNo	Low, Mid, High;
 
-    Low  = 0;
-    High = *Ep;
+	Low  = 0;
+	High = *Ep;
 
-    while ( Low < High )
-    {
-	Mid = (Low + High + 1) / 2;
-
-	if ( (&GEnv)->SRec[Mid].V > Th )
+	while ( Low < High )
 	{
-	    High = Mid - 1;
-	}
-	else
-	{
-	    Low = Mid;
-	}
-    }
+		Mid = (Low + High + 1) / 2;
 
-    return (&GEnv)->SRec[Low].V;
+		if ( (&GEnv)->SRec[Mid].V > Th )
+		{
+			High = Mid - 1;
+		}
+		else
+		{
+			Low = Mid;
+		}
+	}
+
+	ContValue ret = (&GEnv)->SRec[Low].V;
+	printf("GreatValueBelow %lf is %lf\n", Th, ret);
+	return ret;
+}
+
+
+
+/*************************************************************************/
+/*                                                                	 */
+/*	Return the least value of attribute Att above threshold Th  	 */
+/*	(Assumes values of Att have been sorted.)			 */
+/*                                                                	 */
+/*************************************************************************/
+
+
+ContValue LeastValueAbove(ContValue Th, CaseNo *Ep)
+	/*	  ------------------  */
+{
+	CaseNo	Low, Mid, High;
+
+	Low  = 0;
+	High = *Ep;
+
+	while ( Low < High )
+	{
+		Mid = (Low + High) / 2;
+		if ( (&GEnv)->SRec[Mid].V < Th )
+		{
+			Low = Mid + 1;
+		}
+		else
+		{
+			High = Mid;
+		}
+	}
+
+	ContValue ret = (&GEnv)->SRec[High].V;
+	printf("LeastValueAbove%lf is %lf\n", Th, ret);
+	return ret;
+	return (&GEnv)->SRec[High].V;
 }
 /*************************************************************************/
 /*									 */
@@ -11688,8 +11786,8 @@ void PrintCondition(Condition C)
 
 
 
-#include "cpp_wrapper/clist.h" // Daniel
-#include "cpp_wrapper/file_tools.h" // Daniel
+#include "clist.h" // Daniel
+#include "file_tools.h" // Daniel
 
 #define Inc 2048
 
@@ -11708,11 +11806,7 @@ CaseNo	SampleFrom;		/* file count for sampling */
 /*	number of data cases.						 */
 /*									 */
 /*************************************************************************/
-
-
-void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
-/*   -------  */
-{
+void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass) /*   -------  */ {
     DataRec	DVec;
     CaseNo	CaseSpace, WantTrain, LeftTrain, WantTest, LeftTest;
     Boolean	FirstIgnore=true, SelectTrain;
@@ -11721,94 +11815,26 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
     SuppressErrorMessages = SAMPLE && ! Train;
 
     /*  Don't reset case count if appending data for xval  */
-
-    if ( Train || ! Case )
-    {
+    if ( Train || ! Case ) {
 	MaxCase = MaxLabel = CaseSpace = 0;
 	Case = Alloc(1, DataRec);	/* for error reporting */
     }
-    else
-    {
-	assert (false);
 
-	CaseSpace = MaxCase + 1;
-	MaxCase++;
-    }
-
-    if ( SAMPLE )
-    {
-	assert (false);
-
-	if ( Train )
-	{
-	    SampleFrom = CountData(Df);
-	    ResetKR(KRInit);		/* initialise KRandom() */
-	}
-	else
-	{
-	    ResetKR(KRInit);		/* restore  KRandom() */
-	}
-
-	WantTrain = SampleFrom * SAMPLE + 0.5;
-	LeftTrain = SampleFrom;
-
-	WantTest  = ( SAMPLE < 0.5 ? WantTrain : SampleFrom - WantTrain );
-	LeftTest  = SampleFrom - WantTrain;
-    }
 
     while ( (DVec = GetDataRec(Df, Train)) )
     {
-	/*  Check whether to include if we are sampling */
-
-	if ( SAMPLE )
-	{
-	    assert (false);
-
-	    SelectTrain = KRandom() < WantTrain / (float) LeftTrain--;
-
-	    /*  Include if
-		 * Select and this is the training set
-		 * ! Select and this is the test set and sub-select
-	 	NB: Must use different random number generator for
-		sub-selection since cannot disturb random number sequence  */
-
-	    if ( SelectTrain )
-	    {
-		WantTrain--;
-	    }
-
-	    if ( SelectTrain != Train ||
-		 ( ! Train && AltRandom >= WantTest / (float) LeftTest-- ) )
-	    {
-		FreeLastCase(DVec);
-		continue;
-	    }
-
-	    if ( ! Train )
-	    {
-		WantTest--;
-	    }
-	}
-
 	/*  Make sure there is room for another case  */
-
-	if ( MaxCase >= CaseSpace )
-	{
+	if ( MaxCase >= CaseSpace ) {
 	    CaseSpace += Inc;
 	    Realloc(Case, CaseSpace+1, DataRec);
 	}
 
 	/*  Ignore cases with unknown class  */
-
-	if ( AllowUnknownClass || (Class(DVec) & 077777777) > 0 )
-	{
+	if ( AllowUnknownClass || (Class(DVec) & 077777777) > 0 ) {
 	    Case[MaxCase] = DVec;
 	    MaxCase++;
-	}
-	else
-	{
-	    if ( FirstIgnore && Of )
-	    {
+	} else {
+	    if ( FirstIgnore && Of ) {
 		fprintf(Of, T_IgnoreBadClass);
 		FirstIgnore = false;
 	    }
@@ -11819,7 +11845,6 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
 
     fclose(Df);
     MaxCase--;
-
 }
 
 
@@ -11836,11 +11861,7 @@ void GetData(FILE *Df, Boolean Train, Boolean AllowUnknownClass)
 /*	values).							 */
 /*									 */
 /*************************************************************************/
-
-
-DataRec GetDataRec(FILE *Df, Boolean Train)
-/*      ----------  */
-{
+DataRec GetDataRec(FILE *Df, Boolean Train) /*      ----------  */ {
     Attribute	Att;
     char	Name[1000], *EndName;
     int		Dv, Chars;
@@ -11848,23 +11869,17 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
     ContValue	Cv;
     Boolean	FirstValue=true;
 
-
-    if ( ReadName(Df, Name, 1000, '\00') )
-    {
+    if ( ReadName(Df, Name, 1000, '\00') ) {
 	Case[MaxCase] = DVec = NewCase();
-	ForEach(Att, 1, MaxAtt)
-	{
-	    if ( AttDef[Att] )
-	    {
+	ForEach(Att, 1, MaxAtt) {
+	    if ( AttDef[Att] ) {
 		DVec[Att] = EvaluateDef(AttDef[Att], DVec);
 
-		if ( Continuous(Att) )
-		{
+		if ( Continuous(Att) ) {
 		    CheckValue(DVec, Att);
 		}
 
-		if ( SomeMiss )
-		{
+		if ( SomeMiss ) {
 		    SomeMiss[Att] |= Unknown(DVec, Att);
 		    SomeNA[Att]   |= NotApplic(DVec, Att);
 		}
@@ -11873,21 +11888,17 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    }
 
 	    /*  Get the attribute value if don't already have it  */
-
-	    if ( ! FirstValue && ! ReadName(Df, Name, 1000, '\00') )
-	    {
+	    if ( ! FirstValue && ! ReadName(Df, Name, 1000, '\00') ) {
 		XError(HITEOF, AttName[Att], "");
 		FreeLastCase(DVec);
 		return Nil;
 	    }
 	    FirstValue = false;
 
-	    if ( Exclude(Att) )
-	    {
-		if ( Att == LabelAtt )
-		{
+            // printf("@%s ", Name);
+	    if ( Exclude(Att) ) {
+		if ( Att == LabelAtt ) {
 		    /*  Record the value as a string  */
-
 		    SVal(DVec,Att) = StoreIVal(Name);
 		}
 	    }
@@ -11923,66 +11934,23 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    if ( Discrete(Att) )
 	    {
 		/*  Discrete attribute  */
-
 		Dv = Which(Name, AttValName[Att], 1, MaxAttVal[Att]);
-		if ( ! Dv )
-		{
-		    if ( StatBit(Att, DISCRETE) )
-		    {
-			assert (false);
-
-			if ( Train || XVAL )
-			{
-			    /*  Add value to list  */
-
-			    if ( MaxAttVal[Att] >= (long) AttValName[Att][0] )
-			    {
-				XError(TOOMANYVALS, AttName[Att],
-					 (char *) AttValName[Att][0] - 1);
-				Dv = MaxAttVal[Att];
-			    }
-			    else
-			    {
-				Dv = ++MaxAttVal[Att];
-				AttValName[Att][Dv]   = strdup(Name);
-				AttValName[Att][Dv+1] = "<other>"; /* no free */
-			    }
-			    if ( Dv > MaxDiscrVal )
-			    {
-				MaxDiscrVal = Dv;
-			    }
-			}
-			else
-			{
-			    /*  Set value to "<other>"  */
-
-			    Dv = MaxAttVal[Att] + 1;
-			}
-		    }
-		    else
-		    {
+		if ( ! Dv ) {
 			XError(BADATTVAL, AttName[Att], Name);
 			Dv = UNKNOWN;
-		    }
 		}
 		DVal(DVec, Att) = Dv;
-	    }
-	    else
-	    {
+	    } else {
 		/*  Continuous value  */
-
-		if ( TStampVal(Att) )
-		{
+		if ( TStampVal(Att) ) {
 		    CVal(DVec, Att) = Cv = TStampToMins(Name);
-		    if ( Cv >= 1E9 )	/* long time in future */
-		    {
+		    if ( Cv >= 1E9 )	/* long time in future */ {
 			XError(BADTSTMP, AttName[Att], Name);
 			DVal(DVec, Att) = UNKNOWN;
 		    }
 		}
 		else
-		if ( DateVal(Att) )
-		{
+		if ( DateVal(Att) ) {
 		    CVal(DVec, Att) = Cv = DateToDay(Name);
 		    if ( Cv < 1 )
 		    {
@@ -11991,11 +11959,9 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 		    }
 		}
 		else
-		if ( TimeVal(Att) )
-		{
+		if ( TimeVal(Att) ) {
 		    CVal(DVec, Att) = Cv = TimeToSecs(Name);
-		    if ( Cv < 0 )
-		    {
+		    if ( Cv < 0 ) {
 			XError(BADTIME, AttName[Att], Name);
 			DVal(DVec, Att) = UNKNOWN;
 		    }
@@ -12003,6 +11969,7 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 		else
 		{
 		    CVal(DVec, Att) = strtod(Name, &EndName);
+                    // printf(" -> [%s] => %lf\n", Name, CVal(DVec, Att));
 		    if ( EndName == Name || *EndName != '\0' )
 		    {
 			XError(BADATTVAL, AttName[Att], Name);
@@ -12014,30 +11981,14 @@ DataRec GetDataRec(FILE *Df, Boolean Train)
 	    }
 	}
 
-	if ( ClassAtt )
-	{
-	    if ( Discrete(ClassAtt) )
-	    {
+	if ( ClassAtt ) {
+	    if ( Discrete(ClassAtt) ) {
 		Class(DVec) = XDVal(DVec, ClassAtt);
-		if (Unknown (DVec, ClassAtt))
-		{
-		    // DVal(DVec, ClassAtt) is now already assigned to 0.
-		    assert (false);
-		    assert (Class(DVec) == 0);
-		}
-	    }
-	    else
-	    if ( Unknown(DVec, ClassAtt) || NotApplic(DVec, ClassAtt) )
-	    {
-		assert (false);
-		Class(DVec) = 0;
 	    }
 	    else
 	    {
 		/*  Find appropriate segment using class thresholds  */
-
 		Cv = CVal(DVec, ClassAtt);
-
 		for ( Dv = 1 ; Dv < MaxClass && Cv > ClassThresh[Dv] ; Dv++ )
 		    ;
 
@@ -13737,293 +13688,6 @@ void PrintUsageInfo(CaseNo *Usage)
 	    (int) ((100 * Usage[Best]) / Tests + 0.5), AttName[Best]);
 
 	Usage[Best] = 0;
-    }
-}
-/*************************************************************************/
-/*									 */
-/*  Copyright 2010 Rulequest Research Pty Ltd.				 */
-/*									 */
-/*  This file is part of C5.0 GPL Edition, a single-threaded version	 */
-/*  of C5.0 release 2.07.						 */
-/*									 */
-/*  C5.0 GPL Edition is free software: you can redistribute it and/or	 */
-/*  modify it under the terms of the GNU General Public License as	 */
-/*  published by the Free Software Foundation, either version 3 of the	 */
-/*  License, or (at your option) any later version.			 */
-/*									 */
-/*  C5.0 GPL Edition is distributed in the hope that it will be useful,	 */
-/*  but WITHOUT ANY WARRANTY; without even the implied warranty of	 */
-/*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU	 */
-/*  General Public License for more details.				 */
-/*									 */
-/*  You should have received a copy of the GNU General Public License	 */
-/*  (gpl.txt) along with C5.0 GPL Edition.  If not, see 		 */
-/*									 */
-/*      <http://www.gnu.org/licenses/>.					 */
-/*									 */
-/*************************************************************************/
-
-
-
-/*************************************************************************/
-/*									 */
-/*	Sorting utilities						 */
-/*	-----------------						 */
-/*									 */
-/*************************************************************************/
-
-
-
-#define SwapSRec(a,b)	{Xab=SRec[a]; SRec[a]=SRec[b]; SRec[b]=Xab;}
-
-#define SwapSRecWithImplications(a,b)	{Xab=SRec[a]; SRec[a]=SRec[b]; SRec[b]=Xab; \
-					 tmp = permutation->entries[a]; \
-					 permutation->entries[a] = permutation->entries[b]; \
-					 permutation->entries[b] = tmp; \
-					}
-
-#define	QuicksortSwapWithImplications(a,b) {\
-		DataRec xab;\
-		assert(a >= 0 && a <= MaxCase &&\
-		b >= 0 && b <= MaxCase);\
-		xab = Case[a]; Case[a] = Case[b]; Case[b] = xab;\
-		tmp = permutation->entries[a]; \
-		permutation->entries[a] = permutation->entries[b]; \
-		permutation->entries[b] = tmp; \
-		}
-		
-/*************************************************************************/
-/*									 */
-/*	Sort elements Fp to Lp of SRec					 */
-/*									 */
-/*************************************************************************/
-
-
-void Cachesort(CaseNo Fp, CaseNo Lp, SortRec *SRec)
-/*   ---------  */
-{
-    CaseNo	i, Middle, High;
-    ContValue	Thresh, Val;
-    SortRec	Xab;
-
-
-    while ( Fp < Lp )
-    {
-	Thresh = SRec[(Fp+Lp) / 2].V;
-
-	/*  Divide elements into three groups:
-		Fp .. Middle-1: values < Thresh
-		Middle .. High: values = Thresh
-		High+1 .. Lp:   values > Thresh  */
-
-	for ( Middle = Fp ; SRec[Middle].V < Thresh ; Middle++ )
-	    ;
-
-	for ( High = Lp ; SRec[High].V > Thresh ; High-- )
-	    ;
-
-	for ( i = Middle ; i <= High ; )
-	{
-	    if ( (Val = SRec[i].V) < Thresh )
-	    {
-		SwapSRec(Middle, i);
-		Middle++;
-		i++;
-	    }
-	    else
-	    if ( Val > Thresh )
-	    {
-		SwapSRec(High, i);
-		High--;
-	    }
-	    else
-	    {
-		i++;
-	    }
-	}
-
-	/*  Sort the first group  */
-
-	Cachesort(Fp, Middle-1, SRec);
-
-	/*  Continue with the last group  */
-
-	Fp = High+1;
-    }
-}
-
-
-/*************************************************************************/
-/*									 */
-/*	Sort elements Fp to Lp of SRec; also record the permutation in	 */
-/*	the permutation array.						 */
-/*************************************************************************/
-
-
-void CachesortWithImplications(CaseNo Fp, CaseNo Lp, SortRec *SRec, 
-						struct array * permutation)
-/*   ---------  */
-{
-    CaseNo	i, Middle, High;
-    ContValue	Thresh, Val;
-    SortRec	Xab;
-    int 	tmp;
-
-    while ( Fp < Lp )
-    {
-	Thresh = SRec[(Fp+Lp) / 2].V;
-
-	/*  Divide elements into three groups:
-		Fp .. Middle-1: values < Thresh
-		Middle .. High: values = Thresh
-		High+1 .. Lp:   values > Thresh  */
-
-	for ( Middle = Fp ; SRec[Middle].V < Thresh ; Middle++ )
-	    ;
-
-	for ( High = Lp ; SRec[High].V > Thresh ; High-- )
-	    ;
-
-	for ( i = Middle ; i <= High ; )
-	{
-	    if ( (Val = SRec[i].V) < Thresh )
-	    {
-		SwapSRecWithImplications(Middle, i);
-		Middle++;
-		i++;
-	    }
-	    else
-	    if ( Val > Thresh )
-	    {
-		SwapSRecWithImplications(High, i);
-		High--;
-	    }
-	    else
-	    {
-		i++;
-	    }
-	}
-
-	/*  Sort the first group  */
-
-	CachesortWithImplications(Fp, Middle-1, SRec, permutation);
-
-	/*  Continue with the last group  */
-
-	Fp = High+1;
-    }
-}
-
-
-
-/*************************************************************************/
-/*									 */
-/*	Sort cases from Fp to Lp on attribute Att			 */
-/*									 */
-/*************************************************************************/
-
-
-void Quicksort(CaseNo Fp, CaseNo Lp, Attribute Att)
-/*   ---------  */
-{
-    CaseNo	i, Middle, High;
-    ContValue	Thresh, Val;
-
-    if ( Fp < Lp )
-    {
-	Thresh = CVal(Case[(Fp+Lp) / 2], Att);
-
-	/*  Divide cases into three groups:
-		Fp .. Middle-1: values < Thresh
-		Middle .. High: values = Thresh
-		High+1 .. Lp:   values > Thresh  */
-
-	for ( Middle = Fp ; CVal(Case[Middle], Att) < Thresh ; Middle++ )
-	    ;
-
-	for ( High = Lp ; CVal(Case[High], Att) > Thresh ; High-- )
-	    ;
-
-	for ( i = Middle ; i <= High ; )
-	{
-	    if ( (Val = CVal(Case[i], Att)) < Thresh )
-	    {
-		Swap(Middle, i);
-		Middle++;
-		i++;
-	    }
-	    else
-	    if ( Val > Thresh )
-	    {
-		Swap(High, i);
-		High--;
-	    }
-	    else
-	    {
-		i++;
-	    }
-	}
-
-	/*  Sort the first and third groups  */
-
-	Quicksort(Fp, Middle-1, Att);
-	Quicksort(High+1, Lp, Att);
-    }
-}
-
-
-/*************************************************************************/
-/*									 */
-/*	Sort cases from Fp to Lp on attribute Att			 */
-/*									 */
-/*************************************************************************/
-
-
-void QuicksortWithImplications(CaseNo Fp, CaseNo Lp, Attribute Att, struct array * permutation)
-/*   ---------  */
-{
-    CaseNo	i, Middle, High, tmp;
-    ContValue	Thresh, Val;
-
-    if ( Fp < Lp )
-    {
-	Thresh = CVal(Case[(Fp+Lp) / 2], Att);
-
-	/*  Divide cases into three groups:
-		Fp .. Middle-1: values < Thresh
-		Middle .. High: values = Thresh
-		High+1 .. Lp:   values > Thresh  */
-
-	for ( Middle = Fp ; CVal(Case[Middle], Att) < Thresh ; Middle++ )
-	    ;
-
-	for ( High = Lp ; CVal(Case[High], Att) > Thresh ; High-- )
-	    ;
-
-	for ( i = Middle ; i <= High ; )
-	{
-	    if ( (Val = CVal(Case[i], Att)) < Thresh )
-	    {
-		QuicksortSwapWithImplications(Middle, i);
-		Middle++;
-		i++;
-	    }
-	    else
-	    if ( Val > Thresh )
-	    {
-		QuicksortSwapWithImplications(High, i);
-		High--;
-	    }
-	    else
-	    {
-		i++;
-	    }
-	}
-
-	/*  Sort the first and third groups  */
-
-	QuicksortWithImplications(Fp, Middle-1, Att, permutation);
-	QuicksortWithImplications(High+1, Lp, Att, permutation);
     }
 }
 /*************************************************************************/
@@ -17690,19 +17354,19 @@ void StreamIn(String S, int n)
 
 
 void PrintHeader(String Title)
-/*   -----------  */
+	/*   -----------  */
 {
-    char	TitleLine[80];
-    time_t	clock;
-    int		Underline;
+	char	TitleLine[80];
+	time_t	clock;
+	int		Underline;
 
-    clock = time(0);
-    sprintf(TitleLine, "%s%s [%s]", NAME, Title, TX_Release(RELEASE));
-    fprintf(Of, "\n%s  \t%s", TitleLine, ctime(&clock));
+	clock = time(0);
+	sprintf(TitleLine, "%s%s [%s]", NAME, Title, TX_Release(RELEASE));
+	fprintf(Of, "\n%s  \t%s", TitleLine, ctime(&clock));
 
-    Underline = CharWidth(TitleLine);
-    while ( Underline-- ) putc('-', Of);
-    putc('\n', Of);
+	Underline = CharWidth(TitleLine);
+	while ( Underline-- ) putc('-', Of);
+	putc('\n', Of);
 }
 
 
@@ -17718,27 +17382,27 @@ String	OptArg, Option;
 
 
 char ProcessOption(int Argc, char *Argv[], char *Options)
-/*   -------------  */
+	/*   -------------  */
 {
-    int		i;
-    static int	OptNo=1;
+	int		i;
+	static int	OptNo=1;
 
-    if ( OptNo >= Argc ) return '\00';
+	if ( OptNo >= Argc ) return '\00';
 
-    if ( *(Option = Argv[OptNo++]) != '-' ) return '?';
+	if ( *(Option = Argv[OptNo++]) != '-' ) return '?';
 
-    for ( i = 0 ; Options[i] ; i++ )
-    {
-	if ( Options[i] == Option[1] )
+	for ( i = 0 ; Options[i] ; i++ )
 	{
-	    OptArg = (char *) ( Options[i+1] != '+' ? Nil :
-				Option[2] ? Option+2 :
-				OptNo < Argc ? Argv[OptNo++] : "0" );
-	    return Option[1];
+		if ( Options[i] == Option[1] )
+		{
+			OptArg = (char *) ( Options[i+1] != '+' ? Nil :
+					Option[2] ? Option+2 :
+					OptNo < Argc ? Argv[OptNo++] : "0" );
+			return Option[1];
+		}
 	}
-    }
 
-    return '?';
+	return '?';
 }
 
 
@@ -17752,70 +17416,70 @@ char ProcessOption(int Argc, char *Argv[], char *Options)
 
 
 void *Pmalloc(size_t Bytes)
-/*    -------  */
+	/*    -------  */
 {
-    void *p=Nil;
+	void *p=Nil;
 
-    if ( ! Bytes || (p = (void *) malloc(Bytes)) )
-    {
-	return p;
-    }
+	if ( ! Bytes || (p = (void *) malloc(Bytes)) )
+	{
+		return p;
+	}
 
-    Error(NOMEM, "", "");
+	Error(NOMEM, "", "");
 
 }
 
 
 
 void *Prealloc(void *Present, size_t Bytes)
-/*    --------  */
+	/*    --------  */
 {
-    void *p=Nil;
+	void *p=Nil;
 
-    if ( ! Bytes ) return Nil;
+	if ( ! Bytes ) return Nil;
 
-    if ( ! Present ) return Pmalloc(Bytes);
+	if ( ! Present ) return Pmalloc(Bytes);
 
-    if ( (p = (void *) realloc(Present, Bytes)) )
-    {
-	return p;
-    }
+	if ( (p = (void *) realloc(Present, Bytes)) )
+	{
+		return p;
+	}
 
-    Error(NOMEM, "", "");
+	Error(NOMEM, "", "");
 
 }
 
 
 
 void *Pcalloc(size_t Number, unsigned int Size)
-/*    -------  */
+	/*    -------  */
 {
-    void *p=Nil;
+	void *p=Nil;
 
-    if ( ! Number || (p = (void *) calloc(Number, Size)) )
-    {
-	return p;
-    }
+	if ( ! Number || (p = (void *) calloc(Number, Size)) )
+	{
+		return p;
+	}
 
-    Error(NOMEM, "", "");
+	Error(NOMEM, "", "");
 
 }
 
 
 
 void FreeVector(void **V, int First, int Last)
-/*   ----------  */
+	/*   ----------  */
 {
-    if ( V )
-    {
-	while ( First <= Last )
+	if ( V )
 	{
-	    FreeUnlessNil(V[First]);
-	    First++;
-	}
+		while ( First <= Last )
+		{
+			FreeUnlessNil(V[First]);
+			First++;
+		}
 
-	Free(V);
-    }
+		Free(V);
+	}
 }
 
 
@@ -17829,12 +17493,12 @@ void FreeVector(void **V, int First, int Last)
 typedef struct _datablockrec	*DataBlock;
 
 typedef	struct _datablockrec
-	{
-	  DataRec	Head;		/* first address */
-	  int		Allocated;	/* number of cases in this block */
-	  DataBlock	Prev;		/* previous data block */
-	}
-	DataBlockRec;
+{
+	DataRec	Head;		/* first address */
+	int		Allocated;	/* number of cases in this block */
+	DataBlock	Prev;		/* previous data block */
+}
+DataBlockRec;
 
 DataBlock	DataMem=Nil;
 int		DataBlockSize=0;
@@ -17842,45 +17506,45 @@ int		DataBlockSize=0;
 
 
 DataRec NewCase()
-/*      -------  */
+	/*      -------  */
 {
-    DataBlock	Prev;
+	DataBlock	Prev;
 
-    if ( ! DataMem || DataMem->Allocated == DataBlockSize )
-    {
-	DataBlockSize = Min(8192, 262144 / (MaxAtt+2) + 1);
+	if ( ! DataMem || DataMem->Allocated == DataBlockSize )
+	{
+		DataBlockSize = Min(8192, 262144 / (MaxAtt+2) + 1);
 
-	Prev = DataMem;
-	DataMem = AllocZero(1, DataBlockRec);
-	DataMem->Head = Alloc(DataBlockSize * (MaxAtt+2), AttValue);
-	DataMem->Prev = Prev;
-    }
+		Prev = DataMem;
+		DataMem = AllocZero(1, DataBlockRec);
+		DataMem->Head = Alloc(DataBlockSize * (MaxAtt+2), AttValue);
+		DataMem->Prev = Prev;
+	}
 
-    return DataMem->Head + (DataMem->Allocated++) * (MaxAtt+2) + 1;
+	return DataMem->Head + (DataMem->Allocated++) * (MaxAtt+2) + 1;
 }
 
 
 
 void FreeCases()
-/*   ---------  */
+	/*   ---------  */
 {
-    DataBlock	Prev;
+	DataBlock	Prev;
 
-    while ( DataMem )
-    {
-	Prev = DataMem->Prev;
-	Free(DataMem->Head);
-	Free(DataMem);
-	DataMem = Prev;
-    }
+	while ( DataMem )
+	{
+		Prev = DataMem->Prev;
+		Free(DataMem->Head);
+		Free(DataMem);
+		DataMem = Prev;
+	}
 }
 
 
 
 void FreeLastCase(DataRec Case)
-/*   ------------  */
+	/*   ------------  */
 {
-    DataMem->Allocated--;
+	DataMem->Allocated--;
 }
 
 
@@ -17897,58 +17561,58 @@ void FreeLastCase(DataRec Case)
 int	KRFp=0, KRSp=0;
 
 double KRandom()
-/*     -------  */
+	/*     -------  */
 {
-    static double	URD[55];
-    double		V1, V2;
-    int			i, j;
+	static double	URD[55];
+	double		V1, V2;
+	int			i, j;
 
-    /*  Initialisation  */
+	/*  Initialisation  */
 
-    if ( KRFp == KRSp )
-    {
-	KRFp = 0;
-	KRSp = 31;
-
-	V1 = 1.0;
-	V2 = 0.314159285;
-
-	ForEach(i, 1, 55)
+	if ( KRFp == KRSp )
 	{
-	    URD[ j = (i * 21) % 55 ] = V1;
-	    V1 = V2 - V1;
-	    if ( V1 < 0 ) V1 += 1.0;
-	    V2 = URD[j];
+		KRFp = 0;
+		KRSp = 31;
+
+		V1 = 1.0;
+		V2 = 0.314159285;
+
+		ForEach(i, 1, 55)
+		{
+			URD[ j = (i * 21) % 55 ] = V1;
+			V1 = V2 - V1;
+			if ( V1 < 0 ) V1 += 1.0;
+			V2 = URD[j];
+		}
+
+		ForEach(j, 0, 5)
+		{
+			ForEach(i, 0, 54)
+			{
+				Modify(URD[i], URD[(i+30) % 55]);
+			}
+		}
 	}
 
-	ForEach(j, 0, 5)
-	{
-	    ForEach(i, 0, 54)
-	    {
-		Modify(URD[i], URD[(i+30) % 55]);
-	    }
-	}
-    }
+	KRFp = (KRFp + 1) % 55;
+	KRSp = (KRSp + 1) % 55;
+	Modify(URD[KRFp], URD[KRSp]);
 
-    KRFp = (KRFp + 1) % 55;
-    KRSp = (KRSp + 1) % 55;
-    Modify(URD[KRFp], URD[KRSp]);
-
-    return URD[KRFp];
+	return URD[KRFp];
 }
 
 
 
 void ResetKR(int KRInit)
-/*   -------  */
+	/*   -------  */
 {
-    KRFp = KRSp = 0;
+	KRFp = KRSp = 0;
 
-    KRInit += 1000;
-    while ( KRInit-- )
-    {
-	KRandom();
-    }
+	KRInit += 1000;
+	while ( KRInit-- )
+	{
+		KRandom();
+	}
 }
 
 
@@ -17961,182 +17625,182 @@ void ResetKR(int KRInit)
 
 
 void Error(int ErrNo, String S1, String S2)
-/*   -----  */
+	/*   -----  */
 {
-    Boolean	Quit=false, WarningOnly=false;
-    char	Buffer[10000], *Msg=Buffer;
+	Boolean	Quit=false, WarningOnly=false;
+	char	Buffer[10000], *Msg=Buffer;
 
 
-    if ( Of ) fprintf(Of, "\n");
+	if ( Of ) fprintf(Of, "\n");
 
-    if ( ErrNo == NOFILE || ErrNo == NOMEM || ErrNo == MODELFILE )
-    {
-	sprintf(Msg, "*** ");
-    }
-    else
-    {
-	sprintf(Msg, TX_Line(LineNo, Fn));
-    }
-    Msg += strlen(Buffer);
+	if ( ErrNo == NOFILE || ErrNo == NOMEM || ErrNo == MODELFILE )
+	{
+		sprintf(Msg, "*** ");
+	}
+	else
+	{
+		sprintf(Msg, TX_Line(LineNo, Fn));
+	}
+	Msg += strlen(Buffer);
 
-    switch ( ErrNo )
-    {
-	case NOFILE:
-	    sprintf(Msg, E_NOFILE(Fn, S2));
-	    Quit = true;
-	    break;
+	switch ( ErrNo )
+	{
+		case NOFILE:
+			sprintf(Msg, E_NOFILE(Fn, S2));
+			Quit = true;
+			break;
 
-	case BADCLASSTHRESH:
-	    sprintf(Msg, E_BADCLASSTHRESH, S1);
-	    break;
+		case BADCLASSTHRESH:
+			sprintf(Msg, E_BADCLASSTHRESH, S1);
+			break;
 
-	case LEQCLASSTHRESH:
-	    sprintf(Msg, E_LEQCLASSTHRESH, S1);
-	    break;
+		case LEQCLASSTHRESH:
+			sprintf(Msg, E_LEQCLASSTHRESH, S1);
+			break;
 
-	case BADATTNAME:
-	    sprintf(Msg, E_BADATTNAME, S1);
-	    break;
+		case BADATTNAME:
+			sprintf(Msg, E_BADATTNAME, S1);
+			break;
 
-	case EOFINATT:
-	    sprintf(Msg, E_EOFINATT, S1);
-	    break;
+		case EOFINATT:
+			sprintf(Msg, E_EOFINATT, S1);
+			break;
 
-	case SINGLEATTVAL:
-	    sprintf(Msg, E_SINGLEATTVAL(S1, S2));
-	    break;
+		case SINGLEATTVAL:
+			sprintf(Msg, E_SINGLEATTVAL(S1, S2));
+			break;
 
-	case DUPATTNAME:
-	    sprintf(Msg, E_DUPATTNAME, S1);
-	    break;
+		case DUPATTNAME:
+			sprintf(Msg, E_DUPATTNAME, S1);
+			break;
 
-	case CWTATTERR:
-	    sprintf(Msg, E_CWTATTERR);
-	    break;
+		case CWTATTERR:
+			sprintf(Msg, E_CWTATTERR);
+			break;
 
-	case BADATTVAL:
-	    sprintf(Msg, E_BADATTVAL(S2, S1));
-	    break;
+		case BADATTVAL:
+			sprintf(Msg, E_BADATTVAL(S2, S1));
+			break;
 
-	case BADNUMBER:
-	    sprintf(Msg, E_BADNUMBER(S1));
-	    break;
+		case BADNUMBER:
+			sprintf(Msg, E_BADNUMBER(S1));
+			break;
 
-	case BADCLASS:
-	    sprintf(Msg, E_BADCLASS, S2);
-	    break;
+		case BADCLASS:
+			sprintf(Msg, E_BADCLASS, S2);
+			break;
 
-	case BADCOSTCLASS:
-	    sprintf(Msg, E_BADCOSTCLASS, S1);
-	    Quit = true;
-	    break;
+		case BADCOSTCLASS:
+			sprintf(Msg, E_BADCOSTCLASS, S1);
+			Quit = true;
+			break;
 
-	case BADCOST:
-	    sprintf(Msg, E_BADCOST, S1);
-	    Quit = true;
-	    break;
+		case BADCOST:
+			sprintf(Msg, E_BADCOST, S1);
+			Quit = true;
+			break;
 
-	case NOMEM:
-	    sprintf(Msg, E_NOMEM);
-	    Quit = true;
-	    break;
+		case NOMEM:
+			sprintf(Msg, E_NOMEM);
+			Quit = true;
+			break;
 
-	case TOOMANYVALS:
-	    sprintf(Msg, E_TOOMANYVALS(S1, (int) (long) S2));
-	    break;
+		case TOOMANYVALS:
+			sprintf(Msg, E_TOOMANYVALS(S1, (int) (long) S2));
+			break;
 
-	case BADDISCRETE:
-	    sprintf(Msg, E_BADDISCRETE, S1);
-	    break;
+		case BADDISCRETE:
+			sprintf(Msg, E_BADDISCRETE, S1);
+			break;
 
-	case NOTARGET:
-	    sprintf(Msg, E_NOTARGET, S1);
-	    Quit = true;
-	    break;
+		case NOTARGET:
+			sprintf(Msg, E_NOTARGET, S1);
+			Quit = true;
+			break;
 
-	case BADCTARGET:
-	    sprintf(Msg, E_BADCTARGET, S1);
-	    Quit = true;
-	    break;
+		case BADCTARGET:
+			sprintf(Msg, E_BADCTARGET, S1);
+			Quit = true;
+			break;
 
-	case BADDTARGET:
-	    sprintf(Msg, E_BADDTARGET, S1);
-	    Quit = true;
-	    break;
+		case BADDTARGET:
+			sprintf(Msg, E_BADDTARGET, S1);
+			Quit = true;
+			break;
 
-	case LONGNAME:
-	    sprintf(Msg, E_LONGNAME);
-	    Quit = true;
-	    break;
+		case LONGNAME:
+			sprintf(Msg, E_LONGNAME);
+			Quit = true;
+			break;
 
-	case HITEOF:
-	    sprintf(Msg, E_HITEOF);
-	    break;
+		case HITEOF:
+			sprintf(Msg, E_HITEOF);
+			break;
 
-	case MISSNAME:
-	    sprintf(Msg, E_MISSNAME, S2);
-	    break;
+		case MISSNAME:
+			sprintf(Msg, E_MISSNAME, S2);
+			break;
 
-	case BADTSTMP:
-	    sprintf(Msg, E_BADTSTMP(S2, S1));
-	    break;
+		case BADTSTMP:
+			sprintf(Msg, E_BADTSTMP(S2, S1));
+			break;
 
-	case BADDATE:
-	    sprintf(Msg, E_BADDATE(S2, S1));
-	    break;
+		case BADDATE:
+			sprintf(Msg, E_BADDATE(S2, S1));
+			break;
 
-	case BADTIME:
-	    sprintf(Msg, E_BADTIME(S2, S1));
-	    break;
+		case BADTIME:
+			sprintf(Msg, E_BADTIME(S2, S1));
+			break;
 
-	case UNKNOWNATT:
-	    sprintf(Msg, E_UNKNOWNATT, S1);
-	    break;
+		case UNKNOWNATT:
+			sprintf(Msg, E_UNKNOWNATT, S1);
+			break;
 
-	case BADDEF1:
-	    sprintf(Msg, E_BADDEF1(AttName[MaxAtt], S1, S2));
-	    break;
+		case BADDEF1:
+			sprintf(Msg, E_BADDEF1(AttName[MaxAtt], S1, S2));
+			break;
 
-	case BADDEF2:
-	    sprintf(Msg, E_BADDEF2(AttName[MaxAtt], S1, S2));
-	    break;
+		case BADDEF2:
+			sprintf(Msg, E_BADDEF2(AttName[MaxAtt], S1, S2));
+			break;
 
-	case SAMEATT:
-	    sprintf(Msg, E_SAMEATT(AttName[MaxAtt], S1));
-	    WarningOnly = true;
-	    break;
+		case SAMEATT:
+			sprintf(Msg, E_SAMEATT(AttName[MaxAtt], S1));
+			WarningOnly = true;
+			break;
 
-	case BADDEF3:
-	    sprintf(Msg, E_BADDEF3, AttName[MaxAtt]);
-	    break;
+		case BADDEF3:
+			sprintf(Msg, E_BADDEF3, AttName[MaxAtt]);
+			break;
 
-	case BADDEF4:
-	    sprintf(Msg, E_BADDEF4, AttName[MaxAtt]);
-	    WarningOnly = true;
-	    break;
+		case BADDEF4:
+			sprintf(Msg, E_BADDEF4, AttName[MaxAtt]);
+			WarningOnly = true;
+			break;
 
-	case MODELFILE:
-	    sprintf(Msg, EX_MODELFILE(Fn));
-	    sprintf(Msg, "    (%s `%s')\n", S1, S2);
-	    Quit = true;
-	    break;
-    }
+		case MODELFILE:
+			sprintf(Msg, EX_MODELFILE(Fn));
+			sprintf(Msg, "    (%s `%s')\n", S1, S2);
+			Quit = true;
+			break;
+	}
 
-    fprintf(Of, Buffer);
-	
-    if ( ! WarningOnly ) ErrMsgs++;
+	fprintf(Of, Buffer);
 
-    if ( ErrMsgs == 10 )
-    {
-	fprintf(Of,  T_ErrorLimit);
-	MaxCase--;
-	Quit = true;
-    }
+	if ( ! WarningOnly ) ErrMsgs++;
 
-    if ( Quit && Of )
-    {
-	Goodbye(1);
-    }
+	if ( ErrMsgs == 10 )
+	{
+		fprintf(Of,  T_ErrorLimit);
+		MaxCase--;
+		Quit = true;
+	}
+
+	if ( Quit && Of )
+	{
+		Goodbye(1);
+	}
 }
 
 
@@ -18151,19 +17815,19 @@ char	LabelBuffer[1000];
 
 
 String CaseLabel(CaseNo N)
-/*     ---------  */
+	/*     ---------  */
 {
-    String      p;
+	String      p;
 
-    if ( LabelAtt && (p = IgnoredVals + SVal(Case[N], LabelAtt)) )
-	;
-    else
-    {
-	sprintf(LabelBuffer, "#%d", N+1);
-	p = LabelBuffer;
-    }
+	if ( LabelAtt && (p = IgnoredVals + SVal(Case[N], LabelAtt)) )
+		;
+	else
+	{
+		sprintf(LabelBuffer, "#%d", N+1);
+		p = LabelBuffer;
+	}
 
-    return p;
+	return p;
 }
 
 
@@ -18176,11 +17840,11 @@ String CaseLabel(CaseNo N)
 
 
 FILE *GetFile(String Extension, String RW)
-/*    --------  */
+	/*    --------  */
 {
-    strcpy(Fn, FileStem);
-    strcat(Fn, Extension);
-    return fopen(Fn, RW);
+	strcpy(Fn, FileStem);
+	strcat(Fn, Extension);
+	return fopen(Fn, RW);
 }
 
 
@@ -18195,13 +17859,13 @@ FILE *GetFile(String Extension, String RW)
 #include <sys/time.h>
 
 double  ExecTime()
-/*      --------  */
+	/*      --------  */
 {
-    struct timeval	TV;
-    struct timezone	TZ={0,0};
+	struct timeval	TV;
+	struct timezone	TZ={0,0};
 
-    gettimeofday(&TV, &TZ);
-    return TV.tv_sec + TV.tv_usec / 1000000.0;
+	gettimeofday(&TV, &TZ);
+	return TV.tv_sec + TV.tv_usec / 1000000.0;
 }
 
 
@@ -18214,24 +17878,24 @@ double  ExecTime()
 
 
 int Denominator(ContValue Val)
-/*  -----------  */
+	/*  -----------  */
 {
-    double	RoundErr, Accuracy;
-    int		Mult;
+	double	RoundErr, Accuracy;
+	int		Mult;
 
-    Accuracy = fabs(Val) * 1E-6;	/* approximate */
-    Val = modf(Val, &RoundErr);
+	Accuracy = fabs(Val) * 1E-6;	/* approximate */
+	Val = modf(Val, &RoundErr);
 
-    for ( Mult = 100000 ; Mult >= 1 ; Mult /= 10 )
-    {
-	RoundErr = fabs(rint(Val * Mult) / Mult - Val);
-	if ( RoundErr > 2 * Accuracy )
+	for ( Mult = 100000 ; Mult >= 1 ; Mult /= 10 )
 	{
-	    return Mult * 10;
+		RoundErr = fabs(rint(Val * Mult) / Mult - Val);
+		if ( RoundErr > 2 * Accuracy )
+		{
+			return Mult * 10;
+		}
 	}
-    }
 
-    return 1;
+	return 1;
 }
 
 
@@ -18244,103 +17908,103 @@ int Denominator(ContValue Val)
 
 
 int GetInt(String S, int N)
-/*  ------  */
+	/*  ------  */
 {
-    int	Result=0;
+	int	Result=0;
 
-    while ( N-- )
-    {
-	if ( ! isdigit(*S) ) return 0;
+	while ( N-- )
+	{
+		if ( ! isdigit(*S) ) return 0;
 
-	Result = Result * 10 + (*S++ - '0');
-    }
+		Result = Result * 10 + (*S++ - '0');
+	}
 
-    return Result;
+	return Result;
 }
 
 
 int DateToDay(String DS)	/*  Day 1 is 0000/03/01  */
-/*  ---------  */
+	/*  ---------  */
 {
-    int Year, Month, Day;
+	int Year, Month, Day;
 
-    if ( strlen(DS) != 10 ) return 0;
+	if ( strlen(DS) != 10 ) return 0;
 
-    Year  = GetInt(DS, 4);
-    Month = GetInt(DS+5, 2);
-    Day   = GetInt(DS+8, 2);
+	Year  = GetInt(DS, 4);
+	Month = GetInt(DS+5, 2);
+	Day   = GetInt(DS+8, 2);
 
-    if ( ! ( DS[4] == '/' && DS[7] == '/' || DS[4] == '-' && DS[7] == '-' ) ||
-	 Year < 0 || Month < 1 || Day < 1 ||
-	 Month > 12 ||
-	 Day > 31 ||
-	 Day > 30 &&
-	    ( Month == 4 || Month == 6 || Month == 9 || Month == 11 ) ||
-	 Month == 2 &&
-	    ( Day > 29 ||
-	      Day > 28 && ( Year % 4 != 0 ||
-			    Year % 100 == 0 && Year % 400 != 0 ) ) )
-    {
-	return 0;
-    }
+	if ( ! ( DS[4] == '/' && DS[7] == '/' || DS[4] == '-' && DS[7] == '-' ) ||
+			Year < 0 || Month < 1 || Day < 1 ||
+			Month > 12 ||
+			Day > 31 ||
+			Day > 30 &&
+			( Month == 4 || Month == 6 || Month == 9 || Month == 11 ) ||
+			Month == 2 &&
+			( Day > 29 ||
+				Day > 28 && ( Year % 4 != 0 ||
+					Year % 100 == 0 && Year % 400 != 0 ) ) )
+	{
+		return 0;
+	}
 
-    if ( (Month -= 2) <= 0 )
-    {
-	Month += 12;
-	Year -= 1;
-    }
+	if ( (Month -= 2) <= 0 )
+	{
+		Month += 12;
+		Year -= 1;
+	}
 
-    return Year * 365 + Year / 4 - Year / 100 + Year / 400
-	   + 367 * Month / 12
-	   + Day - 30;
+	return Year * 365 + Year / 4 - Year / 100 + Year / 400
+		+ 367 * Month / 12
+		+ Day - 30;
 }
 
 
 
 void DayToDate(int Day, String Date)
-/*   ---------  */
+	/*   ---------  */
 {
-    int Year, Month, OrigDay=Day;
+	int Year, Month, OrigDay=Day;
 
-    if ( Day <= 0 )
-    {
-	strcpy(Date, "?");
-	return;
-    }
+	if ( Day <= 0 )
+	{
+		strcpy(Date, "?");
+		return;
+	}
 
-    Year = (Day - 1) / 365.2425L;  /*  Year = completed years  */
-    Day -= Year * 365 + Year / 4 - Year / 100 + Year / 400;
+	Year = (Day - 1) / 365.2425L;  /*  Year = completed years  */
+	Day -= Year * 365 + Year / 4 - Year / 100 + Year / 400;
 
-    if ( Day < 1 )
-    {
-	Year--;
-	Day = OrigDay - (Year * 365 + Year / 4 - Year / 100 + Year / 400);
-    }
-    else
-    if ( Day > 366 ||
-	 Day == 366 &&
-	 ( (Year+1) % 4 != 0 || (Year+1) % 100 == 0 && (Year+1) % 400 != 0 ) )
-    {
-	Year++;
-	Day = OrigDay - (Year * 365 + Year / 4 - Year / 100 + Year / 400);
-    }
+	if ( Day < 1 )
+	{
+		Year--;
+		Day = OrigDay - (Year * 365 + Year / 4 - Year / 100 + Year / 400);
+	}
+	else
+		if ( Day > 366 ||
+				Day == 366 &&
+				( (Year+1) % 4 != 0 || (Year+1) % 100 == 0 && (Year+1) % 400 != 0 ) )
+		{
+			Year++;
+			Day = OrigDay - (Year * 365 + Year / 4 - Year / 100 + Year / 400);
+		}
 
-    Month = (Day + 30) * 12 / 367;
-    Day -= 367 * Month / 12 - 30;
-    if ( Day < 1 )
-    {
-	Month = 11;
-	Day = 31;
-    }
+	Month = (Day + 30) * 12 / 367;
+	Day -= 367 * Month / 12 - 30;
+	if ( Day < 1 )
+	{
+		Month = 11;
+		Day = 31;
+	}
 
-    Month += 2;
-    if ( Month > 12 )
-    {
-	Month -= 12;
-	Year++;
-    }
+	Month += 2;
+	if ( Month > 12 )
+	{
+		Month -= 12;
+		Year++;
+	}
 
-    sprintf(Date, "%d/%d%d/%d%d", Year, Month/10, Month % 10, Day/10, Day % 10);
+	sprintf(Date, "%d/%d%d/%d%d", Year, Month/10, Month % 10, Day/10, Day % 10);
 }
 
 
@@ -18353,81 +18017,81 @@ void DayToDate(int Day, String Date)
 
 
 int TimeToSecs(String TS)
-/*  ----------  */
+	/*  ----------  */
 {
-    int Hour, Mins, Secs;
+	int Hour, Mins, Secs;
 
-    if ( strlen(TS) != 8 ) return -1;
+	if ( strlen(TS) != 8 ) return -1;
 
-    Hour = GetInt(TS, 2);
-    Mins = GetInt(TS+3, 2);
-    Secs = GetInt(TS+6, 2);
+	Hour = GetInt(TS, 2);
+	Mins = GetInt(TS+3, 2);
+	Secs = GetInt(TS+6, 2);
 
-    if ( TS[2] != ':' || TS[5] != ':' ||
-	 Hour >= 24 || Mins >= 60 || Secs >= 60 )
-    {
-	return -1;
-    }
+	if ( TS[2] != ':' || TS[5] != ':' ||
+			Hour >= 24 || Mins >= 60 || Secs >= 60 )
+	{
+		return -1;
+	}
 
-    return Hour * 3600 + Mins * 60 + Secs;
+	return Hour * 3600 + Mins * 60 + Secs;
 }
 
 
 
 void SecsToTime(int Secs, String Time)
-/*   ----------  */
+	/*   ----------  */
 {
-    int Hour, Mins;
+	int Hour, Mins;
 
-    Hour = Secs / 3600;
-    Mins = (Secs % 3600) / 60;
-    Secs = Secs % 60;
+	Hour = Secs / 3600;
+	Mins = (Secs % 3600) / 60;
+	Secs = Secs % 60;
 
-    sprintf(Time, "%d%d:%d%d:%d%d",
-		  Hour / 10, Hour % 10,
-		  Mins / 10, Mins % 10,
-		  Secs / 10, Secs % 10);
+	sprintf(Time, "%d%d:%d%d:%d%d",
+			Hour / 10, Hour % 10,
+			Mins / 10, Mins % 10,
+			Secs / 10, Secs % 10);
 }
 
 
 
 void SetTSBase(int y)
-/*   ---------  */
+	/*   ---------  */
 {
-    y -= 15;
-    TSBase = y * 365 + y / 4 - y / 100 + y / 400 + (367 * 4) / 12 + 1 - 30;
+	y -= 15;
+	TSBase = y * 365 + y / 4 - y / 100 + y / 400 + (367 * 4) / 12 + 1 - 30;
 }
 
 
 
 int TStampToMins(String TS)
-/*  ------------  */
+	/*  ------------  */
 {
-    int		Day, Sec, i;
+	int		Day, Sec, i;
 
-    /*  Check for reasonable length and space between date and time  */
+	/*  Check for reasonable length and space between date and time  */
 
-    if ( strlen(TS) < 19 || ! Space(TS[10]) ) return (1 << 30);
+	if ( strlen(TS) < 19 || ! Space(TS[10]) ) return (1 << 30);
 
-    /*  Read date part  */
+	/*  Read date part  */
 
-    TS[10] = '\00';
-    Day = DateToDay(TS);
-    TS[10] = ' ';
+	TS[10] = '\00';
+	Day = DateToDay(TS);
+	TS[10] = ' ';
 
-    /*  Skip one or more spaces  */
+	/*  Skip one or more spaces  */
 
-    for ( i = 11 ; TS[i] && Space(TS[i]) ; i++ )
-	;
+	for ( i = 11 ; TS[i] && Space(TS[i]) ; i++ )
+		;
 
-    /*  Read time part  */
+	/*  Read time part  */
 
-    Sec = TimeToSecs(TS+i);
+	Sec = TimeToSecs(TS+i);
 
-    /*  Return a long time in the future if there is an error  */
+	/*  Return a long time in the future if there is an error  */
 
-    return ( Day < 1 || Sec < 0 ? (1 << 30) :
-	     (Day - TSBase) * 1440 + (Sec + 30) / 60 );
+	return ( Day < 1 || Sec < 0 ? (1 << 30) :
+			(Day - TSBase) * 1440 + (Sec + 30) / 60 );
 }
 
 
@@ -18441,31 +18105,37 @@ int TStampToMins(String TS)
 
 
 void CValToStr(ContValue CV, Attribute Att, String DS)
-/*   ---------  */
+	/*   ---------  */
 {
-    int		Mins;
+	int		Mins;
 
-    if ( TStampVal(Att) )
-    {
-	DayToDate(floor(CV / 1440) + TSBase, DS);
-	DS[10] = ' ';
-	Mins = rint(CV) - floor(CV / 1440) * 1440;
-	SecsToTime(Mins * 60, DS+11);
-    }
-    else
-    if ( DateVal(Att) )
-    {
-	DayToDate(CV, DS);
-    }
-    else
-    if ( TimeVal(Att) )
-    {
-	SecsToTime(CV, DS);
-    }
-    else
-    {
-	sprintf(DS, "%.*g", PREC, CV);
-    }
+	if ( TStampVal(Att) )
+	{
+		DayToDate(floor(CV / 1440) + TSBase, DS);
+		DS[10] = ' ';
+		Mins = rint(CV) - floor(CV / 1440) * 1440;
+		SecsToTime(Mins * 60, DS+11);
+	}
+	else
+		if ( DateVal(Att) )
+		{
+			DayToDate(CV, DS);
+		}
+		else
+			if ( TimeVal(Att) )
+			{
+				SecsToTime(CV, DS);
+			}
+			else
+			{
+				// sprintf(DS, "%.*g", PREC, CV);
+				// lijiaying
+				if ((ContValue)(int)CV == CV)
+					sprintf(DS, "%d", (int)CV);
+				else
+					sprintf(DS, "%d", (int)(CV-0.5));
+					// sprintf(DS, "%lf", CV);
+			}
 }
 
 
@@ -18478,13 +18148,13 @@ void CValToStr(ContValue CV, Attribute Att, String DS)
 
 
 void Check(float Val, float Low, float High)
-/*   -----  */
+	/*   -----  */
 {
-    if ( Val < Low || Val > High )
-    {
-	fprintf(Of, TX_IllegalValue(Val, Low, High));
-	exit(1);
-    }
+	if ( Val < Low || Val > High )
+	{
+		fprintf(Of, TX_IllegalValue(Val, Low, High));
+		exit(1);
+	}
 }
 
 
@@ -18499,102 +18169,102 @@ void Check(float Val, float Low, float High)
 
 
 void Cleanup()
-/*   -------  */
+	/*   -------  */
 {
-    int		t, r;
+	int		t, r;
 
-    extern DataRec	*Blocked;
-    extern Tree		*SubDef;
-    extern RuleNo	*Active;
-    extern float	*AttImp;
-    extern char		*PropVal;
-    extern Boolean	*Split, *Used;
-    extern FILE		*Uf;
+	extern DataRec	*Blocked;
+	extern Tree		*SubDef;
+	extern RuleNo	*Active;
+	extern float	*AttImp;
+	extern char		*PropVal;
+	extern Boolean	*Split, *Used;
+	extern FILE		*Uf;
 
-    NotifyStage(CLEANUP);
+	NotifyStage(CLEANUP);
 
-    CheckClose(Uf);					Uf = Nil;
-    CheckClose(TRf);					TRf = Nil;
+	CheckClose(Uf);					Uf = Nil;
+	CheckClose(TRf);					TRf = Nil;
 
-    /*  Boost voting (construct.c)  */
+	/*  Boost voting (construct.c)  */
 
-    FreeUnlessNil(BVoteBlock);				BVoteBlock = Nil;
+	FreeUnlessNil(BVoteBlock);				BVoteBlock = Nil;
 
-    /*  Stuff from attribute winnowing  */
+	/*  Stuff from attribute winnowing  */
 
-    FreeUnlessNil(SaveCase);				SaveCase = Nil;
-    FreeUnlessNil(AttImp);				AttImp = Nil;
-    FreeUnlessNil(Split);				Split = Nil;
-    FreeUnlessNil(Used);				Used = Nil;
+	FreeUnlessNil(SaveCase);				SaveCase = Nil;
+	FreeUnlessNil(AttImp);				AttImp = Nil;
+	FreeUnlessNil(Split);				Split = Nil;
+	FreeUnlessNil(Used);				Used = Nil;
 
-    FreeUnlessNil(PropVal);				PropVal = Nil;
-							PropValSize = 0;
+	FreeUnlessNil(PropVal);				PropVal = Nil;
+	PropValSize = 0;
 
-    if ( RULES )
-    {
-	FreeFormRuleData();
-	FreeSiftRuleData();
-    }
-
-    /*  May have interrupted a winnowing tree  */
-
-    if ( WINNOW && WTree )
-    {
-	FreeTree(WTree);				WTree = Nil;
-    }
-
-    FreeUnlessNil(Blocked);				Blocked = Nil;
-
-    FreeData();
-
-    if ( MCost )
-    {
-	FreeVector((void **) MCost, 1, MaxClass);	MCost = Nil;
-	FreeUnlessNil(WeightMul);			WeightMul = Nil;
-    }
-
-    ForEach(t, 0, MaxTree)
-    {
-	FreeClassifier(t);
-    }
-
-    if ( RULES )
-    {
-	/*  May be incomplete ruleset in Rule[]  */
-
-	if ( Rule )
+	if ( RULES )
 	{
-	    ForEach(r, 1, NRules)
-	    {
-		FreeRule(Rule[r]);
-	    }
-	    Free(Rule);					Rule = Nil;
-	}						
+		FreeFormRuleData();
+		FreeSiftRuleData();
+	}
 
-	FreeUnlessNil(RuleSet);				RuleSet = Nil;
-	FreeUnlessNil(LogCaseNo);			LogCaseNo = Nil;
-	FreeUnlessNil(LogFact);				LogFact = Nil;
-    }
+	/*  May have interrupted a winnowing tree  */
 
-    FreeTreeData();
+	if ( WINNOW && WTree )
+	{
+		FreeTree(WTree);				WTree = Nil;
+	}
 
-    FreeUnlessNil(Active);				Active = Nil;
-							ActiveSpace = 0;
+	FreeUnlessNil(Blocked);				Blocked = Nil;
 
-    FreeUnlessNil(UtilErr);				UtilErr = Nil;
-    FreeUnlessNil(UtilBand);				UtilBand = Nil;
-    FreeUnlessNil(UtilCost);				UtilCost = Nil;
+	FreeData();
 
-    FreeUnlessNil(SomeMiss);				SomeMiss = Nil;
-    FreeUnlessNil(SomeNA);				SomeNA = Nil;
+	if ( MCost )
+	{
+		FreeVector((void **) MCost, 1, MaxClass);	MCost = Nil;
+		FreeUnlessNil(WeightMul);			WeightMul = Nil;
+	}
 
-    FreeNames();
+	ForEach(t, 0, MaxTree)
+	{
+		FreeClassifier(t);
+	}
 
-    FreeUnlessNil(SubDef);				SubDef = Nil;
-							SubSpace = 0;
-    MaxCase = -1;
+	if ( RULES )
+	{
+		/*  May be incomplete ruleset in Rule[]  */
 
-    NotifyStage(0);
+		if ( Rule )
+		{
+			ForEach(r, 1, NRules)
+			{
+				FreeRule(Rule[r]);
+			}
+			Free(Rule);					Rule = Nil;
+		}						
+
+		FreeUnlessNil(RuleSet);				RuleSet = Nil;
+		FreeUnlessNil(LogCaseNo);			LogCaseNo = Nil;
+		FreeUnlessNil(LogFact);				LogFact = Nil;
+	}
+
+	FreeTreeData();
+
+	FreeUnlessNil(Active);				Active = Nil;
+	ActiveSpace = 0;
+
+	FreeUnlessNil(UtilErr);				UtilErr = Nil;
+	FreeUnlessNil(UtilBand);				UtilBand = Nil;
+	FreeUnlessNil(UtilCost);				UtilCost = Nil;
+
+	FreeUnlessNil(SomeMiss);				SomeMiss = Nil;
+	FreeUnlessNil(SomeNA);				SomeNA = Nil;
+
+	FreeNames();
+
+	FreeUnlessNil(SubDef);				SubDef = Nil;
+	SubSpace = 0;
+	MaxCase = -1;
+
+	NotifyStage(0);
 }
 
 
@@ -18619,43 +18289,43 @@ void Cleanup()
 
 
 int UTF8CharWidth(unsigned char *U)
-/*  -------------  */
+	/*  -------------  */
 {
-    int		CWidth=0, Mask, This;
-    wchar_t	Unicode;
+	int		CWidth=0, Mask, This;
+	wchar_t	Unicode;
 
-    while ( *U )
-    {
-	Unicode = *U;
-
-	if ( *U < 0x7F )
+	while ( *U )
 	{
-	    /*  ASCII character  */
+		Unicode = *U;
 
-	    CWidth++;
-	    U++;
+		if ( *U < 0x7F )
+		{
+			/*  ASCII character  */
+
+			CWidth++;
+			U++;
+		}
+		else
+		{
+			/*  Discard header bits  */
+
+			Mask = 0x80;
+			while ( Unicode & Mask )
+			{
+				Unicode ^= Mask;
+				Mask = Mask >> 1;
+			}
+
+			while ( ((*(++U)) & 0xc0) == 0x80 )
+			{
+				Unicode = (Unicode << 6) | (*U & 0x3f);
+			}
+
+			if ( (This = wcwidth(Unicode)) > 0 ) CWidth += This;
+		}
 	}
-	else
-	{
-	    /*  Discard header bits  */
 
-	    Mask = 0x80;
-	    while ( Unicode & Mask )
-	    {
-		Unicode ^= Mask;
-		Mask = Mask >> 1;
-	    }
-
-	    while ( ((*(++U)) & 0xc0) == 0x80 )
-	    {
-		Unicode = (Unicode << 6) | (*U & 0x3f);
-	    }
-
-	    if ( (This = wcwidth(Unicode)) > 0 ) CWidth += This;
-	}
-    }
-
-    return CWidth;
+	return CWidth;
 }
 
 
@@ -18701,97 +18371,97 @@ int UTF8CharWidth(unsigned char *U)
 
 int wcwidth(wchar_t ucs)
 {
-  /* sorted list of non-overlapping intervals of non-spacing characters */
-  static const struct interval {
-    unsigned short first;
-    unsigned short last;
-  } combining[] = {
-    { 0x0300, 0x034E }, { 0x0360, 0x0362 }, { 0x0483, 0x0486 },
-    { 0x0488, 0x0489 }, { 0x0591, 0x05A1 }, { 0x05A3, 0x05B9 },
-    { 0x05BB, 0x05BD }, { 0x05BF, 0x05BF }, { 0x05C1, 0x05C2 },
-    { 0x05C4, 0x05C4 }, { 0x064B, 0x0655 }, { 0x0670, 0x0670 },
-    { 0x06D6, 0x06E4 }, { 0x06E7, 0x06E8 }, { 0x06EA, 0x06ED },
-    { 0x0711, 0x0711 }, { 0x0730, 0x074A }, { 0x07A6, 0x07B0 },
-    { 0x0901, 0x0902 }, { 0x093C, 0x093C }, { 0x0941, 0x0948 },
-    { 0x094D, 0x094D }, { 0x0951, 0x0954 }, { 0x0962, 0x0963 },
-    { 0x0981, 0x0981 }, { 0x09BC, 0x09BC }, { 0x09C1, 0x09C4 },
-    { 0x09CD, 0x09CD }, { 0x09E2, 0x09E3 }, { 0x0A02, 0x0A02 },
-    { 0x0A3C, 0x0A3C }, { 0x0A41, 0x0A42 }, { 0x0A47, 0x0A48 },
-    { 0x0A4B, 0x0A4D }, { 0x0A70, 0x0A71 }, { 0x0A81, 0x0A82 },
-    { 0x0ABC, 0x0ABC }, { 0x0AC1, 0x0AC5 }, { 0x0AC7, 0x0AC8 },
-    { 0x0ACD, 0x0ACD }, { 0x0B01, 0x0B01 }, { 0x0B3C, 0x0B3C },
-    { 0x0B3F, 0x0B3F }, { 0x0B41, 0x0B43 }, { 0x0B4D, 0x0B4D },
-    { 0x0B56, 0x0B56 }, { 0x0B82, 0x0B82 }, { 0x0BC0, 0x0BC0 },
-    { 0x0BCD, 0x0BCD }, { 0x0C3E, 0x0C40 }, { 0x0C46, 0x0C48 },
-    { 0x0C4A, 0x0C4D }, { 0x0C55, 0x0C56 }, { 0x0CBF, 0x0CBF },
-    { 0x0CC6, 0x0CC6 }, { 0x0CCC, 0x0CCD }, { 0x0D41, 0x0D43 },
-    { 0x0D4D, 0x0D4D }, { 0x0DCA, 0x0DCA }, { 0x0DD2, 0x0DD4 },
-    { 0x0DD6, 0x0DD6 }, { 0x0E31, 0x0E31 }, { 0x0E34, 0x0E3A },
-    { 0x0E47, 0x0E4E }, { 0x0EB1, 0x0EB1 }, { 0x0EB4, 0x0EB9 },
-    { 0x0EBB, 0x0EBC }, { 0x0EC8, 0x0ECD }, { 0x0F18, 0x0F19 },
-    { 0x0F35, 0x0F35 }, { 0x0F37, 0x0F37 }, { 0x0F39, 0x0F39 },
-    { 0x0F71, 0x0F7E }, { 0x0F80, 0x0F84 }, { 0x0F86, 0x0F87 },
-    { 0x0F90, 0x0F97 }, { 0x0F99, 0x0FBC }, { 0x0FC6, 0x0FC6 },
-    { 0x102D, 0x1030 }, { 0x1032, 0x1032 }, { 0x1036, 0x1037 },
-    { 0x1039, 0x1039 }, { 0x1058, 0x1059 }, { 0x17B7, 0x17BD },
-    { 0x17C6, 0x17C6 }, { 0x17C9, 0x17D3 }, { 0x18A9, 0x18A9 },
-    { 0x20D0, 0x20E3 }, { 0x302A, 0x302F }, { 0x3099, 0x309A },
-    { 0xFB1E, 0xFB1E }, { 0xFE20, 0xFE23 }
-  };
-  int min = 0;
-  int max = sizeof(combining) / sizeof(struct interval) - 1;
-  int mid;
+	/* sorted list of non-overlapping intervals of non-spacing characters */
+	static const struct interval {
+		unsigned short first;
+		unsigned short last;
+	} combining[] = {
+		{ 0x0300, 0x034E }, { 0x0360, 0x0362 }, { 0x0483, 0x0486 },
+		{ 0x0488, 0x0489 }, { 0x0591, 0x05A1 }, { 0x05A3, 0x05B9 },
+		{ 0x05BB, 0x05BD }, { 0x05BF, 0x05BF }, { 0x05C1, 0x05C2 },
+		{ 0x05C4, 0x05C4 }, { 0x064B, 0x0655 }, { 0x0670, 0x0670 },
+		{ 0x06D6, 0x06E4 }, { 0x06E7, 0x06E8 }, { 0x06EA, 0x06ED },
+		{ 0x0711, 0x0711 }, { 0x0730, 0x074A }, { 0x07A6, 0x07B0 },
+		{ 0x0901, 0x0902 }, { 0x093C, 0x093C }, { 0x0941, 0x0948 },
+		{ 0x094D, 0x094D }, { 0x0951, 0x0954 }, { 0x0962, 0x0963 },
+		{ 0x0981, 0x0981 }, { 0x09BC, 0x09BC }, { 0x09C1, 0x09C4 },
+		{ 0x09CD, 0x09CD }, { 0x09E2, 0x09E3 }, { 0x0A02, 0x0A02 },
+		{ 0x0A3C, 0x0A3C }, { 0x0A41, 0x0A42 }, { 0x0A47, 0x0A48 },
+		{ 0x0A4B, 0x0A4D }, { 0x0A70, 0x0A71 }, { 0x0A81, 0x0A82 },
+		{ 0x0ABC, 0x0ABC }, { 0x0AC1, 0x0AC5 }, { 0x0AC7, 0x0AC8 },
+		{ 0x0ACD, 0x0ACD }, { 0x0B01, 0x0B01 }, { 0x0B3C, 0x0B3C },
+		{ 0x0B3F, 0x0B3F }, { 0x0B41, 0x0B43 }, { 0x0B4D, 0x0B4D },
+		{ 0x0B56, 0x0B56 }, { 0x0B82, 0x0B82 }, { 0x0BC0, 0x0BC0 },
+		{ 0x0BCD, 0x0BCD }, { 0x0C3E, 0x0C40 }, { 0x0C46, 0x0C48 },
+		{ 0x0C4A, 0x0C4D }, { 0x0C55, 0x0C56 }, { 0x0CBF, 0x0CBF },
+		{ 0x0CC6, 0x0CC6 }, { 0x0CCC, 0x0CCD }, { 0x0D41, 0x0D43 },
+		{ 0x0D4D, 0x0D4D }, { 0x0DCA, 0x0DCA }, { 0x0DD2, 0x0DD4 },
+		{ 0x0DD6, 0x0DD6 }, { 0x0E31, 0x0E31 }, { 0x0E34, 0x0E3A },
+		{ 0x0E47, 0x0E4E }, { 0x0EB1, 0x0EB1 }, { 0x0EB4, 0x0EB9 },
+		{ 0x0EBB, 0x0EBC }, { 0x0EC8, 0x0ECD }, { 0x0F18, 0x0F19 },
+		{ 0x0F35, 0x0F35 }, { 0x0F37, 0x0F37 }, { 0x0F39, 0x0F39 },
+		{ 0x0F71, 0x0F7E }, { 0x0F80, 0x0F84 }, { 0x0F86, 0x0F87 },
+		{ 0x0F90, 0x0F97 }, { 0x0F99, 0x0FBC }, { 0x0FC6, 0x0FC6 },
+		{ 0x102D, 0x1030 }, { 0x1032, 0x1032 }, { 0x1036, 0x1037 },
+		{ 0x1039, 0x1039 }, { 0x1058, 0x1059 }, { 0x17B7, 0x17BD },
+		{ 0x17C6, 0x17C6 }, { 0x17C9, 0x17D3 }, { 0x18A9, 0x18A9 },
+		{ 0x20D0, 0x20E3 }, { 0x302A, 0x302F }, { 0x3099, 0x309A },
+		{ 0xFB1E, 0xFB1E }, { 0xFE20, 0xFE23 }
+	};
+	int min = 0;
+	int max = sizeof(combining) / sizeof(struct interval) - 1;
+	int mid;
 
-  /* test for 8-bit control characters */
-  if (ucs == 0)
-    return 0;
-  if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0))
-    return -1;
+	/* test for 8-bit control characters */
+	if (ucs == 0)
+		return 0;
+	if (ucs < 32 || (ucs >= 0x7f && ucs < 0xa0))
+		return -1;
 
-  /* first quick check for Latin-1 etc. characters */
-  if (ucs < combining[0].first)
-    return 1;
+	/* first quick check for Latin-1 etc. characters */
+	if (ucs < combining[0].first)
+		return 1;
 
-  /* binary search in table of non-spacing characters */
-  while (max >= min) {
-    mid = (min + max) / 2;
-    if (combining[mid].last < ucs)
-      min = mid + 1;
-    else if (combining[mid].first > ucs)
-      max = mid - 1;
-    else if (combining[mid].first <= ucs && combining[mid].last >= ucs)
-      return 0;
-  }
+	/* binary search in table of non-spacing characters */
+	while (max >= min) {
+		mid = (min + max) / 2;
+		if (combining[mid].last < ucs)
+			min = mid + 1;
+		else if (combining[mid].first > ucs)
+			max = mid - 1;
+		else if (combining[mid].first <= ucs && combining[mid].last >= ucs)
+			return 0;
+	}
 
-  /* if we arrive here, ucs is not a combining or C0/C1 control character */
+	/* if we arrive here, ucs is not a combining or C0/C1 control character */
 
-  /* fast test for majority of non-wide scripts */
-  if (ucs < 0x1100)
-    return 1;
+	/* fast test for majority of non-wide scripts */
+	if (ucs < 0x1100)
+		return 1;
 
-  return 1 +
-    ((ucs >= 0x1100 && ucs <= 0x115f) || /* Hangul Jamo */
-     (ucs >= 0x2e80 && ucs <= 0xa4cf && (ucs & ~0x0011) != 0x300a &&
-      ucs != 0x303f) ||                  /* CJK ... Yi */
-     (ucs >= 0xac00 && ucs <= 0xd7a3) || /* Hangul Syllables */
-     (ucs >= 0xf900 && ucs <= 0xfaff) || /* CJK Compatibility Ideographs */
-     (ucs >= 0xfe30 && ucs <= 0xfe6f) || /* CJK Compatibility Forms */
-     (ucs >= 0xff00 && ucs <= 0xff5f) || /* Fullwidth Forms */
-     (ucs >= 0xffe0 && ucs <= 0xffe6));
+	return 1 +
+		((ucs >= 0x1100 && ucs <= 0x115f) || /* Hangul Jamo */
+		 (ucs >= 0x2e80 && ucs <= 0xa4cf && (ucs & ~0x0011) != 0x300a &&
+			ucs != 0x303f) ||                  /* CJK ... Yi */
+		 (ucs >= 0xac00 && ucs <= 0xd7a3) || /* Hangul Syllables */
+		 (ucs >= 0xf900 && ucs <= 0xfaff) || /* CJK Compatibility Ideographs */
+		 (ucs >= 0xfe30 && ucs <= 0xfe6f) || /* CJK Compatibility Forms */
+		 (ucs >= 0xff00 && ucs <= 0xff5f) || /* Fullwidth Forms */
+		 (ucs >= 0xffe0 && ucs <= 0xffe6));
 }
 
 
 int wcswidth(const wchar_t *pwcs, size_t n)
 {
-  int w, width = 0;
+	int w, width = 0;
 
-  for (;*pwcs && n-- > 0; pwcs++)
-    if ((w = wcwidth(*pwcs)) < 0)
-      return -1;
-    else
-      width += w;
+	for (;*pwcs && n-- > 0; pwcs++)
+		if ((w = wcwidth(*pwcs)) < 0)
+			return -1;
+		else
+			width += w;
 
-  return width;
+	return width;
 }
 #endif
 /*************************************************************************/

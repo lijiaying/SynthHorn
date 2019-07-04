@@ -91,14 +91,15 @@ AbstractFunctions("horn-abstract",
 		  llvm::cl::desc("Abstract all calls to these functions"),
 		  llvm::cl::ZeroOrMore);
 
-#if 1
-// static llvm::cl::opt<bool>
 llvm::cl::opt<bool>
 Bounded("bounded",
         llvm::cl::desc ("Encode program variables as bounded datatype (bitvector and floating points)"),
         cl::init (false));
-        // cl::init (false));
-#endif
+
+llvm::cl::opt<bool>
+        LineSplitter("line-splitter",
+                llvm::cl::desc ("Encode program variables as bounded datatype (bitvector and floating points)"),
+                cl::init (false));
 
 namespace seahorn
 {

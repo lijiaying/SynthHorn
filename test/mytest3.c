@@ -6,11 +6,13 @@ extern int unknown2();
 
 int main()
 {
-	int a = 7;
+	int a = unknown1();
 
-	while(unknown1()){
-		a++;
+	if (a>0) {
+		while(unknown2()){
+			a++;
+		}
+		sassert(a>0);
 	}
-	sassert(a>0);
 
 }
