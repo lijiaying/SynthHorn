@@ -836,6 +836,9 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--show-data-set',
                          help='Show data set',
                          dest='show_data_set', default=False, action='store_true')
+        ap.add_argument ('--show-candidate',
+                         help='Show the predicate candidate',
+                         dest='show_candidate', default=False, action='store_true')
         ap.add_argument ('--debug-level',
                          help='debug information level',
                          dest='debug_level', type=int, default=5)
@@ -858,6 +861,7 @@ class Seahorn(sea.LimitedCmd):
         if args.show_c5_json_file: argv.append('--show-c5-json-file=true')
         if args.show_c5_json_struct: argv.append('--show-c5-json-struct=true')
         if args.show_data_set: argv.append('--show-data-set=true')
+        if args.show_candidate: argv.append('--show-candidate=true')
 
         if args.bmc:
             argv.append ('--horn-bmc')

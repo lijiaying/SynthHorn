@@ -296,3 +296,5 @@ The default is unbounded, which is same as the technique in PLDI2018...
 build/run/bin/seahorn --keep-shadows=true --horn-solve -horn-inter-proc -horn-sem-lvl=mem --horn-step=large -log none /var/folders/q1/vbndrz356txfg2tsyzzd_wsm0000gn/T/sea-Ko92U4/mytest.pp.ms.o.bc --horn-answer --horn-stats --horn-ice --horn-ice-svm-c-paramter=10 --horn-ice-c5-exec-path=C50/c5.0.dt_entropy --horn-ice-svm-exec-path=libsvm/svm-invgen --horn-ice-z3-exec-path=z3latest/z3 --horn-ice-svm-coeff-bound=5 --horn-rule-sample-length=1 --horn-ice-svm-call-freq-pos=0 --horn-ice-svm-call-freq-neg=30 --bounded=false 
 
 python run.py --screen --bounded --debug-level=3 test/demo/01.c
+
+python run.py --screen --bounded --debug-level=8 --show-data-set --show-c5-data-file --show-c5-name-file --show-c5-json-file --show-c5-interval-file test/demo/01.c
