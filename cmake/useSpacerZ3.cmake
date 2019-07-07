@@ -12,7 +12,9 @@ ExternalProject_Add(z3
   BUILD_IN_SOURCE 1
   INSTALL_DIR ${CMAKE_BINARY_DIR}/run
   CONFIGURE_COMMAND env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
- 	./configure -p <INSTALL_DIR> -b build --staticlib ${Z3_DEBUG}
+	# ./configure -p <INSTALL_DIR> -b build --staticlib --omp ${Z3_DEBUG}
+	./configure -p <INSTALL_DIR> -b build --staticlib ${Z3_DEBUG}
+	# python scripts/mk_make.py --staticlib --prefix=${CMAKE_BINARY_DIR}/run
 	BUILD_COMMAND make -j3 -C build
 	INSTALL_COMMAND make -C build install
   COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_LIST_FILE}
