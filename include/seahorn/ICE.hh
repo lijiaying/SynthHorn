@@ -278,7 +278,8 @@ namespace seahorn
 			}
 
 			void addImplCex(DataPoint dp) {m_impl_cex_set.insert(dp);}
-			void addImplPair(std::pair<DataPoint, DataPoint> pair) {m_impl_pair_set.insert(pair);}
+			void addImplCex(std::pair<DataPoint, DataPoint> pair) {m_impl_pair_set.insert(pair);}
+			void addImplCex(DataPoint p0, DataPoint p1) {m_impl_pair_set.insert(std::pair<DataPoint, DataPoint>(p0, p1));}
 
 			void addDataPointToIndex(DataPoint dp, int index) {m_data_point_to_index_map.insert(std::make_pair(dp, index));}
 
@@ -310,7 +311,7 @@ namespace seahorn
 			int countSamples (Expr pred, bool positive);
 			bool matchFacts (HornClauseDB &db, DataPoint p);
 			void extractFacts (HornClauseDB &db, ExprSet targets);
-			void clearNegSamples (Expr app, bool b);
+			// void clearNegSamples (Expr app, bool b);
 
 			// Sample Horn Constraint System.
 			// Fixme. Not suitable for non-linear Horn Constraint System.
@@ -318,11 +319,12 @@ namespace seahorn
 			bool getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index);
 			bool getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index);
 			bool getRuleBodyStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr to_pred_state, int pindex, int &index);
-			bool followingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
-			bool precedingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
+			bool sampleFollowingViaLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
+			bool samplePrecedingViaLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
 			void svmLearn (Expr targetName); //(ExprVector target);
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
+			void getCounterExampleFromModel(HornRule& r, DataPoint& head_dp, std::set<DataPoint>& body_dps, bool containPredInfo = false);
 
 	};
 }
