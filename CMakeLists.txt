@@ -6,8 +6,6 @@ set (SeaHorn_VERSION_MINOR 1)
 set (SeaHorn_VERSION_PATCH 0)
 set (SeaHorn_VERSION_TWEAK "rc3")
 
-# set(CMAKE_VERBOSE_MAKEFILE ON)
-
 if (NOT PACKAGE_VERSION)
   set(PACKAGE_VERSION
     "${SeaHorn_VERSION_MAJOR}.${SeaHorn_VERSION_MINOR}.${SeaHorn_VERSION_PATCH}")
@@ -97,13 +95,40 @@ if (NOT CMAKE_INSTALL_RPATH)
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 endif ()
 
-option (USE_OFFICIAL_Z3 "Use official Z3 release." OFF)
-if (USE_OFFICIAL_Z3)
-	message(STATUS "use official Z3 Release")
-	include(cmake/useOfficialZ3.cmake)
+
+set (Z3_TAG "origin/spacer" CACHE STRING "Z3 git tag to use")
+set (Z3_REPO "https://bitbucket.org/spacer/code.git" CACHE STRING "Z3 repo")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  set (Z3_DEBUG "-d")
 else()
-	message(STATUS "use spacer Z3 Release")
-	include(cmake/useSpacerZ3.cmake)
+  set (Z3_DEBUG "")
+endif()
+
+ExternalProject_Add(z3
+  GIT_REPOSITORY  ${Z3_REPO}
+  GIT_TAG ${Z3_TAG}
+  BUILD_IN_SOURCE 1
+  INSTALL_DIR ${CMAKE_BINARY_DIR}/run
+  CONFIGURE_COMMAND env CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
+  ./configure -p <INSTALL_DIR> -b build --staticlib ${Z3_DEBUG}
+  BUILD_COMMAND make -j3 -C build
+  INSTALL_COMMAND make -C build install
+  COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_LIST_FILE}
+  LOG_CONFIGURE 1
+  LOG_INSTALL 1
+  LOG_BUILD 1)
+
+find_package(Z3 4.3.2)
+if (NOT Z3_FOUND)
+  ExternalProject_Get_Property (z3 INSTALL_DIR)
+  set(Z3_ROOT ${INSTALL_DIR} CACHE PATH "Forced location of Z3" FORCE)
+  message(WARNING "No Z3 found. Run \n\tcmake --build . && cmake ${CMAKE_SOURCE_DIR}")
+else()
+  set_target_properties(z3 PROPERTIES EXCLUDE_FROM_ALL ON)
+  include_directories(${Z3_INCLUDE_DIR})
+  message ("Found Z3 at ${Z3_EXECUTABLE}")
+  # indicate that we want z3 binary to be included in the binary distribution
+  install (PROGRAMS ${Z3_EXECUTABLE} DESTINATION bin)
 endif()
 
 ExternalProject_Add (llvm
@@ -169,6 +194,7 @@ set(CPACK_PACKAGE_VERSION_MAJOR ${SeaHorn_VERSION_MAJOR})
 set(CPACK_PACKAGE_VERSION_MINOR ${SeaHorn_VERSION_MINOR})
 set(CPACK_PACKAGE_VERSION_PATCH ${SeaHorn_VERSION_PATCH})
 set(CPACK_PACKAGE_VERSION ${PACKAGE_VERSION})
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/license.txt")
 set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 if(CMAKE_BUILD_TYPE STREQUAL Release)
@@ -190,6 +216,9 @@ include(CPack)
 
 install (FILES ${CMAKE_CURRENT_SOURCE_DIR}/README.md DESTINATION .)
 # install all the licenses
+install (FILES  ${CMAKE_CURRENT_SOURCE_DIR}/license.txt
+  DESTINATION share/doc/seahorn
+  RENAME seahorn_license.txt)
 
 if (EXISTS z3-prefix/src/z3/LICENSE.txt)
   install (
@@ -254,8 +283,8 @@ else()
   set(GMPXX_LIB "")
 endif()
 
-# find_package(OpenMP)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+find_package(OpenMP)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 
 install(DIRECTORY include/
   DESTINATION include
