@@ -23,7 +23,7 @@
 namespace seahorn
 {
 	using namespace llvm;
-	static ExprVector empty;
+	static ExprSet empty;
 
 	class ICEPass : public llvm::ModulePass
 	{
@@ -100,6 +100,7 @@ namespace seahorn
 			std::set<DataPoint> m_impl_cex_set;
 			std::set<std::pair<DataPoint, DataPoint>> m_impl_pair_set;
 
+
 			//std::set<DataPoint> m_potential_pos_data_set;
 			//std::set<DataPoint> m_potential_neg_data_set;
 
@@ -111,6 +112,8 @@ namespace seahorn
 			std::map<Expr, int> m_must_pos_data_count;
 			std::map<Expr, int> m_must_neg_data_count;
 			std::map<Expr, int> m_impl_data_count;
+
+			std::map<Expr, int> m_pred_knowns_count;
 
 			std::map<DataPoint, int> m_pos_index_map;
 			std::vector<DataPoint> m_pos_list;
@@ -139,7 +142,7 @@ namespace seahorn
 				return oss.str();
 			}
 
-			std::string DataPointToStr(DataPoint p, ExprVector targets = empty, bool valueOnly = true);
+			std::string DataPointToStr(DataPoint p, ExprSet targets = empty, bool valueOnly = true);
 			std::string DataSetToStr(bool mustprint = false);
 			boost::tribool callExternalZ3ToSolve(ZSolver<EZ3> solver);
 			bool parseModelFromString(std::string model_str);
@@ -168,12 +171,13 @@ namespace seahorn
 			std::set<DataPoint> m_tmp_data_set; 
 
 			std::string CandidateToStr();
+			std::set<Expr> m_fact_predicates;
 			std::set<HornRule> m_fact_rule_set;
 
 		public:
 			void setupC5();
-			void initC5(ExprVector targets);
-			void C5learn(ExprVector targets);
+			void initC5(ExprSet targets);
+			void C5learn(ExprSet targets);
 
 		public:
 			HornifyModule& getHornifyModule() {return m_hm;}
@@ -187,7 +191,7 @@ namespace seahorn
 			void addInvCandsToProgramSolver();
 
 			void genInitialCandidates(HornClauseDB &db);
-			void generateC5DataAndImplicationFiles(ExprVector targets);
+			void generateC5DataAndImplicationFiles(ExprSet targets);
 
 			void addMustPosCex(DataPoint dp) {
 				errs() << bold << blue << "Must be Positive: " << DataPointToStr(dp) << "\n";
@@ -278,7 +282,7 @@ namespace seahorn
 
 			void addDataPointToIndex(DataPoint dp, int index) {m_data_point_to_index_map.insert(std::make_pair(dp, index));}
 
-			void convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprVector targets);
+			void convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprSet targets);
 			std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 			// std::list<std::list<Expr>> constructBoundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 			// std::list<std::list<Expr>> constructUnboundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
@@ -301,11 +305,11 @@ namespace seahorn
 			Expr extractRelation (HornRule r, HornClauseDB &db, Expr t, Expr s);
 			bool solveConstraints(HornClauseDB &db, bool &isChanged, int &index);
 			void fastSolveConstraints(HornClauseDB &db, bool &isChanged, int &index);
-			bool generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprVector& changedPreds);
-			bool generateNegativeSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprVector& changedPreds);
+			bool generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds);
+			bool generateNegativeSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds);
 			int countSamples (Expr pred, bool positive);
 			bool matchFacts (HornClauseDB &db, DataPoint p);
-			void extractFacts (HornClauseDB &db, ExprVector targets);
+			void extractFacts (HornClauseDB &db, ExprSet targets);
 			void clearNegSamples (Expr app, bool b);
 
 			// Sample Horn Constraint System.
@@ -314,8 +318,8 @@ namespace seahorn
 			bool getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index);
 			bool getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index);
 			bool getRuleBodyStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr to_pred_state, int pindex, int &index);
-			bool followingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
-			bool precedingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
+			bool followingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
+			bool precedingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprSet& changedPreds);
 			void svmLearn (Expr targetName); //(ExprVector target);
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
