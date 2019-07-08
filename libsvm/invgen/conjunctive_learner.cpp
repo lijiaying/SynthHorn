@@ -1,6 +1,5 @@
 #include "config.h"
 #include "ml_algo.h"
-#include "color.hh"
 #include "polynomial.h"
 #include "conjunctive_learner.h"
 
