@@ -168,6 +168,7 @@ namespace seahorn
 			std::set<DataPoint> m_tmp_data_set; 
 
 			std::string CandidateToStr();
+			std::set<HornRule> m_fact_rule_set;
 
 		public:
 			void setupC5();
@@ -301,7 +302,7 @@ namespace seahorn
 			bool solveConstraints(HornClauseDB &db, bool &isChanged, int &index);
 			void fastSolveConstraints(HornClauseDB &db, bool &isChanged, int &index);
 			bool generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprVector& changedPreds);
-			bool fastGeneratePostiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index);
+			bool generateNegativeSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprVector& changedPreds);
 			int countSamples (Expr pred, bool positive);
 			bool matchFacts (HornClauseDB &db, DataPoint p);
 			void extractFacts (HornClauseDB &db, ExprVector targets);
@@ -309,9 +310,12 @@ namespace seahorn
 
 			// Sample Horn Constraint System.
 			// Fixme. Not suitable for non-linear Horn Constraint System.
-			bool getReachableStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index);
+			bool getFollowingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index);
+			bool getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index);
 			bool getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index);
-			bool sampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
+			bool getRuleBodyStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr to_pred_state, int pindex, int &index);
+			bool followingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
+			bool precedingSampleLinearHornCtrs(Expr pred, DataPoint p, int &index, ExprVector& changedPreds);
 			void svmLearn (Expr targetName); //(ExprVector target);
 			void extractConstants(HornClauseDB &db);
 			void extractUnknowns(HornClauseDB &db);
