@@ -633,13 +633,8 @@ namespace seahorn
 			if (m_fact_predicates.count(target) == 0) {
 				assert(m_pred_knowns_count.count(target) >= 1);
 				if (m_pred_knowns_count[target] > 1) {
-					// errs() << " >1! Use SVM to generate features\n";
 					svmLearn(target);
-				} else {
-					// errs() << " <=1! skip svm learning \n";
 				}
-			} else {
-				// errs() << " fact! skip svm learning! \n";
 			}
 		}
 		initC5 (targets); // Set .names file and .interval file
@@ -703,7 +698,6 @@ namespace seahorn
 					if (!unknowns[rel][i]) { oss << "," << *attr; }
 					i++;
 				}
-			// } else if (std::find(targets.begin(), targets.end(), bind::fname(rel)) != targets.end()) {
 			} else if (targets.count(bind::fname(rel)) > 0) {
 				for(int i=0; i<bind::domainSz(rel); i++) { if (!unknowns[rel][i]) oss << ",?"; }
 			}
@@ -717,13 +711,16 @@ namespace seahorn
 			return "";
 
 		std::ostringstream oss; 
+		int i;
+		oss << "|----------------- CounterExample Data ---------------------" << "(" << m_cex_list.size() << ")" << normal << "\n"; 
+		i=0; for (auto dp : m_cex_list) { oss << "|" << ++i << "> " << DataPointToStr(dp) << "\n"; }
 		oss << blue << "===================================================================\n" << normal; 
 		oss << green << "|---------------------  POS DATA SET -----------------------" << "(" << m_pos_data_set.size() << ")" << normal << "\n"; 
-		for (auto dp: m_pos_data_set) { oss << green << "| " << DataPointToStr(dp) << normal << "\n"; }
+		i=0; for (auto dp: m_pos_data_set) { oss << green << "|" << ++i << "> " << DataPointToStr(dp) << normal << "\n"; }
 		oss << red <<   "|---------------------  NEG DATA SET -----------------------" << "(" << m_neg_data_set.size() << ")" << normal << "\n"; 
-		for (auto dp: m_neg_data_set) { oss << red << "| " << DataPointToStr(dp) << normal << "\n"; }
+		i=0; for (auto dp: m_neg_data_set) { oss << red << "|" << ++i << "> " << DataPointToStr(dp) << normal << "\n"; }
 		oss << blue <<  "|---------------------  IMPL DATA SET ----------------------" << "(" << m_impl_pair_set.size() << ")" << normal << "\n"; 
-		for (auto dp: m_impl_pair_set) oss << blue << "| " << DataPointToStr(dp.first) << " -> " << DataPointToStr(dp.second) << normal << "\n"; 
+		i=0; for (auto dp: m_impl_pair_set) oss << blue << "|" << ++i << "> " << DataPointToStr(dp.first) << " -> " << DataPointToStr(dp.second) << normal << "\n"; 
 		oss << blue << "===================================================================\n" << normal; 
 		return oss.str();
 	}
@@ -736,7 +733,7 @@ namespace seahorn
 		for(Expr rel : db.getRelations()) {
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
-			oss << green << " @ " << normal << *fapp << green << " : " << normal << *cand_app << "\n";
+			oss << green << " @" << normal << gray << *fapp << normal << " " << *cand_app << "\n";
 		}
 		return oss.str();
 	}
@@ -746,7 +743,7 @@ namespace seahorn
 	{
 		/*
 		errs() << "Generate C5 Data File -----------\n";
-		errs() << " targets: (" << targets.size() << "): ";
+		errs() << " targets[" << targets.size() << "]: ";
 		for (auto target: targets) errs() << *target << " "; errs() << "\n";
 		errs() << " dataset: \n" << DataSetToStr();
 		*/
@@ -2089,7 +2086,7 @@ namespace seahorn
 						} 
 						else if (inPos) /* the whole negPoints */
 						{
-							errs() << bold << bmag << "      >>>>>>>>>>>>>>>>>>>> BODY IS DIRTY (Positive Implication) >>>>>>>>>>>>>>>>>>" << normal << "\n";
+							errs() << mag << "      status: BODY IS DIRTY (Positive Implication) >>>>>>>>>>>>>>>>>>" << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 							///////////////////////////   BODY IS DIRTY (Positive => Positive)  /////////////////////////////////////
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2136,7 +2133,7 @@ namespace seahorn
 						} 
 						else if (inNeg)
 						{
-							errs() << bold << bmag << "      >>>>>>>>>>>>>>>>>>>> BODY IS DIRTY (Negative Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
+							errs() << mag << "      status: BODY IS DIRTY (Negative Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 							///////////////////////////   BODY IS DIRTY (Negative Implication)  /////////////////////////////////////////
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2161,7 +2158,7 @@ namespace seahorn
 						}
 						else /* not inPos and not inNeg */
 						{
-							errs() << bold << bmag << "      >>>>>>>>>>>>>>>>>>>> BODY IS DIRTY (Pure Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
+							errs() << mag << "      status: BODY IS DIRTY (Pure Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 							///////////////////////////   BODY IS DIRTY (Pure Implication)  /////////////////////////////////////////
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
