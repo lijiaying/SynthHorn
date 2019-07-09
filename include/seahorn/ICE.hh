@@ -97,7 +97,7 @@ namespace seahorn
 			std::set<DataPoint> m_neg_data_set;
 			std::set<DataPoint> m_must_pos_data_set;
 			std::set<DataPoint> m_must_neg_data_set;
-			std::set<DataPoint> m_impl_cex_set;
+			std::set<DataPoint> m_impl_data_set;
 			std::set<std::pair<DataPoint, DataPoint>> m_impl_pair_set;
 
 
@@ -277,9 +277,21 @@ namespace seahorn
 					drawPosTree (failurePoint);
 			}
 
-			void addImplCex(DataPoint dp) {m_impl_cex_set.insert(dp);}
-			void addImplCex(std::pair<DataPoint, DataPoint> pair) {m_impl_pair_set.insert(pair);}
-			void addImplCex(DataPoint p0, DataPoint p1) {m_impl_pair_set.insert(std::pair<DataPoint, DataPoint>(p0, p1));}
+			void addImplCex(DataPoint dp) {
+				m_impl_data_set.insert(dp);
+			}
+
+			void addImplCex(std::pair<DataPoint, DataPoint> pair) {
+				m_impl_pair_set.insert(pair);
+				m_impl_data_set.insert(pair.first);
+				m_impl_data_set.insert(pair.second);
+			}
+
+			void addImplCex(DataPoint p0, DataPoint p1) {
+				m_impl_pair_set.insert(std::pair<DataPoint, DataPoint>(p0, p1));
+				m_impl_data_set.insert(p0);
+				m_impl_data_set.insert(p1);
+			}
 
 			void addDataPointToIndex(DataPoint dp, int index) {m_data_point_to_index_map.insert(std::make_pair(dp, index));}
 
