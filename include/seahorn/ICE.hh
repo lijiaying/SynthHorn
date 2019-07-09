@@ -292,10 +292,6 @@ namespace seahorn
 
 			//void setPosQuery();
 
-			//void recordPosCexs(HornClauseDB &db, bool &isChanged, int &index);
-			//bool recordNegCexs(HornClauseDB &db, bool &isChanged, int &index);
-			//void recordImplPairs(HornClauseDB &db, bool &isChanged, int &index);
-
 			Expr plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
 			Expr minusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
 			Expr modAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);

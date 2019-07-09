@@ -22,3 +22,6 @@ FromCmd.*
 *log
 *.o
 /tmp
+libsvm/svm-invgen
+libsvm/svm-train
+C50/c5.0
