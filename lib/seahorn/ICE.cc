@@ -756,6 +756,7 @@ namespace seahorn
 				std::string label = "";
 				if(m_pos_data_set.count(*it) != 0) { label = "true"; } 
 				else if(m_neg_data_set.count(*it) != 0) { label = "false"; } 
+				else if(m_impl_data_set.count(*it) != 0) { label = "false"; } 
 				else if(ICEICE && m_impl_data_set.count(*it) != 0) { label = "?"; }
 				std::string dpstr = DataPointToStr(*it, targets);
 				data_hex_of << dpstr << "," << label << "\n";
@@ -2126,7 +2127,7 @@ namespace seahorn
 							}
 							else //it is a duplicate data point
 							{
-								LOGIT("ice", errs() << bred << " lijiaying: It might be possible the predicate has not updated Last Time. " << *head_dp.getPredName() << normal);
+								LOGIT("ice", errs() << bred << " lijiaying: It might be possible the predicate has not updated Last Time. " << *head_dp.getPredName() << normal << "\n");
 								m_buggy = true;
 								return false;
 							}
