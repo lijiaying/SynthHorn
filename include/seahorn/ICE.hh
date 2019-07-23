@@ -245,6 +245,7 @@ namespace seahorn
 				outs() << ")" << ending;
 			}
 
+
 			void drawPosTree (int pindex) {
 				DataPoint p = m_pos_list[pindex];
 				if (postree.find(pindex) != postree.end()) 

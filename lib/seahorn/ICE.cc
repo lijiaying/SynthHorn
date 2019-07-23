@@ -407,9 +407,9 @@ namespace seahorn
 		extractUnknowns(db);
 
 		//print the map from predicate name to C5-form predicate name
-		LOGDP("ice", errs() << lblue << "                    REL NAME TO C5 NAME MAP\n" << normal);
+		LOGDP("ice", errs() << lblue << "                    REL NAME TO C5 NAME MAP                 \n" << normal);
 		LOGDP("ice", errs() << lblue << "------------------------------------------------------------\n" << normal);
-		LOGDP("ice", errs() << lblue << "| " << normal << "Relation in CHC            " << lblue << "||" << normal << " Relation in C5            " << lblue << "|\n" << normal);
+		LOGDP("ice", errs() << lblue << "| Relation in CHC            ||  Relation in C5            |\n" << normal);
 		for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
 		{
 			int itemsize = 25;
@@ -421,7 +421,7 @@ namespace seahorn
 			itemsize = 25;
 			len = ss.str().length() - itemsize - 4;
 			while (itemsize-- >= len) { ss << " "; }
-			LOGDP("ice", errs() << lblue << "| " << ss.str() << " |\n" << normal);
+			LOGDP("ice", errs() << lblue << "| " << ss.str() << "  |\n" << normal);
 		}
 		LOGDP("ice", errs() << lblue << "------------------------------------------------------------\n" << normal);
 	}
@@ -639,13 +639,13 @@ namespace seahorn
 		}
 		initC5 (targets); // Set .names file and .interval file
 		generateC5DataAndImplicationFiles(targets);
-		LOG("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n");
+		LOGLINE("ice", errs() << "DATA & IMPL FILES ARE GENERATED\n");
 
 		// call C50, output to .json file
 		FILE *fp;
 		std::string command = C5ExecPath + " -I 1 -m 1 -f " + m_C5filename;
 		//std::string command = "/home/chenguang/Desktop/C50-ICE/C50/c5.0dbg -I 1 -m 1 -f " + m_C5filename;
-		// errs() << "---> " << command << "\n";
+		errs() << "---> " << command << "\n";
 		if((fp = popen(command.c_str(), "r")) == NULL) { perror("popen failed!\n"); return; }
 		pclose(fp);
 
@@ -653,6 +653,7 @@ namespace seahorn
 		std::ifstream if_json(m_C5filename + ".json");
 		std::ostringstream json_buf; char ch; while(json_buf && if_json.get(ch)) { json_buf.put(ch); } if_json.close();
 		std::string json_string =  json_buf.str();
+		errs() << "json: " << cyan << json_string << "\n" << normal;
 		if (ShowC5JsonFile) errs() << "json: " << cyan << json_string << "\n" << normal;
 
 		LOG("ice", errs() << " >>> convert json to ptree: \n");
@@ -664,16 +665,16 @@ namespace seahorn
 			LOGLINE("ice", errs() << " <<< convert json to ptree (structured json format): \n" << mag << ptreeToString(pt) << "\n");
 
 		//parse ptree to invariant format
-		LOG("ice", errs() << " >>> convert ptree to inv. \n");
+		LOGLINE("ice", errs() << " >>> convert ptree to inv. \n");
 		/* m_candidate_model = */ convertPtreeToInvCandidate(pt, targets);
-		LOG("ice", errs() << " <<< convert ptree to inv. \n");
+		LOGLINE("ice", errs() << " <<< convert ptree to inv. \n");
 		auto &db = m_hm.getHornClauseDB();
 
 		//Fixme: enforce to prove all queries are unsat.
 		// every predicate is set to be False
-		LOG("ice", errs() << " >>> invalididate queries \n");
+		LOGLINE("ice", errs() << " >>> invalididate queries \n");
 		/* m_candidate_model = */ invalidateQueries(db);
-		LOG("ice", errs() << " <<< invalididate queries \n");
+		LOGLINE("ice", errs() << " <<< invalididate queries \n");
 		extractFacts(db, targets);
 
 		errs() << CandidateToStr() << "\n";
@@ -712,8 +713,10 @@ namespace seahorn
 
 		std::ostringstream oss; 
 		int i;
+		/*
 		oss << "|----------------- CounterExample Data ---------------------" << "(" << m_cex_list.size() << ")" << normal << "\n"; 
 		i=0; for (auto dp : m_cex_list) { oss << "|" << ++i << "> " << DataPointToStr(dp) << "\n"; }
+		*/
 		oss << blue << "===================================================================\n" << normal; 
 		oss << green << "|---------------------  POS DATA SET -----------------------" << "(" << m_pos_data_set.size() << ")" << normal << "\n"; 
 		i=0; for (auto dp: m_pos_data_set) { oss << green << "|" << ++i << "> " << DataPointToStr(dp) << normal << "\n"; }
@@ -733,7 +736,7 @@ namespace seahorn
 		for(Expr rel : db.getRelations()) {
 			Expr fapp, cand_app;
 			getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
-			oss << green << " @" << normal << gray << *fapp << normal << " " << *cand_app << "\n";
+			oss << green << " @@ " << *fapp << " " << *cand_app << "\n";
 		}
 		return oss.str();
 	}
@@ -1794,6 +1797,7 @@ namespace seahorn
 
 	boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver) 
 	{
+		errs() << "checking... ";
 		solver.reset();
 		Expr r_head = r.head();
 		Expr r_head_cand = m_candidate_model.getDef(r_head);
@@ -2047,14 +2051,15 @@ namespace seahorn
 					// changedPreds.insert(dummy_pred);
 					// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
 					ExprSet changedPreds {dummy_pred};
-					changedPreds.insert(bind::fname(bind::fname(r_head)));
-					LOGLINE("ice", errs() << yellow << "insert " << *bind::fname(bind::fname(r_head)) << normal << "\n");
 					updated = false;
 
 					result = checkHornRule(r, db, solver);
 					if(result != UNSAT) 
 					{
 						LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
+						changedPreds.insert(bind::fname(bind::fname(r_head)));
+						LOGLINE("ice", errs() << yellow << "insert " << *bind::fname(bind::fname(r_head)) << normal << "\n");
+
 						GetModel(solver);
 						// body_dps => head_dp
 						DataPoint head_dp;
@@ -2068,19 +2073,27 @@ namespace seahorn
 						bool head_in_pos = false, head_in_neg = false;
 						bool body_in_pos = false, body_in_neg = false;
 
-						errs() << " search HEAD datapoint: " << red << DataPointToStr(head_dp) << normal << "...?\n";
+						bool positive_by_nature = m_must_pos_rule_set.count(r) > 0;
+						bool negative_by_nature = m_must_neg_rule_set.count(r) > 0;
+						
+						// errs() << " search HEAD datapoint: " << red << DataPointToStr(head_dp) << normal << lblue << "...? ";
 						if (m_pos_data_set.count(head_dp)) { head_in_pos = true; }
 						if (m_neg_data_set.count(head_dp)) { head_in_neg = true; }
-						errs() << "  inPositive? " << (head_in_pos? "Yes":"No") << "  inNegative? " << (head_in_neg? "Yes":"No") << "\n";
+						errs() << lblue << " Head is inPositive? " << (head_in_pos? "Yes":"No") << "  inNegative? " << (head_in_neg? "Yes":"No") << normal;
 
-						errs() << " search BODY datapoints [";
+						// errs() << " search BODY datapoints [";
 						for (DataPoint body_dp : body_dps) {
-							errs() << DataPointToStr(body_dp) << ", ";
+							// errs() << red << DataPointToStr(body_dp) << normal << ", ";
 							if (m_pos_data_set.count(body_dp)) { body_in_pos = body_in_pos || true; /* break; */ }
 							if (m_neg_data_set.count(body_dp)) { body_in_neg = body_in_neg || true; /* break; */ }
 						}
-						errs() << "]...?\n " << normal; //<< body_in_pos << "\n";
-						errs() << "  inPositive? " << (body_in_pos? "Yes":"No") << "  inNegative? " << (body_in_neg? "Yes":"No") << "\n";
+						// errs() << lblue << "]" << "...?\n " << normal; //<< body_in_pos << "\n";
+						errs() << lblue << " Body is inPositive? " << (body_in_pos? "Yes":"No") << "  inNegative? " << (body_in_neg? "Yes":"No") << normal << "\n";
+
+						if (positive_by_nature)
+							body_in_pos = true;
+						if (negative_by_nature)
+							head_in_neg = true;
 
 						if (body_in_pos && head_in_pos) {
 							errs() << bold << bmag << "      >>>>>>>>>> This should not be a counter-example! " << normal << "\n";
@@ -2173,13 +2186,17 @@ namespace seahorn
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
 							for (DataPoint body_dp : body_dps) {
 								errs() << " On body_dataPoint: " << DataPointToStr(body_dp) << "\n";
-								if (m_impl_data_set.count(body_dp) <= 0) {
+								bool body_in_impl = m_impl_data_set.count(body_dp) > 0;
+								bool head_in_impl = m_impl_data_set.count(head_dp) > 0;
+
+								// if (m_impl_data_set.count(body_dp) <= 0) {
+								if (!body_in_impl || !head_in_impl) {
 									addImplCex(body_dp, head_dp);
 
 									m_cex_list.push_back(body_dp); 
 									addDataPointToIndex(body_dp, index++);
 									changedPreds.insert(body_dp.getPredName());
-									LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(body_dp.getPredName()) << "\n" << normal);
+									// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(body_dp.getPredName()) << "\n" << normal);
 								} else /* it is a duplicate data point */ { 
 									LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *body_dp.getPredName() << normal << "\n"); 
 									m_buggy = true;
@@ -2190,7 +2207,7 @@ namespace seahorn
 							m_cex_list.push_back(head_dp); 
 							addDataPointToIndex(head_dp, index++);
 							changedPreds.insert(head_dp.getPredName());
-							LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(head_dp.getPredName()) << "\n" << normal);
+							// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(head_dp.getPredName()) << "\n" << normal);
 						}
 					}
 
@@ -2375,10 +2392,14 @@ namespace seahorn
 		// errs() << bcyan << bold << "** [Following State] > " << normal << " (Body) DataPoint: " << bgreen << DataPointToStr(p) << normal;
 		// errs() << " for Predicate:" << gray << *from_pred << normal << "\n";
 		bool run = true;
-		errs() << " --check each rule to do inference: \n";
+		// errs() << " --check each rule to do inference: \n";
 		for (auto r : db.getRules()) 
 		{
-			errs() << "  |-> HornRule." << blue << bold << HornRuleToStr(r) << normal;
+			/*
+			if (m_must_pos_rule_set.count(r))
+				continue;
+				*/
+			// errs() << "  |-> HornRule." << blue << bold << HornRuleToStr(r) << normal;
 			std::map<HornRule, int>::iterator itc = transitionCount.find(r);
 			if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
 				// Avoid infinitely unroll a rule!
@@ -2391,15 +2412,16 @@ namespace seahorn
 			get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
 			if(body_preds.size() == 1 && bind::fname(body_preds[0]) == bind::fname(from_pred)) // r.body == from  meaning  from->***
 			{
-				errs() << " yes, proceed to infer the following states.\n";
+				errs() << " use Rule." << blue << bold << HornRuleToStr(r) << normal;
+				errs() << " to infer following states. ";
 				Expr this_state = constructStateFromPredicateAndDataPoint(body_preds[0], p); 
 				// LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
 
 				// infer the head state based on the rule
 				bool run = getRuleHeadState(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
 				if (!run) break;
-			} else {
-				errs() << " no, check next horn rule.\n";
+			// } else {
+			// 	errs() << " no, check next horn rule.\n";
 			}
 		}
 		return run;
@@ -2416,6 +2438,10 @@ namespace seahorn
 		int count = 0;
 		for (auto r : db.getRules())
 		{
+			/*
+			if (m_must_neg_rule_set.count(r))
+				continue;
+				*/
 			std::map<HornRule, int>::iterator itc = transitionCount.find(r);
 			if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
 				// Avoid infinitely unroll a rule!
@@ -2545,7 +2571,7 @@ namespace seahorn
 				if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
 				else { itc->second = itc->second + 1; }
 
-				errs() << "==> ==> ==> ==> ==> Try to infer further....\n";
+				errs() << "==> ==> ==> ==> ==> "; // Try to infer further....\n";
 				run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
 				if (!run) break;
 
