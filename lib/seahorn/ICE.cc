@@ -2064,28 +2064,36 @@ namespace seahorn
 						updated = true; isChanged = true;
 						// If the counterexample is already labeled positive;
 						// Add its successive (aka. state transition) to positives instead.
-						bool inPos = true;
-						bool inNeg = true;
-						errs() << " search datapoints in POS, FOUND? [";
+						
+						bool head_in_pos = false, head_in_neg = false;
+						bool body_in_pos = false, body_in_neg = false;
+
+						errs() << " search HEAD datapoint: " << red << DataPointToStr(head_dp) << normal << "...?\n";
+						if (m_pos_data_set.count(head_dp)) { head_in_pos = true; }
+						if (m_neg_data_set.count(head_dp)) { head_in_neg = true; }
+						errs() << "  inPositive? " << (head_in_pos? "Yes":"No") << "  inNegative? " << (head_in_neg? "Yes":"No") << "\n";
+
+						errs() << " search BODY datapoints [";
 						for (DataPoint body_dp : body_dps) {
 							errs() << DataPointToStr(body_dp) << ", ";
-							if (m_pos_data_set.find(body_dp) == m_pos_data_set.end()) { 
-								inPos = inPos && false; 
-								break; 
-							}
+							if (m_pos_data_set.count(body_dp)) { body_in_pos = body_in_pos || true; /* break; */ }
+							if (m_neg_data_set.count(body_dp)) { body_in_neg = body_in_neg || true; /* break; */ }
 						}
-						errs() << "] " << inPos << "\n";
-						errs() << " search datapoint: " << red << DataPointToStr(head_dp) << normal << " in NEG, FOUND? ";
-						if (m_neg_data_set.find(head_dp) == m_neg_data_set.end())
-							inNeg = false; 
-						errs() << inNeg << "\n";
+						errs() << "]...?\n " << normal; //<< body_in_pos << "\n";
+						errs() << "  inPositive? " << (body_in_pos? "Yes":"No") << "  inNegative? " << (body_in_neg? "Yes":"No") << "\n";
 
-						if (inPos && inNeg) {
+						if (body_in_pos && head_in_pos) {
+							errs() << bold << bmag << "      >>>>>>>>>> This should not be a counter-example! " << normal << "\n";
+							errs() << bold << bred << "      BUG!!" << normal << "\n";
+							return false;
+						}
+
+						if (body_in_pos && head_in_neg) {
 							errs() << bold << bmag << "      >>>>>>>>>> BodyInstance is in Positive and HeadInstance in Negative (Learning wrong or Leanring has not invoked last time!)>>>>>>>>" << normal << "\n";
 							errs() << bold << bred << "      BUG!!" << normal << "\n";
 							return false;
 						} 
-						else if (inPos) /* the whole negPoints */
+						else if (body_in_pos) /* the whole negPoints */
 						{
 							errs() << mag << "      status: BODY IS DIRTY (Positive Implication) >>>>>>>>>>>>>>>>>>" << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2132,7 +2140,7 @@ namespace seahorn
 								return false;
 							}
 						} 
-						else if (inNeg)
+						else if (head_in_neg)
 						{
 							errs() << mag << "      status: BODY IS DIRTY (Negative Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2157,7 +2165,7 @@ namespace seahorn
 								}
 							}
 						}
-						else /* not inPos and not inNeg */
+						else /* not body_in_pos and not head_in_neg */
 						{
 							errs() << mag << "      status: BODY IS DIRTY (Pure Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
