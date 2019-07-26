@@ -94,6 +94,7 @@ namespace seahorn
 
 	bool ICEPass::runOnModule (Module &M)
 	{
+		RuleSampleLen = 5;
 		LOG("ice", errs() << green << bold);
 		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		LOG("ice", errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n");
@@ -657,25 +658,9 @@ namespace seahorn
 				std::string command = C5ExecPath + " -I 1 -m 1 -f " + m_C5filename;
 				// errs() << "---> " << command << "\n";
 				FILE *fp = popen(command.c_str(), "r");
-				if(!fp) { 
-					errs() << "Popen Failed!\n";
-					perror("popen failed!\n"); 
-					pclose(fp);
-					return false; 
-				}
-
-				std::array<char, 128> buffer;
-				std::string result;
-				while (fgets(buffer.data(), 128, fp) != NULL) {
-					result += buffer.data();
-				}
-
-				int exitcode = pclose(fp);
-				if (exitcode == -1) {
-					errs() << "Error Code is " << errno << "!\n";
-					return false; 
-				}
-
+				if(!fp) { perror("popen failed!\n"); pclose(fp); return false; }
+				std::array<char, 128> buffer; std::string result; while (fgets(buffer.data(), 128, fp) != NULL) { result += buffer.data(); }
+				int exitcode = pclose(fp); if (exitcode == -1) { errs() << "Error Code is " << errno << "!\n"; return false; }
 
 				//parse the .json file to ptree
 				std::ifstream if_json(m_C5filename + ".json");
@@ -689,11 +674,8 @@ namespace seahorn
 				try { boost::property_tree::json_parser::read_json(ss, pt); }
 				catch(boost::property_tree::ptree_error & e) { 
 					LOGIT("ice", errs() << "READ JSON ERROR!\n"); 
-
 					std::cout << result << std::endl;
-					failedTimes ++;
-					if (failedTimes >=5)
-						exit(-1);
+					if (++failedTimes >=5) exit(-1);
 					return false; 
 				}
 				if (ShowC5JsonStruct)
@@ -712,7 +694,7 @@ namespace seahorn
 				LOG("ice", errs() << " <<< invalididate queries \n");
 				extractFacts(db, targets);
 
-				errs() << CandidateToStr() << "\n";
+				errs() << CandidateToStr();
 				return true;
 			}
 
@@ -1852,6 +1834,8 @@ namespace seahorn
 					return result;
 				}
 
+
+
 				void ICE::clearNegData(Expr& pred) {
 					LOGLINE("ice", errs() << red << "> Remove all the data for " << *pred << " in cex and neg_data_list\n" << normal);
 					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
@@ -1870,19 +1854,26 @@ namespace seahorn
 					LOGIT("ice", errs() << "\n");
 				}
 
-				void ICE::preparePosNegPredSet(HornClauseDB &db) {
+
+
+				void ICE::markRules(HornClauseDB &db) {
 					m_neg_pred_set.clear();
 					m_pos_pred_set.clear();
+					m_fact_rule_set.clear();
+					m_must_pos_rule_set.clear();
+					m_must_neg_rule_set.clear();
+					m_must_invalid_rule_set.clear();
+
 					for (auto q: db.getQueries())
 						m_neg_pred_set.insert(bind::fname(bind::fname(q)));
 
 					for (auto r: db.getRules()) {
-						if (isOpX<TRUE>(r.body()))
+						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
+							m_fact_rule_set.insert(r);
 							m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
+						}
 					}
 
-					m_must_pos_rule_set.clear();
-					m_must_neg_rule_set.clear();
 					bool must_pos = true;
 					bool must_neg = true;
 					for (auto r: db.getRules()) {
@@ -1901,13 +1892,15 @@ namespace seahorn
 
 						if (must_pos) m_must_pos_rule_set.insert(r);
 						if (must_neg) m_must_neg_rule_set.insert(r);
+						if (must_pos && must_neg) m_must_invalid_rule_set.insert(r);
 						// errs() << "  -- mustPositive: " << must_pos << "  mustNegative: " << must_neg << "\n";
 					}
 
-
 					//*
-					errs() << " MUST POSITIVE RULES: "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-					errs() << " MUST NEGATIVE RULES: "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+					errs() << " FACT RULES (True->*): "; for(auto r : m_fact_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+					errs() << " MUST POSITIVE RULES:  "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+					errs() << " MUST NEGATIVE RULES:  "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+					errs() << " MUST INVALID  RULES:  "; for(auto r : m_must_invalid_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
 					//*/
 				}
 
@@ -1938,30 +1931,24 @@ namespace seahorn
 					{
 						// errs() << lblue << "*************************************************************************************************************************" << normal << "\n";
 						errs() << lblue << "*************************************************************************************************";
-						LOGIT ("ice", errs() << " $$solveConstraintTime " << solveConstraintTime << " loop#" << ++loopi << " <>");
+						LOGIT ("ice", errs() << " $$ solve_round " << solveConstraintTime << " loop#" << ++loopi << " <>");
 						// errs() << "============================================= CURRENT SYSTEM STATE ======================================================\n";
 						// errs() << "> Current DataSet (Positive/Negative/Implication): \n" << DataSetToStr() << "\n";
 						// errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
-						errs() << " WorkList: ";
-						for (auto rr : workList) 
-							errs() << HornRuleToStr(rr); 
+						errs() << " WorkList: "; for (auto rr : workList) errs() << HornRuleToStr(rr); errs() << normal << "\n";
+
 						HornRule r = workList.front();
 						workList.pop_front();
-						errs() << bold << yellow << " *<" << HornRuleToStr(r) << ">*" << normal << "\n";
-						/*
-						if (m_fact_rule_set.count(r) != 0) {
-							errs() << " This is a fact Rule, skip!\n";
-							// continue;
-						}
-						*/
-
-						// errs() << "=============================================== Verify HornRule " << HornRuleToStr(r) << " ========================================================\n";
 						bool updated = false; int counter = 0; bool posUpdated = false;
 
 						Expr r_head = r.head();
 						Expr r_body = r.body();
 						ExprVector body_pred_apps;
 						get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
+
+						// errs() << "=============================================== Verify HornRule " << HornRuleToStr(r) << " ========================================================\n";
+						errs() << bold << " on rule " << HornRuleToStr(r) << normal << ": ";
+						for (auto body_pred_app: body_pred_apps) errs() << *body_pred_app << " "; errs() << " ==> " << *r_head << "\n ";
 
 						bool cleanBody = true;
 						if (body_pred_apps.size() > 0) {
@@ -1993,7 +1980,7 @@ namespace seahorn
 							//  Body => True   The head can be True only if there is at least one instance for the HEAD is positive
 							//  								indicating all the instances should be true! (assuming positive is no problem!)
 							/////////////////////////////////////////////////////////////////////////////////////////////////////////
-							errs() << gray << " // comments: CleanBody ==> CleanHead (Pre->Post: DirectCheck) " << normal << "\n";
+							errs() << gray << " // comments: CleanBody ==> CleanHead (Pre ==> Post: DirectCheck) " << normal << "\n";
 							if (checkHornRule(r, db, solver) == UNSAT) 
 								continue;
 							outs() << red << "(CleanBody=>CleanHead) Program is buggy.\n" << normal;
@@ -2013,7 +2000,7 @@ namespace seahorn
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 						else if (!cleanHead && cleanBody)
 						{
-							errs() << green << " // comments:  CleanBody ==> DirtyHead (Pre->Inv: Positives) " << normal << "\n";
+							errs() << green << " // comments:  CleanBody ==> DirtyHead (Pre ==> Inv: Positives) " << normal << "\n";
 							// LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
 							// Head is possibly need to be refined!
 							// LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
@@ -2053,7 +2040,7 @@ namespace seahorn
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 						else if (cleanHead && !cleanBody) 
 						{
-							errs() << green << " // comments: DirtyBody ==> CleanHead (Inv/\\~Cond->Post: Negatives) " << normal << "\n";
+							errs() << green << " // comments: DirtyBody ==> CleanHead (Inv/\\~Cond ==> Post: Negatives) " << normal << "\n";
 							do {
 								if (checkHornRule(r, db, solver) == UNSAT) { 
 									updated = false; 
@@ -2092,7 +2079,7 @@ namespace seahorn
 						/////////////////////////////////////////////////////////////////////////////////////////////////////////
 						else if (!cleanHead && !cleanBody) 
 						{
-							errs() << green << " // comments: DirtyBody ==> DirtyHead. (Inv->Inv: IMPLICATION) " << normal << "\n";
+							errs() << green << " // comments: DirtyBody ==> DirtyHead. (Inv ==> Inv: IMPLICATION) " << normal << "\n";
 							do {
 								++counter;
 								errs() << green << "Verification Round " << counter << " " << normal;
@@ -2489,44 +2476,36 @@ namespace seahorn
 						auto &db = m_hm.getHornClauseDB();
 						errs() << bcyan << bold << "[Preceding] > " << normal << bgreen << DataPointToStr(p) << normal;
 						errs() << " for Predicate:" << gray << *to_pred << normal << "\n";
-						int count = 0;
-						for (auto r : db.getRules())
-						{
-							/*
-								 if (m_must_neg_rule_set.count(r))
-								 continue;
-								 */
+						// int count = 0;
+						for (auto r : db.getRules()) {
+							// errs() << blue << "  |-> try " << HornRuleToStr(r) << normal << "\n";
+							if (m_must_neg_rule_set.count(r)) continue;
+							if (bind::fname(r.head()) != bind::fname(to_pred)) continue;
 							std::map<HornRule, int>::iterator itc = transitionCount.find(r);
 							if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
 								// Avoid infinitely unroll a rule!
 								// Fixme. Set maximum unrolling number to be 101 or ...
+								// errs() << " failed. Reason: Avoid infinitely unroll a rule! Current transitionCount is: " << itc->second << "\n"; 
 								continue;
 							}
 
-							// try to filter a rule that starts from the predicate!
-							Expr r_head = r.head();
-
-							if(bind::fname(r_head) == bind::fname(to_pred)) // r.head == to  meaning  ***->to
-							{
-								// errs() << " > found a rule to infer the previous states. RuleNo." << blue << bold << HornRuleToStr(r) << normal << "\n";
-								errs() << blue << "   |-- try " << HornRuleToStr(r) << normal << " <<<";
-								Expr this_state = constructStateFromPredicateAndDataPoint(r_head, p); 
-								// LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
-
-								count++;
-								// infer the body states based on the rule
-								bool run = getRuleBodyStates(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
-								if (!run) {
-									if (DebugLevel>3) 
-										LOGLINE("ice", errs() << red << " < run == false. to Predicate:" << *to_pred << normal << "\n");
-									// return false;
-									return true;
-								}
+							// errs() << " > found a rule to infer the previous states. RuleNo." << blue << bold << HornRuleToStr(r) << normal << "\n";
+							// errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " (count=" << ++count << ") <<< to infer: ";
+							errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " <<< to infer: ";
+							Expr this_state = constructStateFromPredicateAndDataPoint(r.head(), p); 
+							bool run = getRuleBodyStates(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
+							if (!run) {
+								if (DebugLevel>3) 
+									LOGLINE("ice", errs() << red << " < run == false. to Predicate:" << *to_pred << normal << "\n");
+								// return false;
+								return true;
 							}
 						}
-						errs() << green << " < finish the inference to Predicate=" << normal << *to_pred << "  Count=" << count << "\n";
+						// errs() << green << " < finish the inference to Predicate=" << normal << *to_pred << "  Count=" << count << "\n";
 						return true;
 					}
+
+
 
 					// Sample Horn Constraint System.
 					// Fixme. Not suitable for non-linear Horn Constraint System.
@@ -2553,7 +2532,7 @@ namespace seahorn
 							GetModel(solver);
 							DataPoint head_dp; std::set<DataPoint> body_dps;
 							getCounterExampleFromModel(r, head_dp, body_dps, true);
-							errs() << " (infer next)-> " << DataPointToStr(head_dp) << "\n";
+							// errs() << " (infer next)-> " << DataPointToStr(head_dp) << "\n";
 
 							if(bind::domainSz(bind::fname(r_head)) == 0) //Fixme. reach a predicate with empty signature.
 							{
@@ -2627,13 +2606,15 @@ namespace seahorn
 								std::map<HornRule, int>::iterator itc = transitionCount.find(r);
 								if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
 								else { itc->second = itc->second + 1; }
+								// errs() << red << "transitioncount " << HornRuleToStr(r) << "++ ->" << itc->second << "\n" << normal;
 
-								errs() << "==> ==> ==> ==> ==> "; // Try to infer further....\n";
+								errs() << "==> ==> ==> ==> ==> Try to infer further....\n";
 								run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
 								if (!run) break;
 
 								itc = transitionCount.find(r);
 								itc->second = itc->second - 1;
+								// errs() << red << "transitioncount " << HornRuleToStr(r) << "-- ->" << itc->second << "\n" << normal;
 							}
 
 							// Iterate with the next possible solution.
@@ -2755,7 +2736,7 @@ namespace seahorn
 								// LOGIT("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
 
 								DataPoint neg_dp(bind::fname(bind::fname(body_pred)), attr_values);
-								LOGIT("ice", errs() << "\n" << lblue << "  --<> (Head) " << normal << bgreen << DataPointToStr(neg_dp) << normal << "\n");
+								LOGIT("ice", errs() << "\n" << lblue << "    --<> (Head) " << normal << bmag << DataPointToStr(neg_dp) << normal << "\n");
 								int orig_size = m_neg_data_set.size();
 								addNegCex(neg_dp);
 
@@ -2781,6 +2762,7 @@ namespace seahorn
 									std::map<HornRule, int>::iterator itc = transitionCount.find(r);
 									if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
 									else { itc->second = itc->second + 1; }
+									// errs() << red << "transitioncount " << HornRuleToStr(r) << "++ ->" << itc->second << "\n" << normal;
 
 									errs() << "   ==> ==> ==> ==> Try to infer further....\n";
 									bool run = getPrecedingStates(transitionCount, relationToPositiveStateMap, body_pred, neg_dp, index);
@@ -2788,6 +2770,7 @@ namespace seahorn
 
 									itc = transitionCount.find(r);
 									itc->second = itc->second - 1;
+									// errs() << red << "transitioncount " << HornRuleToStr(r) << "-- ->" << itc->second << "\n" << normal;
 								}
 							}
 
@@ -2855,31 +2838,20 @@ namespace seahorn
 						failurePoint = -1;
 						bool no_verification_found_error;
 
-						int ruleno = 0;
-						std::ofstream ruleout("rule.txt");
 						//print the map from predicate name to C5-form predicate name
-						LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
+						// LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
+						std::ofstream ruleout("rule.txt");
 						for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
 							ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
 						ruleout << "\n\n";
+						int ruleno = 0;
 						for (auto r: db.getRules()) {
 							ruleIndex[r] = ruleno++;
 							ruleout << HornRuleToStr(r, true) << "\n";
 						}
 						ruleout.close();
-						preparePosNegPredSet(db);
+						markRules(db);
 
-						// prepare the fact HornRules
-						m_fact_rule_set.clear();
-						for(auto r : db.getRules()) {
-							if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
-								m_fact_rule_set.insert(r);
-							}
-						}
-						errs() << " FACT RULES: ";
-						for (auto r : m_fact_rule_set)
-							errs() << HornRuleToStr(r);
-						errs() << "\n";
 
 						while(isChanged) //There are still some counterexamples to find
 						{

@@ -148,12 +148,13 @@ namespace seahorn
 			bool parseModelFromString(std::string model_str);
 			boost::tribool checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver);
 			void clearNegData(Expr& e);
-			void preparePosNegPredSet(HornClauseDB&);
+			void markRules(HornClauseDB&);
 			std::set<Expr>& getPosPredSet() {return m_pos_pred_set;}
 			std::set<Expr>& getNegPredSet() {return m_neg_pred_set;}
 
 			std::set<HornRule> m_must_pos_rule_set;
 			std::set<HornRule> m_must_neg_rule_set;
+			std::set<HornRule> m_must_invalid_rule_set;
 
 			inline bool mustPositive(HornRule& r) {
 				return (m_must_pos_rule_set.count(r) > 0);
