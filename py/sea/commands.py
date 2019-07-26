@@ -815,6 +815,9 @@ class Seahorn(sea.LimitedCmd):
         ap.add_argument ('--bounded',
                          help='use Bounded datatype',
                          dest='bounded', default=False, action='store_true')
+        ap.add_argument ('--show-svm-data-file',
+                         help='Show SVM data file',
+                         dest='show_svm_data_file', default=False, action='store_true')
         ap.add_argument ('--show-c5-name-file',
                          help='Show C5.0 name file',
                          dest='show_c5_name_file', default=False, action='store_true')
@@ -854,6 +857,7 @@ class Seahorn(sea.LimitedCmd):
         argv.append('--debug-level=' + str(args.debug_level))
 
         if args.bounded: argv.append('--bounded=true')
+        if args.show_svm_data_file: argv.append('--show-svm-data-file=true')
         if args.show_c5_name_file: argv.append('--show-c5-name-file=true')
         if args.show_c5_interval_file: argv.append('--show-c5-interval-file=true')
         if args.show_c5_data_file: argv.append('--show-c5-data-file=true')

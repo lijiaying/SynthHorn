@@ -177,7 +177,7 @@ namespace seahorn
 		public:
 			void setupC5();
 			void initC5(ExprSet targets);
-			void C5learn(ExprSet targets);
+			bool C5learn(ExprSet targets);
 
 		public:
 			HornifyModule& getHornifyModule() {return m_hm;}
@@ -258,18 +258,21 @@ namespace seahorn
 							DataPoint pre = m_pos_list[index];
 							drawDataPoint(pre, "  -->  ");
 							drawDataPoint(p, "\n");
+							outs().flush();
 						} // end for
 					} 
 					else 
 					{ // Fact --> P
 						outs() << "Fact  -->  ";
 						drawDataPoint(p, "\n");
+						outs().flush();
 					} 
 				}
 				else 
 				{ // Entry --> P
 					outs() << "Entry  -->  ";
 					drawDataPoint(p, "\n");
+					outs().flush();
 				}
 			}
 
@@ -335,6 +338,8 @@ namespace seahorn
 			void extractUnknowns(HornClauseDB &db);
 			void getCounterExampleFromModel(HornRule& r, DataPoint& head_dp, std::set<DataPoint>& body_dps, bool containPredInfo = false);
 
+			void addUsedToWorkList(HornClauseDB &db, std::list<HornRule> &workList, HornRule r);
+			void addNewToWorkList(HornClauseDB &db, std::list<HornRule> &workList, HornRule r);
 	};
 }
 
