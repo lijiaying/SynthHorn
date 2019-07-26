@@ -2029,7 +2029,7 @@ ContValue GreatestValueBelow(ContValue Th, CaseNo *Ep)
 	}
 
 	ContValue ret = (&GEnv)->SRec[Low].V;
-	printf("GreatValueBelow %lf is %lf\n", Th, ret);
+	// printf("GreatValueBelow %lf is %lf\n", Th, ret);
 	return ret;
 }
 
@@ -2065,7 +2065,7 @@ ContValue LeastValueAbove(ContValue Th, CaseNo *Ep)
 	}
 
 	ContValue ret = (&GEnv)->SRec[High].V;
-	printf("LeastValueAbove%lf is %lf\n", Th, ret);
+	// printf("LeastValueAbove%lf is %lf\n", Th, ret);
 	return ret;
 	return (&GEnv)->SRec[High].V;
 }
