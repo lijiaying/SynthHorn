@@ -689,9 +689,9 @@ namespace seahorn
 
 				//Fixme: enforce to prove all queries are unsat.
 				// every predicate is set to be False
-				LOG("ice", errs() << " >>> invalididate queries \n");
-				/* m_candidate_model = */ invalidateQueries(db);
-				LOG("ice", errs() << " <<< invalididate queries \n");
+				// LOG("ice", errs() << " >>> invalididate queries \n");
+				/* m_candidate_model = */ // invalidateQueries(db);
+				// LOG("ice", errs() << " <<< invalididate queries \n");
 				extractFacts(db, targets);
 
 				errs() << CandidateToStr();
@@ -843,6 +843,7 @@ namespace seahorn
 			}
 
 
+
 			void ICE::convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprSet targets)
 			{
 				auto &db = m_hm.getHornClauseDB();
@@ -855,6 +856,7 @@ namespace seahorn
 					if(pt.get<std::string>("classification") == "false" || pt.get<std::string>("classification") == "False")
 						candidate = mk<FALSE>(db.getExprFactory());
 					for(Expr rel : db.getRelations()) {
+						// if (m_fact_predicates.count(bind::fname(rel))) continue;
 						Expr fapp = getFappFromRel(rel);
 						m_candidate_model.addDef(fapp, candidate);
 						LOG("ice", errs() << *fapp << " ---CANDIDATE---> " << *candidate << "\n");
@@ -862,17 +864,17 @@ namespace seahorn
 					return;
 				}
 
+
 				boost::property_tree::ptree children = pt.get_child("children");
 				auto rels_it = db.getRelations().begin();
 				for(auto child_it : children) {
 					while (targets.count(bind::fname(*rels_it)) == 0) {
-						// while (std::find(targets.begin(), targets.end(), bind::fname(*rels_it)) == targets.end()) {
 						rels_it++;
-						// assert (rels_it != targets.end());
 					}
 
-					Expr candidate;
 					Expr rel = *rels_it;
+					// if (m_fact_predicates.count(bind::fname(rel))) continue;
+					Expr candidate;
 					Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 					std::ostringstream oss; oss << C5_rel_name;
 					// LOGLINE("ice", errs() << "target: " << oss.str() << "\n");
@@ -895,12 +897,8 @@ namespace seahorn
 							ExprVector conjunctions;
 							for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
 							{
-								if (isOpX<TRUE>(*conj_it))
-									continue;
-								if (isOpX<FALSE>(*conj_it)) {
-									conjunctions.clear();
-									break;
-								}
+								if (isOpX<TRUE>(*conj_it)) continue;
+								if (isOpX<FALSE>(*conj_it)) { conjunctions.clear(); break; }
 								conjunctions.push_back(*conj_it);
 							}
 							Expr disjunct;
@@ -1258,20 +1256,24 @@ namespace seahorn
 						Expr fapp = getFappFromRel(rel); /* predicate function */
 						Expr True = mk<TRUE>(rel->efac());
 						Expr False = mk<FALSE>(rel->efac());
+						m_candidate_model.addDef(fapp, False); /* predicate <- True */
+						// m_candidate_model.addDef(fapp, True); /* predicate <- True */
+						/*
 
 						for (auto q : db.getQueries ()) {
 							Expr query = q.get();
-							if (bind::fname (query) == rel) { m_candidate_model.addDef(fapp, False); } /* predicate <- False */
-							else { m_candidate_model.addDef(fapp, True); }  /* predicate <- True */
+							if (bind::fname (query) == rel) { m_candidate_model.addDef(fapp, False); } // predicate <- False
+							else { m_candidate_model.addDef(fapp, True); }  // predicate <- True
 						}
+					*/
 					}
 
-					LOGLINE("init candidate", errs() << "---- init candidate ---- (if (predicate in queries) then: False; else: True) \n");
-					LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
 					// LOGIT("init candidate", m_candidate_model.Print(errs()));
-					LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
-
+					LOGLINE("init candidate", errs() << "---- init candidate ---- (if (predicate in queries) then: False; else: True) \n");
 					extractFacts (db, empty);
+					LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
+					// LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
+					LOGIT("init candidate", errs() << cyan <<  CandidateToStr() << normal);
 				}
 
 
@@ -1361,69 +1363,36 @@ namespace seahorn
 					// For each rule with format [true->head]:
 					//     If head in targets:
 					//     		curSolve = true /\ arg1_value /\ arg2_value /\ ...
-					for (auto r : db.getRules()) 
-					{
+					for (auto r : db.getRules()) {
 						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
 							Expr head = r.head();
-							Expr body = r.body();
 							Expr rel = bind::fname(head);
 							Expr fapp = getFappFromRel(rel);
 							Expr curSolve = mk<TRUE>(rel->efac());
-							// Expr True = mk<TRUE>(rel->efac());
-							// Expr False = mk<FALSE>(rel->efac());
-							// errs() << green << "on rule " << normal << *head << blue << " <-<- " << normal << red << *body << "\n" << normal;
-							// errs() << blue << "       where the head is fapp: " << *rel << "  ";
 
 							if (targets.empty() || targets.count(bind::fname(rel)) > 0) {
-								ExprVector arg_list;
 								bool fact = false;
-								// Expr curSolve = True;
 								for(int i=0; i<bind::domainSz(rel); i++)
 								{
 									Expr arg_i_value = head->arg(i+1);
-									LOG("ice", errs() << *arg_i_value << ",");
 									Expr arg_i_type = bind::domainTy(rel, i);
 									Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
-									arg_list.push_back(arg_i);
-									// errs() << cyan << "   " << i << "> " << *arg_i << "=" << *arg_i_value << normal;
 
-									if(bind::isBoolConst(arg_i_value)) { 
-										LOG("ice", errs() << "bool const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); 
-									} else if(bind::isIntConst(arg_i_value)) { 
-										LOG("ice", errs() << "int const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); 
-									} else if(bind::isBvConst(arg_i_value)) { 
-										LOG("ice", errs() << "bv const UNCERTAIN VALUE not Care: " << *arg_i_value << "\n"); 
-									} else if(isOpX<TRUE>(arg_i_value)) {
+									if(isOpX<TRUE>(arg_i_value)) {
 										fact = true; 
-										if (isOpX<TRUE>(curSolve))
-											curSolve = arg_i;
-										else
-											curSolve = mk<AND>(curSolve, arg_i); 
+										if (isOpX<TRUE>(curSolve)) curSolve = arg_i;
+										else curSolve = mk<AND>(curSolve, arg_i); 
 									} else if(isOpX<FALSE>(arg_i_value)) { 
 										fact = true; 
-										if (isOpX<TRUE>(curSolve))
-											curSolve = mk<NEG>(arg_i);
-										else
-											curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); 
+										if (isOpX<TRUE>(curSolve)) curSolve = mk<NEG>(arg_i);
+										else curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); 
 									}
-									else { /* Other kind of constructs in fact rules not implemented yet ...*/ }
-									// errs() << red << "         cursolve: " << *curSolve << "\n" << normal;
 								}
 
 								if (fact) { // Add fact rules into solutions.
-									// Expr fapp = bind::fapp(rel, arg_list);
 									Expr preSolve = m_candidate_model.getDef(fapp);
-									/*
-										 if (isOpX<FALSE>(preSolve) && isOpX<FALSE>(curSolve))
-										 m_candidate_model.addDef(fapp, False);
-										 else if (isOpX<TRUE>(preSolve) || isOpX<TRUE>(curSolve))
-										 m_candidate_model.addDef(fapp, True);
-										 else
-										 */
 									m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
 									m_fact_predicates.insert(bind::fname(rel));
-									// m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
-									// errs() << green << "         presolve: " << *preSolve << "\n" << normal;
 								}
 							}
 						}
@@ -1436,8 +1405,6 @@ namespace seahorn
 						Expr fmodel = mk<FALSE>(rel->efac());
 						m_candidate_model.addDef(fapp, fmodel);
 					}
-					// LOGIT("ice", errs() << "Candidate Model: \n" << green << bold << m_candidate_model << normal);
-					// LOGLINE("ice", errs() << "Extracted Fact Rules.\n");
 				}
 
 
@@ -1939,6 +1906,26 @@ namespace seahorn
 
 						HornRule r = workList.front();
 						workList.pop_front();
+
+						if (m_must_invalid_rule_set.count(r)) {
+							errs() << gray << " // comments: Invalid Rule (Pre ==> not Post: DirectCheck) " << normal << "\n";
+							if (checkHornRule(r, db, solver) != UNSAT) {
+									GetModel(solver);
+									errs() << red << m_z3_model_str << "\n" << normal;
+									// body_dps => head_dp
+									DataPoint head_dp;
+									std::set<DataPoint> body_dps;
+									getCounterExampleFromModel(r, head_dp, body_dps, true);
+									errs() << "Error! Invalid rule has solutions: " << DataPointToStr(head_dp) << " <- ";
+									for (auto body_dp: body_dps)
+										errs() << DataPointToStr(body_dp) << " ";
+									errs() << "\n";
+									exit(-1);
+							}
+							continue;
+						}
+
+
 						bool updated = false; int counter = 0; bool posUpdated = false;
 
 						Expr r_head = r.head();
@@ -2298,14 +2285,14 @@ namespace seahorn
 						int ith = 0;
 						for (auto body_dp : body_dps) {
 							if (containPredInfo)
-								errs() << bgray << *(body_dp.getPredName()) << normal << "[" << DataPointToStr(body_dp) << "]";
+								errs() << bgray << *(body_dp.getPredName()) << normal << " [" << DataPointToStr(body_dp) << "]";
 							else
 								errs() << "[" << DataPointToStr(body_dp) << "]";
 							if (++ith < body_dps.size())
 								errs() << ", ";
 						}
 						if (containPredInfo)
-							errs() << " --> " << bgray << *(head_dp.getPredName()) << normal << "[" << DataPointToStr(head_dp) << "]";
+							errs() << " --> " << bgray << *(head_dp.getPredName()) << normal << " [" << DataPointToStr(head_dp) << "]";
 						else 
 							errs() << " --> " << "[" << DataPointToStr(head_dp) << "]";
 					}
@@ -2431,7 +2418,7 @@ namespace seahorn
 					bool ICE::getFollowingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index)
 					{
 						auto &db = m_hm.getHornClauseDB();
-						errs() << bcyan << bold << "[Following] > " << normal << " (Body) DataPoint: " << bgreen << DataPointToStr(p) << normal;
+						errs() << bblue << bold << "[Following] > " << normal << " (Body) DataPoint: " << bgreen << DataPointToStr(p) << normal;
 						// errs() << " for Predicate:" << gray << *from_pred << normal << "\n";
 						bool run = true;
 						// errs() << " --check each rule to do inference: \n";
@@ -2474,7 +2461,7 @@ namespace seahorn
 					bool ICE::getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index)
 					{
 						auto &db = m_hm.getHornClauseDB();
-						errs() << bcyan << bold << "[Preceding] > " << normal << bgreen << DataPointToStr(p) << normal;
+						errs() << bblue << bold << "[Preceding] > " << normal << bgreen << DataPointToStr(p) << normal;
 						errs() << " for Predicate:" << gray << *to_pred << normal << "\n";
 						// int count = 0;
 						for (auto r : db.getRules()) {
@@ -2532,6 +2519,7 @@ namespace seahorn
 							GetModel(solver);
 							DataPoint head_dp; std::set<DataPoint> body_dps;
 							getCounterExampleFromModel(r, head_dp, body_dps, true);
+							errs() << "\n";
 							// errs() << " (infer next)-> " << DataPointToStr(head_dp) << "\n";
 
 							if(bind::domainSz(bind::fname(r_head)) == 0) //Fixme. reach a predicate with empty signature.
@@ -2582,7 +2570,7 @@ namespace seahorn
 							Expr this_state;
 							if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
 							else { this_state = equations[0]; }
-							LOGLINE("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
+							LOG("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
 
 							if(m_pos_data_set.count(head_dp)<=0) //no duplicate
 							{
