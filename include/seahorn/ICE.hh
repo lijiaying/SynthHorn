@@ -73,6 +73,7 @@ namespace seahorn
 		private:
 			HornifyModule &m_hm;
 			HornDbModel m_candidate_model;
+			std::map<Expr, Expr> m_fact_model;
 
 			std::string m_C5filename;
 
@@ -148,7 +149,6 @@ namespace seahorn
 			bool parseModelFromString(std::string model_str);
 			boost::tribool checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver);
 			void clearNegData(Expr& e);
-			void markRules(HornClauseDB&);
 			std::set<Expr>& getPosPredSet() {return m_pos_pred_set;}
 			std::set<Expr>& getNegPredSet() {return m_neg_pred_set;}
 
@@ -174,11 +174,13 @@ namespace seahorn
 			std::string CandidateToStr();
 			std::set<Expr> m_fact_predicates;
 			std::set<HornRule> m_fact_rule_set;
+			std::map<HornRule, std::pair<bool, bool>> m_rule_cd_info_map;
 
 		public:
 			void setupC5();
 			void initC5(ExprSet targets);
 			bool C5learn(ExprSet targets);
+			void markRules(HornClauseDB&);
 
 		public:
 			HornifyModule& getHornifyModule() {return m_hm;}
