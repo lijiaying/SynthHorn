@@ -351,6 +351,7 @@ class Seapp(sea.LimitedCmd):
                          action='store_true', dest='internalize')
         ap.add_argument ('--log', dest='log', default=None,
                          metavar='STR', help='Log level')
+
         add_in_out_args (ap)
         _add_S_arg (ap)
         return ap
@@ -487,6 +488,24 @@ class Seapp(sea.LimitedCmd):
         if args.log is not None:
             for l in args.log.split (':'): argv.extend (['-log', l])
 
+        # lijiaying
+        destdir = os.path.join('/', 'tmp', 'castli')
+        if len(input_c_files) > 0:
+            inputcfile = input_c_files[0]
+            inputdir = os.path.dirname(inputcfile)
+            destdir = os.path.join(destdir, inputdir)
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        
+        for infile in args.in_files:
+            bcfilename = infile[infile.rfind('/') + 1:]
+            # if bcfilename.endswith('.pp.ms.o.bc'):
+            if bcfilename.endswith('.bc'):
+                dest = os.path.join(destdir, bcfilename)
+                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                shutil.copy(infile, dest) 
+        # end lijiaying
+
         argv.extend (args.in_files)
         return self.seappCmd.run (args, argv)
 
@@ -540,6 +559,25 @@ class MixedSem(sea.LimitedCmd):
                 argv.append ('--slice-function={0}'.format(f))
             
         if args.llvm_asm: argv.append ('-S')
+
+        # lijiaying
+        destdir = os.path.join('/', 'tmp', 'castli')
+        if len(input_c_files) > 0:
+            inputcfile = input_c_files[0]
+            inputdir = os.path.dirname(inputcfile)
+            destdir = os.path.join(destdir, inputdir)
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        
+        for infile in args.in_files:
+            bcfilename = infile[infile.rfind('/') + 1:]
+            # if bcfilename.endswith('.pp.ms.o.bc'):
+            if bcfilename.endswith('.bc'):
+                dest = os.path.join(destdir, bcfilename)
+                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                shutil.copy(infile, dest) 
+        # end lijiaying
+
         argv.extend (args.in_files)
         return self.seappCmd.run (args, argv)
     
@@ -638,7 +676,8 @@ class Seaopt(sea.LimitedCmd):
     def mk_arg_parser (self, ap):
         ap = super (Seaopt, self).mk_arg_parser (ap)
         ap.add_argument ('-O', type=int, dest='opt_level', metavar='INT',
-                         help='Optimization level L:[0,1,2,3]', default=3)
+                         help='Optimization level L:[0,1,2,3]', default=0)
+                         # help='Optimization level L:[0,1,2,3]', default=3)
         ap.add_argument ('--enable-indvar', dest='enable_indvar', default=False,
                          action='store_true')
         ap.add_argument ('--enable-loop-idiom', dest='enable_loop_idiom', default=False,
@@ -684,6 +723,24 @@ class Seaopt(sea.LimitedCmd):
             argv.extend (['--disable-loop-vectorization=true',
                           '--disable-slp-vectorization=true',
                           '--vectorize-slp-aggressive=false'])
+
+        # lijiaying
+        destdir = os.path.join('/', 'tmp', 'castli')
+        if len(input_c_files) > 0:
+            inputcfile = input_c_files[0]
+            inputdir = os.path.dirname(inputcfile)
+            destdir = os.path.join(destdir, inputdir)
+        if not os.path.exists(destdir):
+            os.makedirs(destdir)
+        
+        for infile in args.in_files:
+            bcfilename = infile[infile.rfind('/') + 1:]
+            # if bcfilename.endswith('.pp.ms.o.bc'):
+            if bcfilename.endswith('.bc'):
+                dest = os.path.join(destdir, bcfilename)
+                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                shutil.copy(infile, dest) 
+        # end lijiaying
 
         argv.extend (args.in_files)
         if args.llvm_asm: argv.append ('-S')
@@ -923,18 +980,18 @@ class Seahorn(sea.LimitedCmd):
         argv.extend (args.in_files)
 
         # lijiaying
+        destdir = os.path.join('/', 'tmp', 'castli')
         if len(input_c_files) > 0:
             inputcfile = input_c_files[0]
             inputdir = os.path.dirname(inputcfile)
-            destdir = os.path.join('.', 'tmp', inputdir)
-        else:
-            distdir = os.path.join('/', 'tmp')
+            destdir = os.path.join(destdir, inputdir)
         if not os.path.exists(destdir):
             os.makedirs(destdir)
         
         for infile in args.in_files:
             bcfilename = infile[infile.rfind('/') + 1:]
-            if bcfilename.endswith('.pp.ms.o.bc'):
+            # if bcfilename.endswith('.pp.ms.o.bc'):
+            if bcfilename.endswith('.bc'):
                 dest = os.path.join(destdir, bcfilename)
                 print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
                 shutil.copy(infile, dest) 
