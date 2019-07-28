@@ -174,9 +174,11 @@ namespace seahorn
 			std::string CandidateToStr();
 			std::set<Expr> m_fact_predicates;
 			std::set<HornRule> m_fact_rule_set;
+			std::set<HornRule> m_nonfact_rules;
 			std::map<HornRule, std::pair<bool, bool>> m_rule_cd_info_map;
 
 		public:
+			void ruleInit();
 			void setupC5();
 			void initC5(ExprSet targets);
 			bool C5learn(ExprSet targets);

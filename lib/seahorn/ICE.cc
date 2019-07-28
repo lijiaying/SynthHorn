@@ -104,6 +104,9 @@ namespace seahorn
 		LOG("ice-res", errs() << "Start ICE Pass\n");
 		Stats::resume ("ICE inv");
 		ICE ice(hm);
+		ice.ruleInit();
+
+
 		ice.setupC5();
 		ice.markRules(hm.getHornClauseDB());
 		ice.genInitialCandidates(hm.getHornClauseDB());
@@ -633,11 +636,11 @@ namespace seahorn
 				assert(targets.size() >= 2);
 				errs() << blue << "LearnIt(C5)..." << normal;
 				/*
-				errs() << bblue << "---------------------C5Learn-------------------" << normal << "\n";
-				errs() << " targets[" << targets.size() << "]: ";
-				for (auto target :  targets) errs() << bold << blue << *target << normal << " ";
-				errs() << normal << "\n";
-				*/
+					 errs() << bblue << "---------------------C5Learn-------------------" << normal << "\n";
+					 errs() << " targets[" << targets.size() << "]: ";
+					 for (auto target :  targets) errs() << bold << blue << *target << normal << " ";
+					 errs() << normal << "\n";
+					 */
 				if (ShowDataSet)
 					errs() << " DataSet: \n" << DataSetToStr() << "\n";
 
@@ -695,10 +698,10 @@ namespace seahorn
 				// LOG("ice", errs() << " <<< invalididate queries \n");
 				// extractFacts(db, targets);
 				/*
-				for (auto x : m_fact_model) {
-					m_candidate_model.addDef(x.first, x.second);
-				}
-				*/
+					 for (auto x : m_fact_model) {
+					 m_candidate_model.addDef(x.first, x.second);
+					 }
+					 */
 
 				if (ShowCandidate)
 					errs() << CandidateToStr();
@@ -929,1678 +932,1812 @@ namespace seahorn
 						LOGIT("ice", errs() << *fapp << green << *candidate << normal << "\n");
 					}
 					rels_it++;
+				}
+			}
+
+
+			std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
+			{
+				Expr decision_expr;
+				std::list<std::list<Expr>> final_formula;
+				auto &db = m_hm.getHornClauseDB();
+				LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
+				if (Bounded) {
+					LOG("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal);
+				} else {
+					LOG("ice", errs() << red << "--------------- ** UNBOUNED ** -----------------\n " << normal);
+				}
+				//leaf node
+				if(sub_pt.get<std::string>("children") == std::string("null"))
+				{
+					LOG("ice", errs() << "LEAF NODE\n");
+					if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
+						std::list<Expr> new_conjunct = stack;
+						final_formula.push_back(new_conjunct);
+						return final_formula;
+					}
+					else if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
+						return final_formula;
 					}
 				}
-
-
-				std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
+				//internal node
+				else 
 				{
-					Expr decision_expr;
-					std::list<std::list<Expr>> final_formula;
-					auto &db = m_hm.getHornClauseDB();
-					LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
-					if (Bounded) {
-						LOG("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal);
-					} else {
-						LOG("ice", errs() << red << "--------------- ** UNBOUNED ** -----------------\n " << normal);
+					LOG("ice", errs() << "INTERNAL NODE\n");
+					std::string attr_name = sub_pt.get<std::string>("attribute");
+					LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
+					int cut = sub_pt.get<int>("cut");
+					Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
+					// int upper = sub_pt.get<int>("upper");
+					// int lower = sub_pt.get<int>("lower");
+					// LOGIT("ice", errs() << " CutExpr[" << *threshold << "] cut:" << cut << " upper:" << upper << " lower:" << lower << "\n");
+
+					if(attr_name.find("+") != -1) { 
+						LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
+						decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
+					else if(attr_name.find("-") != -1) { 
+						LOG("ice", errs() << cyan << " + minus attr: \n" << normal);
+						decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
+					else if (attr_name.find("mod") != -1) { 
+						LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
+						decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
+					else if (attr_name.find("SVM") != -1) {
+						LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
+						Expr attr_expr;
+						for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
+							std::ostringstream oss; oss << *(it->first);
+							if(oss.str() == attr_name) { attr_expr = it->second; }
+						}
+						if(isOpX<GEQ>(attr_expr)) {
+							decision_expr = mk<NEG>(attr_expr);
+							assert(cut == 0);
+						} else if(isOpX<PLUS>(attr_expr)) {
+							decision_expr = mk<LEQ>(attr_expr, threshold);
+						}
 					}
-					//leaf node
-					if(sub_pt.get<std::string>("children") == std::string("null"))
-					{
-						LOG("ice", errs() << "LEAF NODE\n");
-						if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
-							std::list<Expr> new_conjunct = stack;
-							final_formula.push_back(new_conjunct);
+					else
+					{ // not svm
+						LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
+						// LOGLINE("ice", errs() << cyan << " + variable (not svm) attr: " << attr_name << " \nall_attrs:\n" << normal);
+
+						Expr attr_expr;
+						for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+							std::ostringstream oss; oss << *(it->first);
+							if(oss.str() == attr_name) { attr_expr = it->second; break; }
+						}
+						LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>\n" << normal);
+						if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
+							LOG("ice", errs() << blue << "  --> bool const \n" << normal);
+							decision_expr = mk<NEG>(attr_expr);
+							assert(cut == 0);
+						} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+							LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
+							decision_expr = mk<LEQ>(attr_expr, threshold);
+						} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+							LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
+							attr_expr = mk<BV2INT>(attr_expr);
+							decision_expr = mk<LEQ>(attr_expr, threshold);
+						} else {
+							LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 							return final_formula;
 						}
-						else if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
-							return final_formula;
-						}
 					}
-					//internal node
-					else 
-					{
-						LOG("ice", errs() << "INTERNAL NODE\n");
-						std::string attr_name = sub_pt.get<std::string>("attribute");
-						LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
-						int cut = sub_pt.get<int>("cut");
-						Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
-						// int upper = sub_pt.get<int>("upper");
-						// int lower = sub_pt.get<int>("lower");
-						// LOGIT("ice", errs() << " CutExpr[" << *threshold << "] cut:" << cut << " upper:" << upper << " lower:" << lower << "\n");
+					LOG("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
+					//assert(sub_pt.children().size() == 2);
+					stack.push_back(decision_expr);
+					boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
+					std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second);
+					stack.pop_back();
+					stack.push_back(mk<NEG>(decision_expr));
+					std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second);
+					stack.pop_back();
+					final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
+					return final_formula_left;
+				}
+				// should not be here.
+				LOGLINE("ice", errs() << bred << "should not be here." << normal << "\n");
+				exit(-4);
+				return final_formula;
+			}
 
-						if(attr_name.find("+") != -1) { 
-							LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
-							decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
-						else if(attr_name.find("-") != -1) { 
-							LOG("ice", errs() << cyan << " + minus attr: \n" << normal);
-							decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
-						else if (attr_name.find("mod") != -1) { 
-							LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
-							decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
-						else if (attr_name.find("SVM") != -1) {
-							LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
-							Expr attr_expr;
-							for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
-								std::ostringstream oss; oss << *(it->first);
-								if(oss.str() == attr_name) { attr_expr = it->second; }
-							}
-							if(isOpX<GEQ>(attr_expr)) {
-								decision_expr = mk<NEG>(attr_expr);
-								assert(cut == 0);
-							} else if(isOpX<PLUS>(attr_expr)) {
-								decision_expr = mk<LEQ>(attr_expr, threshold);
-							}
-						}
-						else
-						{ // not svm
-							LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
-							// LOGLINE("ice", errs() << cyan << " + variable (not svm) attr: " << attr_name << " \nall_attrs:\n" << normal);
 
-							Expr attr_expr;
-							for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
-								std::ostringstream oss; oss << *(it->first);
-								if(oss.str() == attr_name) { attr_expr = it->second; break; }
-							}
-							LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>\n" << normal);
-							if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
-								LOG("ice", errs() << blue << "  --> bool const \n" << normal);
-								decision_expr = mk<NEG>(attr_expr);
-								assert(cut == 0);
-							} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-								LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
-								decision_expr = mk<LEQ>(attr_expr, threshold);
-							} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
-								LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
-								attr_expr = mk<BV2INT>(attr_expr);
-								decision_expr = mk<LEQ>(attr_expr, threshold);
-							} else {
-								LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
-								return final_formula;
-							}
-						}
-						LOG("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
-						//assert(sub_pt.children().size() == 2);
-						stack.push_back(decision_expr);
-						boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
-						std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second);
-						stack.pop_back();
-						stack.push_back(mk<NEG>(decision_expr));
-						std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second);
-						stack.pop_back();
-						final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
-						return final_formula_left;
-					}
-					// should not be here.
-					LOGLINE("ice", errs() << bred << "should not be here." << normal << "\n");
-					exit(-4);
-					return final_formula;
+			//given an attribute which is x+y, return the expr
+			Expr ICE::plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+			{
+				typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+				boost::char_separator<char> sep("+");
+				t_tokenizer tok(attr_name, sep);
+				std::string left_name = *(tok.begin());
+				std::string right_name = *(++tok.begin());
+				Expr left_expr, right_expr;
+				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+					std::ostringstream oss; oss << *(it->first);
+					if(oss.str() == left_name) left_expr = it->second;
+					if(oss.str() == right_name) right_expr = it->second;
+				}
+				if (Bounded) {
+					if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+					left_expr = mk<BV2INT>(left_expr);
+					right_expr = mk<BV2INT>(right_expr);
+				} else {
+					if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+				}
+				int cut = sub_pt.get<int>("cut");
+				Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
+				// Expr c = mkTerm<mpz_class>(1, left_expr->efac());
+				// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c, left_expr), mk<MULT>(c, right_expr)), threshold);
+				Expr decision_expr = mk<LEQ>(mk<PLUS>(left_expr, right_expr), threshold);
+				return decision_expr;
+			}
+
+
+			//given an attribute which is x-y, return the expr
+			Expr ICE::minusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+			{
+				typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+				boost::char_separator<char> sep("-");
+				t_tokenizer tok(attr_name, sep);
+				std::string left_name = *(tok.begin());
+				std::string right_name = *(++tok.begin());
+				Expr left_expr, right_expr;
+				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+					std::ostringstream oss; oss << *(it->first);
+					if(oss.str() == left_name) left_expr = it->second;
+					if(oss.str() == right_name) right_expr = it->second;
+				}
+				if (Bounded) {
+					if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+					left_expr = mk<BV2INT>(left_expr);
+					right_expr = mk<BV2INT>(right_expr);
+				} else {
+					if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+				}
+				int cut = sub_pt.get<int>("cut");
+				Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
+				// Expr c1 = mkTerm<mpz_class>(1, left_expr->efac());
+				// Expr c2 = mkTerm<mpz_class>(-1, left_expr->efac());
+				// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c1, left_expr), mk<MULT>(c2, right_expr)), threshold);
+				Expr decision_expr = mk<LEQ>(mk<MINUS>(left_expr, right_expr), threshold);
+
+				return decision_expr;
+			}
+
+
+			//given an attribute which is x%y, return the expr
+			Expr ICE::modAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+			{
+				typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+				boost::char_separator<char> sep("mod");
+				t_tokenizer tok(attr_name, sep);
+				std::string left_name = *(tok.begin());
+				std::string right_name = *(++tok.begin());
+				Expr left_expr = NULL, right_expr = NULL;
+				for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+					std::ostringstream oss; oss << *(it->first);
+					if(oss.str() == left_name) left_expr = it->second;
+					if(oss.str() == right_name) right_expr = it->second;
 				}
 
+				if (right_expr == NULL) {
+					bool right_has_only_digits = (right_name.find_first_not_of( "0123456789" ) == -1);
+					if (right_has_only_digits && bind::isIntConst(left_expr)) { right_expr = mkTerm<mpz_class>(atoi(right_name.c_str()), left_expr->efac()); } 
+					else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+				} else if ( Bounded && !bind::isBvConst(right_expr) ) {
+					LOG("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+				} else if ( !Bounded && !bind::isIntConst(right_expr) ) {
+					LOG("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+				}
+				// if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+				if (Bounded) {
+					if(!bind::isBvConst(right_expr)) 
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+					left_expr = mk<BV2INT>(left_expr);
+				} else {
+					if(!bind::isIntConst(right_expr))
+						LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+				}
 
-				//given an attribute which is x+y, return the expr
-				Expr ICE::plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+				int cut = sub_pt.get<int>("cut");
+				Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
+				Expr decision_expr = mk<LEQ>(mk<MOD>(left_expr, right_expr), threshold);
+
+				return decision_expr;
+			}
+
+
+			// Collect unknowns in the rules
+			void ICE::extractUnknowns(HornClauseDB &db) {
+				LOGLINE("ice", errs() << ">>> Unknown search starts.\n");
+				ExprVector all_preds; // can have duplicates!
+				for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
+					HornRule r = *it;
+					all_preds.push_back(r.head());
+					get_all_pred_apps(r.body(), db, std::back_inserter(all_preds));
+				}
+
+				for (Expr pred: all_preds) {
+					Expr rel = bind::fname(pred);
+					int size = bind::domainSz(rel);
+
+					if (unknowns.find(rel) == unknowns.end()) {
+						// rel has not been searched
+						// initialize:  unknowns[rel] = <true, true, ..., true>
+						// true means "KNOWN!" for now
+						std::vector<bool> flags(size);
+						for (int i = 0; i < size; i++)
+							flags[i] = true;
+						unknowns[rel] = flags;
+					}
+
+					for(int i=0; i<size; i++) {
+						Expr name = pred->arg(i+1);
+						std::ostringstream oss; oss << name;
+						if (oss.str().find("@unknown") != -1 || oss.str().find ("_nondet_") != -1) {
+							// name has "unknown" or "nondet"
+							unknowns[rel][i] = false;
+						}
+					}
+				}
+
+				for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
+					int knowns_count = 0;
+					for (int i = 0; i < itr->second.size(); i++) {
+						itr->second[i] = !itr->second[i];
+						if (itr->second[i] == false)
+							knowns_count++;
+					}
+					m_pred_knowns_count[itr->first] = knowns_count;
+				}
+
+				LOGLINE("ice", errs() << " -> Unknowns: \n");
+				for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
+					LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
+					for (int i = 0; i < itr->second.size(); i++) {
+						LOGIT("ice", errs() << itr->second[i] << ", ");
+					}
+					LOGIT("ice", errs() << "> HAS NOT-UNKNOWNS: " << m_pred_knowns_count[itr->first] << "\n");
+				}
+				LOGLINE("ice", errs() << "<<< Unknown search done.\n");
+			}
+
+
+			// Collect integers in the rules ...
+			// Fixme. It seems we only need to consider mod operations.
+			void ICE::extractConstants(HornClauseDB &db) {
+				struct IsREM : public std::unary_function<Expr, bool>
 				{
-					typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
-					boost::char_separator<char> sep("+");
-					t_tokenizer tok(attr_name, sep);
-					std::string left_name = *(tok.begin());
-					std::string right_name = *(++tok.begin());
-					Expr left_expr, right_expr;
-					for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
-						std::ostringstream oss; oss << *(it->first);
-						if(oss.str() == left_name) left_expr = it->second;
-						if(oss.str() == right_name) right_expr = it->second;
-					}
-					if (Bounded) {
-						if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-						left_expr = mk<BV2INT>(left_expr);
-						right_expr = mk<BV2INT>(right_expr);
-					} else {
-						if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
-					}
-					int cut = sub_pt.get<int>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
-					// Expr c = mkTerm<mpz_class>(1, left_expr->efac());
-					// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c, left_expr), mk<MULT>(c, right_expr)), threshold);
-					Expr decision_expr = mk<LEQ>(mk<PLUS>(left_expr, right_expr), threshold);
-					return decision_expr;
-				}
+					IsREM () {}
+					bool operator() (Expr e) {return isOpX<REM>(e);}
+				};
 
-
-				//given an attribute which is x-y, return the expr
-				Expr ICE::minusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+				for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
 				{
-					typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
-					boost::char_separator<char> sep("-");
-					t_tokenizer tok(attr_name, sep);
-					std::string left_name = *(tok.begin());
-					std::string right_name = *(++tok.begin());
-					Expr left_expr, right_expr;
-					for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
-						std::ostringstream oss; oss << *(it->first);
-						if(oss.str() == left_name) left_expr = it->second;
-						if(oss.str() == right_name) right_expr = it->second;
-					}
-					if (Bounded) {
-						if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-						left_expr = mk<BV2INT>(left_expr);
-						right_expr = mk<BV2INT>(right_expr);
-					} else {
-						if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
-					}
-					int cut = sub_pt.get<int>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
-					// Expr c1 = mkTerm<mpz_class>(1, left_expr->efac());
-					// Expr c2 = mkTerm<mpz_class>(-1, left_expr->efac());
-					// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c1, left_expr), mk<MULT>(c2, right_expr)), threshold);
-					Expr decision_expr = mk<LEQ>(mk<MINUS>(left_expr, right_expr), threshold);
-
-					return decision_expr;
-				}
-
-
-				//given an attribute which is x%y, return the expr
-				Expr ICE::modAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
-				{
-					typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
-					boost::char_separator<char> sep("mod");
-					t_tokenizer tok(attr_name, sep);
-					std::string left_name = *(tok.begin());
-					std::string right_name = *(++tok.begin());
-					Expr left_expr = NULL, right_expr = NULL;
-					for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
-						std::ostringstream oss; oss << *(it->first);
-						if(oss.str() == left_name) left_expr = it->second;
-						if(oss.str() == right_name) right_expr = it->second;
-					}
-
-					if (right_expr == NULL) {
-						bool right_has_only_digits = (right_name.find_first_not_of( "0123456789" ) == -1);
-						if (right_has_only_digits && bind::isIntConst(left_expr)) { right_expr = mkTerm<mpz_class>(atoi(right_name.c_str()), left_expr->efac()); } 
-						else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
-					} else if ( Bounded && !bind::isBvConst(right_expr) ) {
-						LOG("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-					} else if ( !Bounded && !bind::isIntConst(right_expr) ) {
-						LOG("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
-					}
-					// if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
-					if (Bounded) {
-						if(!bind::isBvConst(right_expr)) 
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-						left_expr = mk<BV2INT>(left_expr);
-					} else {
-						if(!bind::isIntConst(right_expr))
-							LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
-					}
-
-					int cut = sub_pt.get<int>("cut");
-					Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
-					Expr decision_expr = mk<LEQ>(mk<MOD>(left_expr, right_expr), threshold);
-
-					return decision_expr;
-				}
-
-
-				// Collect unknowns in the rules
-				void ICE::extractUnknowns(HornClauseDB &db) {
-					LOGLINE("ice", errs() << ">>> Unknown search starts.\n");
-					ExprVector all_preds; // can have duplicates!
-					for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
-						HornRule r = *it;
-						all_preds.push_back(r.head());
-						get_all_pred_apps(r.body(), db, std::back_inserter(all_preds));
-					}
-
-					for (Expr pred: all_preds) {
-						Expr rel = bind::fname(pred);
-						int size = bind::domainSz(rel);
-
-						if (unknowns.find(rel) == unknowns.end()) {
-							// rel has not been searched
-							// initialize:  unknowns[rel] = <true, true, ..., true>
-							// true means "KNOWN!" for now
-							std::vector<bool> flags(size);
-							for (int i = 0; i < size; i++)
-								flags[i] = true;
-							unknowns[rel] = flags;
-						}
-
-						for(int i=0; i<size; i++) {
-							Expr name = pred->arg(i+1);
-							std::ostringstream oss; oss << name;
-							if (oss.str().find("@unknown") != -1 || oss.str().find ("_nondet_") != -1) {
-								// name has "unknown" or "nondet"
-								unknowns[rel][i] = false;
-							}
-						}
-					}
-
-					for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
-						int knowns_count = 0;
-						for (int i = 0; i < itr->second.size(); i++) {
-							itr->second[i] = !itr->second[i];
-							if (itr->second[i] == false)
-								knowns_count++;
-						}
-						m_pred_knowns_count[itr->first] = knowns_count;
-					}
-
-					LOGLINE("ice", errs() << " -> Unknowns: \n");
-					for(std::map<Expr, std::vector<bool>>::iterator itr = unknowns.begin(); itr != unknowns.end(); ++itr) {
-						LOGIT("ice", errs() << blue << " " << *itr->first << ": " << normal << "<");
-						for (int i = 0; i < itr->second.size(); i++) {
-							LOGIT("ice", errs() << itr->second[i] << ", ");
-						}
-						LOGIT("ice", errs() << "> HAS NOT-UNKNOWNS: " << m_pred_knowns_count[itr->first] << "\n");
-					}
-					LOGLINE("ice", errs() << "<<< Unknown search done.\n");
-				}
-
-
-				// Collect integers in the rules ...
-				// Fixme. It seems we only need to consider mod operations.
-				void ICE::extractConstants(HornClauseDB &db) {
-					struct IsREM : public std::unary_function<Expr, bool>
-					{
-						IsREM () {}
-						bool operator() (Expr e) {return isOpX<REM>(e);}
-					};
-
-					for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
-					{
-						HornRule r = *it;
-						ExprVector body_pred_apps;
-
-						filter (r.body(), IsREM(), std::back_inserter(body_pred_apps));
-
-						for (Expr p : body_pred_apps) {
-							Expr mod = p->right();
-							std::ostringstream oss; oss << mod;
-							bool right_has_only_digits = (oss.str().find_first_not_of( "0123456789" ) == -1);
-							if (right_has_only_digits) {
-								int cons = atoi(oss.str().c_str());
-								if (cons > 0) ruleConstants.insert(cons);
-								else if (cons < 0) ruleConstants.insert(-1*cons);
-							}
-						}
-					}
-				}
-
-
-				// Substitute relations with their solution.
-				// Enforce t is mapped to s if s is not null.
-				Expr ICE::extractRelation(HornRule r, HornClauseDB &db, Expr t, Expr s)
-				{
-					Expr ruleBody = r.body();
-					LOG("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
+					HornRule r = *it;
 					ExprVector body_pred_apps;
-					get_all_pred_apps(ruleBody, db, std::back_inserter(body_pred_apps));
-					// for (Expr p : body_pred_apps) LOG("ice", errs() << "filtered: " << *p << "\n");
 
-					ExprMap body_map;
+					filter (r.body(), IsREM(), std::back_inserter(body_pred_apps));
+
 					for (Expr p : body_pred_apps) {
-						if (p == t) {
-							if (s == NULL) { body_map.insert(std::make_pair(p, mk<TRUE>(p->efac()))); }
-							else { body_map.insert(std::make_pair(p, s)); }
+						Expr mod = p->right();
+						std::ostringstream oss; oss << mod;
+						bool right_has_only_digits = (oss.str().find_first_not_of( "0123456789" ) == -1);
+						if (right_has_only_digits) {
+							int cons = atoi(oss.str().c_str());
+							if (cons > 0) ruleConstants.insert(cons);
+							else if (cons < 0) ruleConstants.insert(-1*cons);
 						}
-						else { body_map.insert (std::make_pair (p, m_candidate_model.getDef(p))); }
 					}
+				}
+			}
 
-					Expr body_constraints = replace(ruleBody, body_map);
-					LOG("ice", errs() << cyan << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
-					return body_constraints;
+
+			// Substitute relations with their solution.
+			// Enforce t is mapped to s if s is not null.
+			Expr ICE::extractRelation(HornRule r, HornClauseDB &db, Expr t, Expr s)
+			{
+				Expr ruleBody = r.body();
+				LOG("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
+				ExprVector body_pred_apps;
+				get_all_pred_apps(ruleBody, db, std::back_inserter(body_pred_apps));
+				// for (Expr p : body_pred_apps) LOG("ice", errs() << "filtered: " << *p << "\n");
+
+				ExprMap body_map;
+				for (Expr p : body_pred_apps) {
+					if (p == t) {
+						if (s == NULL) { body_map.insert(std::make_pair(p, mk<TRUE>(p->efac()))); }
+						else { body_map.insert(std::make_pair(p, s)); }
+					}
+					else { body_map.insert (std::make_pair (p, m_candidate_model.getDef(p))); }
 				}
 
+				Expr body_constraints = replace(ruleBody, body_map);
+				LOG("ice", errs() << cyan << " --> body constraint --> (extracted)  " << blue << *body_constraints << "\n" << normal);
+				return body_constraints;
+			}
 
-				void ICE::genInitialCandidates (HornClauseDB &db)
+
+			void ICE::genInitialCandidates (HornClauseDB &db)
+			{
+				LOGLINE("init candidate", errs() << "---- init candidate start ---- \n");
+				extractUnknowns(db);
+				extractFacts (db, empty);
+				for(Expr rel : db.getRelations()) /* predicates */
 				{
-					LOGLINE("init candidate", errs() << "---- init candidate start ---- \n");
-					extractUnknowns(db);
-					extractFacts (db, empty);
-					for(Expr rel : db.getRelations()) /* predicates */
-					{
-						Expr fapp = getFappFromRel(rel); /* predicate function */
-						// Expr True = mk<TRUE>(rel->efac());
-						Expr False = mk<FALSE>(rel->efac());
-						if (m_fact_model.count(fapp) == 0)
-							m_candidate_model.addDef(fapp, False); /* predicate <- True */
-						// m_candidate_model.addDef(fapp, True); /* predicate <- True */
-						/*
-
-						for (auto q : db.getQueries ()) {
-							Expr query = q.get();
-							if (bind::fname (query) == rel) { m_candidate_model.addDef(fapp, False); } // predicate <- False
-							else { m_candidate_model.addDef(fapp, True); }  // predicate <- True
-						}
-					*/
-					}
-
-					// LOGIT("init candidate", m_candidate_model.Print(errs()));
-					LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
-					// LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
-					LOGIT("init candidate", errs() << cyan <<  CandidateToStr() << normal);
-				}
-
-
-				// For now always try to prove a query is false.
-				void ICE::invalidateQueries (HornClauseDB &db)
-				{
-					// LOG("ice", errs() << mag << m_candidate_model << "\n" << normal);
-					for(Expr rel : db.getRelations())
-					{
-						// errs() << "  - relation: " << *rel << "\n";
-						Expr fapp = getFappFromRel(rel);
-						Expr False = mk<FALSE>(rel->efac());
-
-						for (auto q : db.getQueries ()) {
-							Expr query = q.get();
-							// errs() << "    | -- query " << *query << "\t";
-							if (bind::fname (query) == rel) {
-								// errs() << green << bold << "match\n" << normal;
-								m_candidate_model.addDef(fapp, False);
-								// errs() << " +++ add def " << blue << *fapp << " -> False" << normal << "\n";
-							}
-							else 
-							{
-								// errs() << red << "unmatch\n" << normal;
-							}
-						}
-					}
-					// errs() << bold << cyan << m_candidate_model << "\n" << normal;
-				}
-
-
-				// Match wheter an example corresponds to a fact.
-				// Still not understand how this method should be used
-				bool ICE::matchFacts (HornClauseDB &db, DataPoint p) {
-					for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
-					{
-						HornRule r = *it;
-						// true -> head  &&  p is a model of head
-						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head()) && p.getPredName() == bind::fname(bind::fname(r.head()))) 
-						{
-							Expr head = r.head();
-							Expr head_app = bind::fname(head);
-							bool matched = true;
-							LOGIT("ice", errs() << "[");
-							for(int i=0; i<bind::domainSz(head_app); i++)
-							{
-								Expr arg_i_value = head->arg(i+1);
-								LOGIT("ice", errs() << *arg_i_value);
-								Expr arg_i_type = bind::domainTy(head_app, i);
-								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", head_app->efac ())), arg_i_type));
-
-								if(isOpX<TRUE>(arg_i_value) || (isOpX<FALSE>(arg_i_value))) {
-									std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
-									// it -> p.attr_values[i]
-									std::ostringstream oss; oss << **it;
-									if(isOpX<TRUE>(arg_i_value)) { if(oss.str().compare("1") != 0) { matched = false; break; } }
-									else if(isOpX<FALSE>(arg_i_value)) { if(oss.str().compare("0") != 0) { matched = false; break; } }
-								}
-								else if(bind::isBoolConst(arg_i_value)) { errs() << "  ::match bool const "; }
-								else if(bind::isIntConst(arg_i_value)) { errs() << "  ::match int const "; }
-								else if(bind::isBvConst(arg_i_value)) { errs() << "  ::match bv const "; }
-								else { /* Other kind of constructs in fact rules not implemented yet ...*/
-									errs() << bold << yellow << "Not Implemented yet.\n " << normal; 
-									matched = false;
-									break;
-								}
-							}
-							LOGIT("ice", errs() << "]");
-
-							if (matched) { 
-								LOGLINE("ice", errs() << green << "* Matched! *\n" << normal); 
-								return true; 
-							}
-						}
-					}
-
-					LOGLINE("ice", errs() << red << "* UnMatched! *\n" << normal);
-					return false;
-				}
-
-
-				// Dealing with fact rules inside Horn System.
-				// <1> Scan all the fact rules (true -> f (...)) <2>
-				void ICE::extractFacts (HornClauseDB &db, ExprSet targets) {
-					LOG("ice", errs() << "Extracting Fact Rules ...\n");
-					m_fact_predicates.clear();
-
+					Expr fapp = getFappFromRel(rel); /* predicate function */
+					// Expr True = mk<TRUE>(rel->efac());
+					Expr False = mk<FALSE>(rel->efac());
+					if (m_fact_model.count(fapp) == 0)
+						m_candidate_model.addDef(fapp, False); /* predicate <- True */
+					// m_candidate_model.addDef(fapp, True); /* predicate <- True */
 					/*
-					for (auto q: db.getQueries())
-						m_neg_pred_set.insert(bind::fname(bind::fname(q)));
 
-					for (auto r: db.getRules()) {
-						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
-							m_fact_rule_set.insert(r);
-							m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
-						}
-					}
-					*/
-					// For each rule with format [true->head]:
-					//     If head in targets:
-					//     		curSolve = true /\ arg1_value /\ arg2_value /\ ...
-					for (auto r : db.getRules()) {
-						// errs() << "\n\n @@@@@@@@@@@@@@@@@@@@@@@@ on rule: " << HornRuleToStr(r, true) << "\n";
-						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
-							Expr head = r.head();
-							Expr rel = bind::fname(head);
-							Expr fapp = getFappFromRel(rel);
-							Expr curSolve = mk<TRUE>(rel->efac());
+						 for (auto q : db.getQueries ()) {
+						 Expr query = q.get();
+						 if (bind::fname (query) == rel) { m_candidate_model.addDef(fapp, False); } // predicate <- False
+						 else { m_candidate_model.addDef(fapp, True); }  // predicate <- True
+						 }
+						 */
+				}
 
-							// errs() << "knowns count = " << m_pred_knowns_count[rel] << "\n";
-							if (m_pred_knowns_count[rel] == 0) {
-								if (m_must_neg_rule_set.count(r))
-									curSolve = mk<FALSE>(rel->efac());
-								m_candidate_model.addDef(fapp, curSolve);
-								m_fact_model[fapp] = curSolve;
-								m_fact_predicates.insert(bind::fname(rel));
-							} else {
-							// if (targets.empty() || targets.count(bind::fname(rel)) > 0) {
-								bool fact = false;
-								int size = bind::domainSz(rel);
-								for(int i=0; i<size; i++)
-								{
-									Expr arg_i_value = head->arg(i+1);
-									Expr arg_i_type = bind::domainTy(rel, i);
-									Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
+				// LOGIT("init candidate", m_candidate_model.Print(errs()));
+				LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
+				// LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
+				LOGIT("init candidate", errs() << cyan <<  CandidateToStr() << normal);
+			}
 
-									if(isOpX<TRUE>(arg_i_value)) {
-										// errs() << " is a fact: " << *head << " (arg_i=true)\n";
-										fact = true; 
-										if (isOpX<TRUE>(curSolve)) curSolve = arg_i;
-										else curSolve = mk<AND>(curSolve, arg_i); 
-									} else if(isOpX<FALSE>(arg_i_value)) { 
-										// errs() << " is a fact: " << *head << " (arg_i=false)\n";
-										fact = true; 
-										if (isOpX<TRUE>(curSolve)) curSolve = mk<NEG>(arg_i);
-										else curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); 
-									}
-								}
 
-								if (fact) { // Add fact rules into solutions.
-									// errs() << " is a fact: " << *fapp << "\n";
-									Expr preSolve = m_candidate_model.getDef(fapp);
-									m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
-									m_fact_model[fapp] = mk<OR>(preSolve, curSolve);
-									m_fact_predicates.insert(bind::fname(rel));
-								}
-							}
-						}
-					}
+			// For now always try to prove a query is false.
+			void ICE::invalidateQueries (HornClauseDB &db)
+			{
+				// LOG("ice", errs() << mag << m_candidate_model << "\n" << normal);
+				for(Expr rel : db.getRelations())
+				{
+					// errs() << "  - relation: " << *rel << "\n";
+					Expr fapp = getFappFromRel(rel);
+					Expr False = mk<FALSE>(rel->efac());
+
 					for (auto q : db.getQueries ()) {
 						Expr query = q.get();
-						Expr rel = bind::fname(query);
-						m_fact_predicates.insert(bind::fname(rel));
-						Expr fapp = getFappFromRel(rel); /* predicate function */
-						Expr fmodel = mk<FALSE>(rel->efac());
-						m_candidate_model.addDef(fapp, fmodel);
-						m_fact_model[fapp] = fmodel;
-					}
-
-					errs() << "Fact Predicates: \n";
-					for (auto pred: m_fact_predicates) {
-						errs() << "  " << *pred << "\n";
-					}
-				}
-
-
-				int ICE::countSamples (Expr pred, bool positive) {
-					std::set<DataPoint>& data_set = m_neg_data_set; 
-					if (positive) { data_set = m_pos_data_set; }
-					int count = 0;
-					for (auto it = data_set.begin(); it != data_set.end(); ++it) {
-						if (it->getPredName() == pred) { count++; }
-					}
-					return count;
-				}
-
-
-				Expr regulateAttrValue(Expr val) {
-					//deal with uncertain values in cexs
-					if(bind::isBoolConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
-						Expr uncertain_value = mk<FALSE>(val->efac());
-						val = uncertain_value;
-					} else if(bind::isIntConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
-						Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
-						val = uncertain_value;
-					} else if(bind::isBvConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
-						Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
-						val = uncertain_value;
-					}
-
-					//convert true/false to 1/0 in C5 data point
-					if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
-					else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
-
-					return val;
-				}
-
-
-				std::list<Expr> modelToAttrValues(ZModel<EZ3> model, Expr pred)
-				{
-					std::list<Expr> attr_values;
-					for(int i=0; i<bind::domainSz(bind::fname(pred)); i++)
-					{
-						Expr arg_i = pred->arg(i+1);
-						Expr arg_i_value = model.eval(arg_i);
-						arg_i_value = regulateAttrValue(arg_i_value);
-						attr_values.push_back(arg_i_value);
-					}
-					return attr_values;
-				}
-
-
-				Expr getUnknownAttrValue(Expr val) {
-					//deal with uncertain values in cexs
-					if(bind::isBoolConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
-						Expr uncertain_value = mk<FALSE>(val->efac());
-						val = uncertain_value;
-					} else if(bind::isIntConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
-						Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
-						val = uncertain_value;
-					} else if(bind::isBvConst(val)) {
-						LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
-						Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
-						val = uncertain_value;
-					}
-
-					//convert true/false to 1/0 in C5 data point
-					if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
-					else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
-					return val;
-				}
-
-
-				Expr constructExprFromTypeValueMap(std::pair<std::string, std::string> x, ExprFactory& efac) {
-					using namespace expr::op;
-					Expr typeE, valueE;
-					std::string xtype = x.first;
-					std::string xvalue = x.second;
-					if (xtype == "Bool") {
-						// std::cerr << "type: bool.\n";
-						typeE = sort::boolTy(efac);
-						if (xvalue == "true")
-							valueE = mk<TRUE> (efac);
-						else if (xvalue == "false")
-							valueE = mk<FALSE> (efac);
-						return valueE;
-					} else if (xtype == "(_ BitVec 32)") {
-						int length = xvalue.length();
-						int xint = std::stoul(xvalue.substr(2, length-2), nullptr, 16);
-						valueE = mkTerm (mpz_class (std::to_string(xint)), efac);
-						typeE = bv::bvsort(32, efac);
-					} else if (xtype == "Int") {
-						typeE = sort::intTy(efac);
-						valueE = mkTerm (mpz_class (xvalue), efac);
-						return valueE;
-					} else if (xtype == "Real") {
-						typeE = sort::realTy(efac);
-						valueE = mkTerm (mpq_class (xvalue), efac);
-						return valueE;
-					} else {
-						std::cerr << "error happens.\n";
-					}
-					Expr outE = mk<BIND>(valueE, typeE);
-					return outE;
-				}
-
-
-				std::list<Expr> modelToAttrValues(std::map<std::string, std::pair<std::string, std::string>> model, Expr pred) {
-					std::list<Expr> attr_values;
-					for(int i=0; i<bind::domainSz(bind::fname(pred)); i++) {
-						Expr arg_i = pred->arg(i+1);
-						std::string name = arg_i->to_string();
-						bool to_print = false;
-						if (name.find("unknown") != std::string::npos) to_print=true; 
-						Expr arg_i_value;
-						if (model.count(name)) {
-							arg_i_value = constructExprFromTypeValueMap(model[name], arg_i->efac());
-						} else {
-							arg_i_value = getUnknownAttrValue(arg_i);
+						// errs() << "    | -- query " << *query << "\t";
+						if (bind::fname (query) == rel) {
+							// errs() << green << bold << "match\n" << normal;
+							m_candidate_model.addDef(fapp, False);
+							// errs() << " +++ add def " << blue << *fapp << " -> False" << normal << "\n";
 						}
-						attr_values.push_back(arg_i_value);
+						else 
+						{
+							// errs() << red << "unmatch\n" << normal;
+						}
 					}
-					return attr_values;
+				}
+				// errs() << bold << cyan << m_candidate_model << "\n" << normal;
+			}
+
+
+			// Match wheter an example corresponds to a fact.
+			// Still not understand how this method should be used
+			bool ICE::matchFacts (HornClauseDB &db, DataPoint p) {
+				for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
+				{
+					HornRule r = *it;
+					// true -> head  &&  p is a model of head
+					if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head()) && p.getPredName() == bind::fname(bind::fname(r.head()))) 
+					{
+						Expr head = r.head();
+						Expr head_app = bind::fname(head);
+						bool matched = true;
+						LOGIT("ice", errs() << "[");
+						for(int i=0; i<bind::domainSz(head_app); i++)
+						{
+							Expr arg_i_value = head->arg(i+1);
+							LOGIT("ice", errs() << *arg_i_value);
+							Expr arg_i_type = bind::domainTy(head_app, i);
+							Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", head_app->efac ())), arg_i_type));
+
+							if(isOpX<TRUE>(arg_i_value) || (isOpX<FALSE>(arg_i_value))) {
+								std::list<Expr>::iterator it = p.getAttrValues().begin(); std::advance(it, i);
+								// it -> p.attr_values[i]
+								std::ostringstream oss; oss << **it;
+								if(isOpX<TRUE>(arg_i_value)) { if(oss.str().compare("1") != 0) { matched = false; break; } }
+								else if(isOpX<FALSE>(arg_i_value)) { if(oss.str().compare("0") != 0) { matched = false; break; } }
+							}
+							else if(bind::isBoolConst(arg_i_value)) { errs() << "  ::match bool const "; }
+							else if(bind::isIntConst(arg_i_value)) { errs() << "  ::match int const "; }
+							else if(bind::isBvConst(arg_i_value)) { errs() << "  ::match bv const "; }
+							else { /* Other kind of constructs in fact rules not implemented yet ...*/
+								errs() << bold << yellow << "Not Implemented yet.\n " << normal; 
+								matched = false;
+								break;
+							}
+						}
+						LOGIT("ice", errs() << "]");
+
+						if (matched) { 
+							LOGLINE("ice", errs() << green << "* Matched! *\n" << normal); 
+							return true; 
+						}
+					}
 				}
 
+				LOGLINE("ice", errs() << red << "* UnMatched! *\n" << normal);
+				return false;
+			}
 
-				boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
+
+			// Dealing with fact rules inside Horn System.
+			// <1> Scan all the fact rules (true -> f (...)) <2>
+			void ICE::extractFacts (HornClauseDB &db, ExprSet targets) {
+				LOG("ice", errs() << "Extracting Fact Rules ...\n");
+				m_fact_predicates.clear();
+
+				/*
+					 for (auto q: db.getQueries())
+					 m_neg_pred_set.insert(bind::fname(bind::fname(q)));
+
+					 for (auto r: db.getRules()) {
+					 if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
+					 m_fact_rule_set.insert(r);
+					 m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
+					 }
+					 }
+					 */
+				// For each rule with format [true->head]:
+				//     If head in targets:
+				//     		curSolve = true /\ arg1_value /\ arg2_value /\ ...
+				for (auto r : db.getRules()) {
+					// errs() << "\n\n @@@@@@@@@@@@@@@@@@@@@@@@ on rule: " << HornRuleToStr(r, true) << "\n";
+					if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
+						Expr head = r.head();
+						Expr rel = bind::fname(head);
+						Expr fapp = getFappFromRel(rel);
+						Expr curSolve = mk<TRUE>(rel->efac());
+
+						// errs() << "knowns count = " << m_pred_knowns_count[rel] << "\n";
+						if (m_pred_knowns_count[rel] == 0) {
+							if (m_must_neg_rule_set.count(r))
+								curSolve = mk<FALSE>(rel->efac());
+							m_candidate_model.addDef(fapp, curSolve);
+							m_fact_model[fapp] = curSolve;
+							m_fact_predicates.insert(bind::fname(rel));
+						} else {
+							// if (targets.empty() || targets.count(bind::fname(rel)) > 0)
+							bool fact = false;
+							int size = bind::domainSz(rel);
+							for(int i=0; i<size; i++)
+							{
+								Expr arg_i_value = head->arg(i+1);
+								Expr arg_i_type = bind::domainTy(rel, i);
+								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
+
+								if(isOpX<TRUE>(arg_i_value)) {
+									// errs() << " is a fact: " << *head << " (arg_i=true)\n";
+									fact = true; 
+									if (isOpX<TRUE>(curSolve)) curSolve = arg_i;
+									else curSolve = mk<AND>(curSolve, arg_i); 
+								} else if(isOpX<FALSE>(arg_i_value)) { 
+									// errs() << " is a fact: " << *head << " (arg_i=false)\n";
+									fact = true; 
+									if (isOpX<TRUE>(curSolve)) curSolve = mk<NEG>(arg_i);
+									else curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); 
+								}
+							}
+
+							if (fact) { // Add fact rules into solutions.
+								// errs() << " is a fact: " << *fapp << "\n";
+								Expr preSolve = m_candidate_model.getDef(fapp);
+								m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
+								m_fact_model[fapp] = mk<OR>(preSolve, curSolve);
+								m_fact_predicates.insert(bind::fname(rel));
+							}
+						}
+					}
+				}
+				for (auto q : db.getQueries ()) {
+					Expr query = q.get();
+					Expr rel = bind::fname(query);
+					m_fact_predicates.insert(bind::fname(rel));
+					Expr fapp = getFappFromRel(rel); /* predicate function */
+					Expr fmodel = mk<FALSE>(rel->efac());
+					m_candidate_model.addDef(fapp, fmodel);
+					m_fact_model[fapp] = fmodel;
+				}
+
+				errs() << "Fact Predicates: \n";
+				for (auto pred: m_fact_predicates) {
+					errs() << "  " << *pred << "\n";
+				}
+			}
+
+
+			int ICE::countSamples (Expr pred, bool positive) {
+				std::set<DataPoint>& data_set = m_neg_data_set; 
+				if (positive) { data_set = m_pos_data_set; }
+				int count = 0;
+				for (auto it = data_set.begin(); it != data_set.end(); ++it) {
+					if (it->getPredName() == pred) { count++; }
+				}
+				return count;
+			}
+
+
+			Expr regulateAttrValue(Expr val) {
+				//deal with uncertain values in cexs
+				if(bind::isBoolConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
+					Expr uncertain_value = mk<FALSE>(val->efac());
+					val = uncertain_value;
+				} else if(bind::isIntConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+					Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
+					val = uncertain_value;
+				} else if(bind::isBvConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+					Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
+					val = uncertain_value;
+				}
+
+				//convert true/false to 1/0 in C5 data point
+				if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
+				else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
+
+				return val;
+			}
+
+
+			std::list<Expr> modelToAttrValues(ZModel<EZ3> model, Expr pred)
+			{
+				std::list<Expr> attr_values;
+				for(int i=0; i<bind::domainSz(bind::fname(pred)); i++)
 				{
-					// outs() << "  " << bblue << "[Experimental] call external Z3 to solve constraint" << normal;
-					// LOGIT("ice", errs() << "  " << cyan << "Z3 solve ...... ");
-					boost::tribool is_sat;
-					std::ostringstream oss;
-					solver.toSmtLib(oss);
-					std::string smt2_to_solve = oss.str() + "\n(get-model)";
-					// outs() << "SMT format for solving: " << gray << oss.str() << normal << "\n";
-					// errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
-					std::ofstream smt_of(m_C5filename + ".smt2");
-					smt_of << smt2_to_solve;
-					smt_of.close();
+					Expr arg_i = pred->arg(i+1);
+					Expr arg_i_value = model.eval(arg_i);
+					arg_i_value = regulateAttrValue(arg_i_value);
+					attr_values.push_back(arg_i_value);
+				}
+				return attr_values;
+			}
 
-					std::string command = Z3ExecPath + " " 
-						+ m_C5filename + ".smt2" + " "
-						+ "-T:10 "; // set timeout to 10s
-					m_z3_model_str = "";
 
-					LOG("ice", errs() << bgreen << "Call Z3 externally: " << command << normal << "\n");
-					FILE* fp;
-					if((fp = popen(command.c_str(), "r")) == NULL) { 
-						LOG("ice", errs() << "popen error!\n"); 
-						perror("popen failed!\n"); 
-						is_sat = boost::indeterminate;
-						return is_sat;
-					}
+			Expr getUnknownAttrValue(Expr val) {
+				//deal with uncertain values in cexs
+				if(bind::isBoolConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val<< "\n");
+					Expr uncertain_value = mk<FALSE>(val->efac());
+					val = uncertain_value;
+				} else if(bind::isIntConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+					Expr uncertain_value = mkTerm<mpz_class>(0, val->efac());
+					val = uncertain_value;
+				} else if(bind::isBvConst(val)) {
+					LOG("ice", errs() << "UNCERTAIN VALUE: " << *val << "\n");
+					Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(val), val->efac());
+					val = uncertain_value;
+				}
 
-					char buffer[1024];
-					std::string model = "";
-					while (fgets(buffer, 1024, fp) != NULL) {
-						model += buffer;
-					}
-					// outs()  << red << model << normal << "\n";
+				//convert true/false to 1/0 in C5 data point
+				if(isOpX<TRUE>(val)) { val = mkTerm<mpz_class>(1, val->efac()); }
+				else if(isOpX<FALSE>(val)) { val = mkTerm<mpz_class>(0, val->efac()); }
+				return val;
+			}
 
-					auto returnCode = pclose(fp);
-					// if (returnCode == 0) { LOGLINE("ice", errs() << "RET 0 : SUCCESS\n"); } 
-					// else { LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n"); }
 
-					if (model.find("unsat") == -1) { // sat
-						is_sat = true;
-						int start = model.find("\n") + 1;
-						m_z3_model_str = model.substr(start);
-						// LOGIT("ice", errs() << "SAT\n" << normal);
+			Expr constructExprFromTypeValueMap(std::pair<std::string, std::string> x, ExprFactory& efac) {
+				using namespace expr::op;
+				Expr typeE, valueE;
+				std::string xtype = x.first;
+				std::string xvalue = x.second;
+				if (xtype == "Bool") {
+					// std::cerr << "type: bool.\n";
+					typeE = sort::boolTy(efac);
+					if (xvalue == "true")
+						valueE = mk<TRUE> (efac);
+					else if (xvalue == "false")
+						valueE = mk<FALSE> (efac);
+					return valueE;
+				} else if (xtype == "(_ BitVec 32)") {
+					int length = xvalue.length();
+					int xint = std::stoul(xvalue.substr(2, length-2), nullptr, 16);
+					valueE = mkTerm (mpz_class (std::to_string(xint)), efac);
+					typeE = bv::bvsort(32, efac);
+				} else if (xtype == "Int") {
+					typeE = sort::intTy(efac);
+					valueE = mkTerm (mpz_class (xvalue), efac);
+					return valueE;
+				} else if (xtype == "Real") {
+					typeE = sort::realTy(efac);
+					valueE = mkTerm (mpq_class (xvalue), efac);
+					return valueE;
+				} else {
+					std::cerr << "error happens.\n";
+				}
+				Expr outE = mk<BIND>(valueE, typeE);
+				return outE;
+			}
+
+
+			std::list<Expr> modelToAttrValues(std::map<std::string, std::pair<std::string, std::string>> model, Expr pred) {
+				std::list<Expr> attr_values;
+				for(int i=0; i<bind::domainSz(bind::fname(pred)); i++) {
+					Expr arg_i = pred->arg(i+1);
+					std::string name = arg_i->to_string();
+					bool to_print = false;
+					if (name.find("unknown") != std::string::npos) to_print=true; 
+					Expr arg_i_value;
+					if (model.count(name)) {
+						arg_i_value = constructExprFromTypeValueMap(model[name], arg_i->efac());
 					} else {
-						is_sat = false;
-						// LOGIT("ice", errs() << "UNSAT\n" << normal);
+						arg_i_value = getUnknownAttrValue(arg_i);
 					}
-					// LOGIT("ice", errs() << (is_sat? "SAT" : "UNSAT") << "\n" << normal);
-					LOGIT("ice", errs() << " solving..." << (is_sat? TICK : CROSS) << " " << yellow << (is_sat? "sat" : "unsat\n") << normal);
+					attr_values.push_back(arg_i_value);
+				}
+				return attr_values;
+			}
+
+
+			boost::tribool ICE::callExternalZ3ToSolve(ZSolver<EZ3> solver)
+			{
+				// outs() << "  " << bblue << "[Experimental] call external Z3 to solve constraint" << normal;
+				// LOGIT("ice", errs() << "  " << cyan << "Z3 solve ...... ");
+				boost::tribool is_sat;
+				std::ostringstream oss;
+				solver.toSmtLib(oss);
+				std::string smt2_to_solve = oss.str() + "\n(get-model)";
+				// outs() << "SMT format for solving: " << gray << oss.str() << normal << "\n";
+				// errs() << byellow << bold << "call external z3 to solve" << normal << "\n";
+				std::ofstream smt_of(m_C5filename + ".smt2");
+				smt_of << smt2_to_solve;
+				smt_of.close();
+
+				std::string command = Z3ExecPath + " " 
+					+ m_C5filename + ".smt2" + " "
+					+ "-T:10 "; // set timeout to 10s
+				m_z3_model_str = "";
+
+				LOG("ice", errs() << bgreen << "Call Z3 externally: " << command << normal << "\n");
+				FILE* fp;
+				if((fp = popen(command.c_str(), "r")) == NULL) { 
+					LOG("ice", errs() << "popen error!\n"); 
+					perror("popen failed!\n"); 
+					is_sat = boost::indeterminate;
 					return is_sat;
 				}
 
+				char buffer[1024];
+				std::string model = "";
+				while (fgets(buffer, 1024, fp) != NULL) {
+					model += buffer;
+				}
+				// outs()  << red << model << normal << "\n";
 
-				bool ICE::parseModelFromString(std::string model_str) {
-					// errs () << "z3:: solved file string: " << model_str << "\n";
-					std::replace(model_str.begin(), model_str.end(), '\n', ' ');
-					std::replace(model_str.begin(), model_str.end(), '\t', ' ');
-					m_z3_model.clear();
-					int start = 0, next = 0, end = 0;
-					next = model_str.find("(define-fun ", 0);
-					// std::map<std::string, std::pair<std::string, std::string>> model;
-					while (next != -1) {
-						start = next;
-						next = model_str.find("(define-fun ", start+1);
-						if (next == -1)
-							end = model_str.length() - 1;
-						else
-							end = model_str.rfind(")", next);
-						// the current item is located as [start, end] "(define-fun " is 12 bit
-						std::string item = model_str.substr(start, end+1-start);
-						int vname_start = 12;
-						int vname_end = item.find(" ", vname_start);
-						std::string vname = item.substr(vname_start, vname_end-vname_start);
-						int vtype_start = item.find("() ", vname_end) + 3;
-						int vtype_end = item.find(" ", vtype_start);
-						if (item[vtype_start] == '(')
-							vtype_end = item.find(")", vtype_start) + 1;
-						std::string vtype = item.substr(vtype_start, vtype_end-vtype_start);
-						int vval_start = item.find_first_not_of(" ", vtype_end);
-						int vval_end = item.find(")", vval_start);
-						std::string vval = item.substr(vval_start, vval_end-vval_start);
-						if (vval[0] == '(') {
-							// to handle the negative integer case
-							vval = vval.substr(1, vval.length()-1);
-							vval.erase(std::remove_if(vval.begin(), vval.end(), ::isspace), vval.end());
-						}
+				auto returnCode = pclose(fp);
+				// if (returnCode == 0) { LOGLINE("ice", errs() << "RET 0 : SUCCESS\n"); } 
+				// else { LOGLINE("ice", errs() << "RET " << returnCode << ": FAILURE\n"); }
 
-						std::pair<std::string, std::string> type_value = {vtype, vval};
-						// model[vname] = type_value;
-						m_z3_model[vname] = type_value;
-						// outs() << "name: " << vname << " type:" << vtype << " val:" << vval << "\n";
+				if (model.find("unsat") == -1) { // sat
+					is_sat = true;
+					int start = model.find("\n") + 1;
+					m_z3_model_str = model.substr(start);
+					// LOGIT("ice", errs() << "SAT\n" << normal);
+				} else {
+					is_sat = false;
+					// LOGIT("ice", errs() << "UNSAT\n" << normal);
+				}
+				// LOGIT("ice", errs() << (is_sat? "SAT" : "UNSAT") << "\n" << normal);
+				LOGIT("ice", errs() << " solving..." << (is_sat? TICK : CROSS) << " " << yellow << (is_sat? "sat" : "unsat\n") << normal);
+				return is_sat;
+			}
+
+
+			bool ICE::parseModelFromString(std::string model_str) {
+				// errs () << "z3:: solved file string: " << model_str << "\n";
+				std::replace(model_str.begin(), model_str.end(), '\n', ' ');
+				std::replace(model_str.begin(), model_str.end(), '\t', ' ');
+				m_z3_model.clear();
+				int start = 0, next = 0, end = 0;
+				next = model_str.find("(define-fun ", 0);
+				// std::map<std::string, std::pair<std::string, std::string>> model;
+				while (next != -1) {
+					start = next;
+					next = model_str.find("(define-fun ", start+1);
+					if (next == -1)
+						end = model_str.length() - 1;
+					else
+						end = model_str.rfind(")", next);
+					// the current item is located as [start, end] "(define-fun " is 12 bit
+					std::string item = model_str.substr(start, end+1-start);
+					int vname_start = 12;
+					int vname_end = item.find(" ", vname_start);
+					std::string vname = item.substr(vname_start, vname_end-vname_start);
+					int vtype_start = item.find("() ", vname_end) + 3;
+					int vtype_end = item.find(" ", vtype_start);
+					if (item[vtype_start] == '(')
+						vtype_end = item.find(")", vtype_start) + 1;
+					std::string vtype = item.substr(vtype_start, vtype_end-vtype_start);
+					int vval_start = item.find_first_not_of(" ", vtype_end);
+					int vval_end = item.find(")", vval_start);
+					std::string vval = item.substr(vval_start, vval_end-vval_start);
+					if (vval[0] == '(') {
+						// to handle the negative integer case
+						vval = vval.substr(1, vval.length()-1);
+						vval.erase(std::remove_if(vval.begin(), vval.end(), ::isspace), vval.end());
 					}
 
-					return true;
+					std::pair<std::string, std::string> type_value = {vtype, vval};
+					// model[vname] = type_value;
+					m_z3_model[vname] = type_value;
+					// outs() << "name: " << vname << " type:" << vtype << " val:" << vval << "\n";
 				}
 
+				return true;
+			}
 
-				bool ICE::generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds) {
-					Expr r_head = r.head();
-					if (bind::domainSz(bind::fname(r_head)) <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
-					//get cex
-					GetModel(solver);
-					DataPoint head_dp; std::set<DataPoint> body_dps;
-					getCounterExampleFromModel(r, head_dp, body_dps, true);
+			bool ICE::generatePositiveSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds) {
+				Expr r_head = r.head();
+				if (bind::domainSz(bind::fname(r_head)) <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
-					if(m_pos_data_set.count(head_dp) <= 0) /* no duplicate */ {
-						addPosCex(head_dp);
-						m_cex_list.push_back(head_dp);
-						addDataPointToIndex(head_dp, index++);
+				//get cex
+				GetModel(solver);
+				DataPoint head_dp; std::set<DataPoint> body_dps;
+				getCounterExampleFromModel(r, head_dp, body_dps, true);
 
+				if(m_pos_data_set.count(head_dp) <= 0) /* no duplicate */ {
+					addPosCex(head_dp);
+					m_cex_list.push_back(head_dp);
+					addDataPointToIndex(head_dp, index++);
+
+					if (m_neg_data_set.size() > /*50*/ICESVMFreqPos) { 
+						LOGLINE("ice", errs() << "SVM based Hyperplane Learning!\n"); 
+						svmLearn (NULL); 
+					}
+
+					// run = sampleFollowingViaLinearHornCtrs(r_head, head_dp, index, changedPreds);
+					// make the state
+					Expr this_state = constructStateFromPredicateAndDataPoint(r_head, head_dp); 
+					LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+
+					// construct the predicate->state pair
+					std::map<Expr, ExprVector> relationToPositiveStateMap;
+					std::map<HornRule, int> transitionCount;
+					if(relationToPositiveStateMap.find(bind::fname(r_head)) == relationToPositiveStateMap.end()) {
+						ExprVector states;
+						states.push_back(this_state);
+						relationToPositiveStateMap.insert(std::make_pair(bind::fname(r_head), states));
+					} else {
+						ExprVector &states = relationToPositiveStateMap.find(bind::fname(r_head))->second;
+						states.push_back(this_state);
+					}
+
+					// generate more following states from it!
+					bool run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
+					return run;
+				} else /* it is a duplicate data point */ {
+					LOGLINE("ice", errs() << bred << "Duplicated positive points should be impossible." << normal << "\n");
+					// exit (-3);
+				}
+				return true;
+			}
+
+
+			bool ICE::generateNegativeSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds) {
+				Expr r_body = r.body();
+				ExprVector body_preds;
+				get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
+				ExprVector dirty_body_preds;
+				for (auto body_pred : body_preds) {
+					if (bind::domainSz(bind::fname(body_pred)) > 0) {
+						dirty_body_preds.push_back(body_pred);
+						changedPreds.insert(bind::fname(bind::fname(body_pred)));
+						LOG("ice", errs() << yellow << "insert " << *(bind::fname(bind::fname(body_pred))) << normal << "\n");
+					}
+				}
+				if (dirty_body_preds.size() <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined, no body is dirty!.\n"); exit (-3); }
+
+				//get cex
+				GetModel(solver);
+				// body_dps => head_dp
+				DataPoint head_dp;
+				std::set<DataPoint> body_dps;
+				getCounterExampleFromModel(r, head_dp, body_dps, true);
+
+				for (auto body_pred : dirty_body_preds)
+				{
+					std::list<Expr> attr_values = ModelToAttrValues(body_pred);
+
+					//print cex
+					/*
+						 LOGIT("ice", errs() << " solved model for body_pred:"); 
+						 LOGIT("ice", errs() << "("); 
+						 for (auto attr : attr_values) LOGIT("ice", errs() << *attr << ","); 
+						 LOGIT("ice", errs() << ")\n");
+						 */
+
+					DataPoint neg_dp(bind::fname(bind::fname(body_pred)), attr_values);
+					// LOGLINE("ice", errs() << "head cex (point model): " << DataPointToStr(neg_dp) << normal << "\n");
+					LOGIT("ice", errs() << lblue << "  --<> head cex (point model): " << bblue << DataPointToStr(neg_dp) << normal << "\n");
+					int orig_size = m_neg_data_set.size();
+					addNegCex(neg_dp);
+
+					if(m_neg_data_set.size() == orig_size + 1) //no duplicate
+					{
 						if (m_neg_data_set.size() > /*50*/ICESVMFreqPos) { 
 							LOGLINE("ice", errs() << "SVM based Hyperplane Learning!\n"); 
 							svmLearn (NULL); 
 						}
+						// LOGLINE("ice", errs() << red << "> Remove all the data for body_pred " << *body_pred << " in cex and neg_data_list\n" << normal);
+						// HEAD <= CleanBody, and thus all the negative samples for HEAD should be removed.
+						// HEAD will be learned perfectly after this iteration!
+						// clearNegData(body_pred);
 
-						// run = sampleFollowingViaLinearHornCtrs(r_head, head_dp, index, changedPreds);
-						// make the state
-						Expr this_state = constructStateFromPredicateAndDataPoint(r_head, head_dp); 
-						LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+						m_cex_list.push_back(neg_dp);
+						addDataPointToIndex(neg_dp, index++);
+						LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
 
-						// construct the predicate->state pair
-						std::map<Expr, ExprVector> relationToPositiveStateMap;
-						std::map<HornRule, int> transitionCount;
-						if(relationToPositiveStateMap.find(bind::fname(r_head)) == relationToPositiveStateMap.end()) {
-							ExprVector states;
-							states.push_back(this_state);
-							relationToPositiveStateMap.insert(std::make_pair(bind::fname(r_head), states));
-						} else {
-							ExprVector &states = relationToPositiveStateMap.find(bind::fname(r_head))->second;
-							states.push_back(this_state);
-						}
-
-						// generate more following states from it!
-						bool run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
+						run = samplePrecedingViaLinearHornCtrs(body_pred, neg_dp, index, changedPreds);
 						return run;
-					} else /* it is a duplicate data point */ {
+					}
+					else // it is a duplicate data point
+					{
 						LOGLINE("ice", errs() << bred << "Duplicated positive points should be impossible." << normal << "\n");
-						// exit (-3);
 					}
-					return true;
 				}
+				return true;
+			}
 
 
-				bool ICE::generateNegativeSamples (HornClauseDB &db, HornRule r, ZSolver<EZ3> solver, int& index, bool& run, ExprSet& changedPreds) {
-					Expr r_body = r.body();
-					ExprVector body_preds;
-					get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
-					ExprVector dirty_body_preds;
-					for (auto body_pred : body_preds) {
-						if (bind::domainSz(bind::fname(body_pred)) > 0) {
-							dirty_body_preds.push_back(body_pred);
-							changedPreds.insert(bind::fname(bind::fname(body_pred)));
-							LOG("ice", errs() << yellow << "insert " << *(bind::fname(bind::fname(body_pred))) << normal << "\n");
-						}
-					}
-					if (dirty_body_preds.size() <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined, no body is dirty!.\n"); exit (-3); }
-
-					//get cex
-					GetModel(solver);
-					// body_dps => head_dp
-					DataPoint head_dp;
-					std::set<DataPoint> body_dps;
-					getCounterExampleFromModel(r, head_dp, body_dps, true);
-
-					for (auto body_pred : dirty_body_preds)
-					{
-						std::list<Expr> attr_values = ModelToAttrValues(body_pred);
-
-						//print cex
-						/*
-						LOGIT("ice", errs() << " solved model for body_pred:"); 
-						LOGIT("ice", errs() << "("); 
-						for (auto attr : attr_values) LOGIT("ice", errs() << *attr << ","); 
-						LOGIT("ice", errs() << ")\n");
-						*/
-
-						DataPoint neg_dp(bind::fname(bind::fname(body_pred)), attr_values);
-						// LOGLINE("ice", errs() << "head cex (point model): " << DataPointToStr(neg_dp) << normal << "\n");
-						LOGIT("ice", errs() << lblue << "  --<> head cex (point model): " << bblue << DataPointToStr(neg_dp) << normal << "\n");
-						int orig_size = m_neg_data_set.size();
-						addNegCex(neg_dp);
-
-						if(m_neg_data_set.size() == orig_size + 1) //no duplicate
-						{
-							if (m_neg_data_set.size() > /*50*/ICESVMFreqPos) { 
-								LOGLINE("ice", errs() << "SVM based Hyperplane Learning!\n"); 
-								svmLearn (NULL); 
-							}
-							// LOGLINE("ice", errs() << red << "> Remove all the data for body_pred " << *body_pred << " in cex and neg_data_list\n" << normal);
-							// HEAD <= CleanBody, and thus all the negative samples for HEAD should be removed.
-							// HEAD will be learned perfectly after this iteration!
-							// clearNegData(body_pred);
-
-							m_cex_list.push_back(neg_dp);
-							addDataPointToIndex(neg_dp, index++);
-							LOG("ice", errs() << "POS CEX, INDEX IS " << index << "\n");
-
-							run = samplePrecedingViaLinearHornCtrs(body_pred, neg_dp, index, changedPreds);
-							return run;
-						}
-						else // it is a duplicate data point
-						{
-							LOGLINE("ice", errs() << bred << "Duplicated positive points should be impossible." << normal << "\n");
-						}
-					}
-					return true;
-				}
-
-
-				// Given a rule head, extract all rules using it in body, then add all such rules to the beginning of workList
-				void ICE::addUsedToWorkList(HornClauseDB &db, std::list<HornRule> &workList, HornRule r)
+			// Given a rule head, extract all rules using it in body, then add all such rules to the beginning of workList
+			void ICE::addUsedToWorkList(HornClauseDB &db, std::list<HornRule> &workList, HornRule r)
+			{
+				for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
 				{
-					for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it)
-					{
-						if(*it == r) continue;
-						HornRule rule = *it;
-						Expr r_body = rule.body();
-						ExprVector body_apps;
-						get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
-
-						for (Expr body_app : body_apps) {
-							if (bind::fname(body_app) == bind::fname(r.head())) {
-								if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { 
-									if (m_must_pos_rule_set.count(r) || m_must_neg_rule_set.count(r)) continue;
-									workList.push_front(*it); 
-								}
-								break;
-							}
-						}
-					}
-				}
-
-
-				// Given a rule, extract all rules using its body_apps in head, then add all such rules to the end of workList
-				void ICE::addNewToWorkList (HornClauseDB &db, std::list<HornRule> &workList, HornRule r) {
-					Expr r_body = r.body();
+					if(*it == r) continue;
+					HornRule rule = *it;
+					Expr r_body = rule.body();
 					ExprVector body_apps;
 					get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
 
-					for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
-						if (m_must_pos_rule_set.count(r) || m_must_neg_rule_set.count(r)) continue;
-						if(*it == r) continue;
-						HornRule rule = *it;
-						for (Expr body_app : body_apps) {
-							if (bind::fname(body_app) == bind::fname(rule.head())) {
-								if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { workList.push_back(*it); }
-								break;
+					for (Expr body_app : body_apps) {
+						if (bind::fname(body_app) == bind::fname(r.head())) {
+							if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { 
+								if (m_must_pos_rule_set.count(r) || m_must_neg_rule_set.count(r)) continue;
+								workList.push_front(*it); 
 							}
+							break;
 						}
 					}
 				}
-
-				boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver) 
-				{
-					// errs() << "checking... ";
-					solver.reset();
-					Expr r_head = r.head();
-					Expr r_head_cand = m_candidate_model.getDef(r_head);
-					solver.assertExpr(mk<NEG>(r_head_cand));
-					Expr body_formula = extractRelation(r, db, NULL, NULL);
-					solver.assertExpr(body_formula);
-					LOG("ice", errs() << "head candidate: " << blue << *r_head_cand << "\n" << normal);
-					LOG("ice", errs() << "body candidate: " << blue << *body_formula << "\n" << normal);
-
-					boost::tribool result = Solve(solver);
-					if (result != UNSAT)
-						LOGIT("ice", errs() << "\n");
-					return result;
-				}
+			}
 
 
+			// Given a rule, extract all rules using its body_apps in head, then add all such rules to the end of workList
+			void ICE::addNewToWorkList (HornClauseDB &db, std::list<HornRule> &workList, HornRule r) {
+				Expr r_body = r.body();
+				ExprVector body_apps;
+				get_all_pred_apps(r_body, db, std::back_inserter(body_apps));
 
-				void ICE::clearNegData(Expr& pred) {
-					LOGLINE("ice", errs() << red << "> Remove all the data for " << *pred << " in cex and neg_data_list\n" << normal);
-					m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
-								[pred,this](DataPoint p) { 
-								return p.getPredName() == bind::fname(bind::fname(pred)) && m_neg_data_set.find(p) != m_neg_data_set.end();
-								}), 
-							m_cex_list.end());
-
-					LOGLINE("ice", errs() << red << "  >Erase data from NEG_DATASET: " << normal);
-					for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
-						if (it->getPredName() == bind::fname(bind::fname(pred))) {
-							LOGIT("ice", errs() << DataPointToStr(*it));
-							m_neg_data_set.erase (it++); 
-						} else { ++it; } 
+				for(auto it = db.getRules().begin(); it != db.getRules().end(); ++it) {
+					if (m_must_pos_rule_set.count(r) || m_must_neg_rule_set.count(r)) continue;
+					if(*it == r) continue;
+					HornRule rule = *it;
+					for (Expr body_app : body_apps) {
+						if (bind::fname(body_app) == bind::fname(rule.head())) {
+							if(std::find(workList.begin(), workList.end(), *it) == workList.end()) { workList.push_back(*it); }
+							break;
+						}
 					}
+				}
+			}
+
+			boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver) 
+			{
+				// errs() << "checking... ";
+				solver.reset();
+				Expr r_head = r.head();
+				Expr r_head_cand = m_candidate_model.getDef(r_head);
+				solver.assertExpr(mk<NEG>(r_head_cand));
+				Expr body_formula = extractRelation(r, db, NULL, NULL);
+				solver.assertExpr(body_formula);
+				LOG("ice", errs() << "head candidate: " << blue << *r_head_cand << "\n" << normal);
+				LOG("ice", errs() << "body candidate: " << blue << *body_formula << "\n" << normal);
+
+				boost::tribool result = Solve(solver);
+				if (result != UNSAT)
 					LOGIT("ice", errs() << "\n");
+				return result;
+			}
+
+
+
+			void ICE::clearNegData(Expr& pred) {
+				LOGLINE("ice", errs() << red << "> Remove all the data for " << *pred << " in cex and neg_data_list\n" << normal);
+				m_cex_list.erase(std::remove_if(m_cex_list.begin(), m_cex_list.end(), 
+							[pred,this](DataPoint p) { 
+							return p.getPredName() == bind::fname(bind::fname(pred)) && m_neg_data_set.find(p) != m_neg_data_set.end();
+							}), 
+						m_cex_list.end());
+
+				LOGLINE("ice", errs() << red << "  >Erase data from NEG_DATASET: " << normal);
+				for (std::set<DataPoint>::iterator it = m_neg_data_set.begin(); it != m_neg_data_set.end(); ) {
+					if (it->getPredName() == bind::fname(bind::fname(pred))) {
+						LOGIT("ice", errs() << DataPointToStr(*it));
+						m_neg_data_set.erase (it++); 
+					} else { ++it; } 
+				}
+				LOGIT("ice", errs() << "\n");
+			}
+
+
+
+			void ICE::markRules(HornClauseDB &db) {
+				m_neg_pred_set.clear();
+				m_pos_pred_set.clear();
+				m_fact_rule_set.clear();
+				m_must_pos_rule_set.clear();
+				m_must_neg_rule_set.clear();
+				m_must_invalid_rule_set.clear();
+
+				for (auto q: db.getQueries())
+					m_neg_pred_set.insert(bind::fname(bind::fname(q)));
+
+				for (auto r: db.getRules()) {
+					if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
+						m_fact_rule_set.insert(r);
+						m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
+					}
+				}
+				for (auto r: db.getRules()) {
+					if (m_fact_rule_set.count(r)) continue;
+					m_nonfact_rules.insert(r);
 				}
 
 
+				bool must_pos = true;
+				bool must_neg = true;
+				for (auto r: db.getRules()) {
+					// errs() << blue << "rule: " << HornRuleToStr(r, true) << normal << "---------\n";
+					bool cleanHead = (bind::domainSz(bind::fname(r.head())) <= 0); 
+					Expr r_head_name = bind::fname(bind::fname(r.head()));
+					must_neg = (m_neg_pred_set.count(r_head_name) > 0);
 
-				void ICE::markRules(HornClauseDB &db) {
-					m_neg_pred_set.clear();
-					m_pos_pred_set.clear();
-					m_fact_rule_set.clear();
-					m_must_pos_rule_set.clear();
-					m_must_neg_rule_set.clear();
-					m_must_invalid_rule_set.clear();
-
-					for (auto q: db.getQueries())
-						m_neg_pred_set.insert(bind::fname(bind::fname(q)));
-
-					for (auto r: db.getRules()) {
-						if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
-							m_fact_rule_set.insert(r);
-							m_pos_pred_set.insert(bind::fname(bind::fname(r.head())));
-						}
+					// errs() << "  body: ------------------------- \n"; 
+					bool cleanBody = true;
+					ExprVector body_pred_apps;
+					get_all_pred_apps(r.body(), db, std::back_inserter(body_pred_apps));
+					for (auto pred: body_pred_apps) {
+						Expr pred_name = bind::fname(bind::fname(pred));
+						// errs() << "    |---- " << *pred_name << "\n"; 
+						must_pos = (m_pos_pred_set.count(pred_name) > 0)? must_pos : false;
+						if (bind::domainSz(bind::fname(pred)) > 0)
+							cleanBody = false; 
 					}
 
-					bool must_pos = true;
-					bool must_neg = true;
-					for (auto r: db.getRules()) {
-						// errs() << blue << "rule: " << HornRuleToStr(r, true) << normal << "---------\n";
-						bool cleanHead = (bind::domainSz(bind::fname(r.head())) <= 0); 
-						Expr r_head_name = bind::fname(bind::fname(r.head()));
-						must_neg = (m_neg_pred_set.count(r_head_name) > 0);
-
-						// errs() << "  body: ------------------------- \n"; 
-						bool cleanBody = true;
-						ExprVector body_pred_apps;
-						get_all_pred_apps(r.body(), db, std::back_inserter(body_pred_apps));
-						for (auto pred: body_pred_apps) {
-							Expr pred_name = bind::fname(bind::fname(pred));
-							// errs() << "    |---- " << *pred_name << "\n"; 
-							must_pos = (m_pos_pred_set.count(pred_name) > 0)? must_pos : false;
-							if (bind::domainSz(bind::fname(pred)) > 0)
-								cleanBody = false; 
-						}
-
-						if (must_pos) m_must_pos_rule_set.insert(r);
-						if (must_neg) m_must_neg_rule_set.insert(r);
-						if (must_pos && must_neg) m_must_invalid_rule_set.insert(r);
-						m_rule_cd_info_map[r] = std::pair<bool, bool>(cleanHead, cleanBody);
-						// errs() << "  -- mustPositive: " << must_pos << "  mustNegative: " << must_neg << "\n";
-					}
-
-					//*
-					errs() << " FACT RULES (True->*): "; for(auto r : m_fact_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-					errs() << " MUST POSITIVE RULES:  "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-					errs() << " MUST NEGATIVE RULES:  "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-					errs() << " MUST INVALID  RULES:  "; for(auto r : m_must_invalid_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
-					errs() << " MUST POSITIVE PREDS:  "; for(auto p : m_pos_pred_set) errs() << " " << *p; errs() << "\n";
-					errs() << " MUST NEGATIVE PREDS:  "; for(auto p : m_neg_pred_set) errs() << " " << *p; errs() << "\n";
-					//*/
+					if (must_pos) m_must_pos_rule_set.insert(r);
+					if (must_neg) m_must_neg_rule_set.insert(r);
+					if (must_pos && must_neg) m_must_invalid_rule_set.insert(r);
+					m_rule_cd_info_map[r] = std::pair<bool, bool>(cleanHead, cleanBody);
+					// errs() << "  -- mustPositive: " << must_pos << "  mustNegative: " << must_neg << "\n";
 				}
 
+				//*
+				errs() << " FACT RULES (True->*): "; for(auto r : m_fact_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+				errs() << " NONFACT RULES: "; for(auto r : m_nonfact_rules) errs() << " " << HornRuleToStr(r); errs() << "\n";
+				errs() << " MUST POSITIVE RULES:  "; for(auto r : m_must_pos_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+				errs() << " MUST NEGATIVE RULES:  "; for(auto r : m_must_neg_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+				errs() << " MUST INVALID  RULES:  "; for(auto r : m_must_invalid_rule_set) errs() << " " << HornRuleToStr(r); errs() << "\n";
+				errs() << " MUST POSITIVE PREDS:  "; for(auto p : m_pos_pred_set) errs() << " " << *p; errs() << "\n";
+				errs() << " MUST NEGATIVE PREDS:  "; for(auto p : m_neg_pred_set) errs() << " " << *p; errs() << "\n";
+				//*/
+			}
 
-				static int solveRound = 0;
-				bool ICE::solveConstraints(HornClauseDB &db, bool &isChanged, int &index)
+
+			static int solveRound = 0;
+			bool ICE::solveConstraints(HornClauseDB &db, bool &isChanged, int &index)
+			{
+				solveRound ++;
+				std::list<HornRule> workList;
+				// workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
+				workList.insert(workList.end(), m_nonfact_rules.begin(), m_nonfact_rules.end());
+				workList.reverse();
+
+				LOGIT("ice", errs() << green << bold << "=========================== Constraint Solving of Horn Clauses (Round" << solveRound << ") ============================" << normal);
+				errs() << gray << " <>WorkList: "; for (auto rr : workList) errs() << HornRuleToStr(rr); errs() << normal << "\n";
+				errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
+				ZSolver<EZ3> solver(m_hm.getZContext());
+				boost::tribool result;
+
+				Expr dummy_pred = bind::fname(*(db.getRelations().begin()));
+
+				int loopi = 0;
+				while (!workList.empty())
 				{
-					solveRound ++;
-					std::list<HornRule> workList;
-					workList.insert(workList.end(), db.getRules().begin(), db.getRules().end());
-					/*
-					for (auto r : db.getRules()) {
-						if (m_must_pos_rule_set.count(r) || m_must_neg_rule_set.count(r))
-							continue;
-						workList.push_back(r);
+					HornRule r = workList.front();
+					workList.pop_front();
+					Expr r_head = r.head();
+					Expr r_body = r.body();
+					ExprVector body_pred_apps;
+					get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
+					errs() << bgray << " >----------------------- Verify HornRule " << HornRuleToStr(r); 
+					bool cleanHead = m_rule_cd_info_map[r].first;
+					bool cleanBody = m_rule_cd_info_map[r].second;
+					errs() << " -{" << "body" << (cleanBody? "[C]" : "[D]") << " " << "head" << (cleanHead? "[C]" : "[D]") << "}";
+					errs() << " ----------------> ";
+					errs() << " [";
+					for (auto body_pred_app: body_pred_apps) errs() << *body_pred_app << " "; 
+					errs() << "] ==> [" << *r_head << "]" << normal; //  << "\n";
+					if (checkHornRule(r, db, solver) == UNSAT) 
+						continue;
+					// errs() << "=========================================== CURRENT SYSTEM STATE ======================================================\n";
+					// errs() << "> Current DataSet (Positive/Negative/Implication): \n" << DataSetToStr() << "\n";
+					// errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
+					bool updated = false; int counter = 0; bool posUpdated = false;
+
+#if 0
+					if (m_must_invalid_rule_set.count(r)) {
+						// errs() << gray << " // comments: Invalid Rule (Pre ==> not Post: DirectCheck) " << normal << "\n";
+						if (checkHornRule(r, db, solver) != UNSAT) {
+							GetModel(solver);
+							errs() << red << m_z3_model_str << "\n" << normal;
+							// body_dps => head_dp
+							DataPoint head_dp;
+							std::set<DataPoint> body_dps;
+							getCounterExampleFromModel(r, head_dp, body_dps, true);
+							errs() << "Error! Invalid rule has solutions: " << DataPointToStr(head_dp) << " <- ";
+							for (auto body_dp: body_dps)
+								errs() << DataPointToStr(body_dp) << " ";
+							errs() << "\n";
+							exit(-1);
+						}
+						continue;
 					}
-					*/
-					workList.reverse();
+#endif
 
-					LOGIT("ice", errs() << green << bold << "=========================== Constraint Solving of Horn Clauses (Round" << solveRound << ") ============================\n" << normal);
-					errs() << gray << " <>WorkList: "; for (auto rr : workList) errs() << HornRuleToStr(rr); errs() << normal << "\n";
-					errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
-					ZSolver<EZ3> solver(m_hm.getZContext());
-					boost::tribool result;
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					///////////////////////////////////  CLEAN BODY /////////////////////////////////////////////////////////
+					//////// Under this situation, the solution must be Positive sample, 
+					//////// given all the predicates are initialized as False.
+					////////  False => ***   is always unsat, thus do not worry!
+					////////  True => ***    True can be only obtained from at least one sample!
+					////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-					Expr dummy_pred = bind::fname(*(db.getRelations().begin()));
-
-					int loopi = 0;
-					while (!workList.empty())
+					if (cleanHead && cleanBody) 
 					{
-						HornRule r = workList.front();
-						workList.pop_front();
-						Expr r_head = r.head();
-						Expr r_body = r.body();
-						ExprVector body_pred_apps;
-						get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
-						errs() << bgray << " >----------------------- Verify HornRule " << HornRuleToStr(r); 
-						bool cleanHead = m_rule_cd_info_map[r].first;
-						bool cleanBody = m_rule_cd_info_map[r].second;
-						errs() << " -{" << "body" << (cleanBody? "[C]" : "[D]") << " " << "head" << (cleanHead? "[C]" : "[D]") << "}";
-						errs() << " ----------------> ";
-						errs() << " [";
-						for (auto body_pred_app: body_pred_apps) errs() << *body_pred_app << " "; 
-						errs() << "] ==> [" << *r_head << "]" << normal; //  << "\n";
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						//////////////////////////  BODY, HEAD ARE CLEAN (CHECK DIRECTLY)  //////////////////////////////////////
+						//////////////////////////  PRE ==> ~POST        (CHECK DIRECTLY)  //////////////////////////////////////
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						// Under this situation, HEAD can only be True/False
+						//  Body => False  is checked initially. This is sat as long as BODY is sat
+						//  Body => True   The head can be True only if there is at least one instance for the HEAD is positive
+						//  								indicating all the instances should be true! (assuming positive is no problem!)
+						/////////////////////////////////////////////////////////////////////////////////////////////////////////
+						// errs() << gray << " // comments: CleanBody ==> CleanHead (Pre ==> Post: DirectCheck) " << normal << "\n";
 						if (checkHornRule(r, db, solver) == UNSAT) 
-								continue;
-						// errs() << "============================================= CURRENT SYSTEM STATE ======================================================\n";
-						// errs() << "> Current DataSet (Positive/Negative/Implication): \n" << DataSetToStr() << "\n";
-						// errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
-
-						/*
-						if (m_must_invalid_rule_set.count(r)) {
-							// errs() << gray << " // comments: Invalid Rule (Pre ==> not Post: DirectCheck) " << normal << "\n";
-							if (checkHornRule(r, db, solver) != UNSAT) {
-									GetModel(solver);
-									errs() << red << m_z3_model_str << "\n" << normal;
-									// body_dps => head_dp
-									DataPoint head_dp;
-									std::set<DataPoint> body_dps;
-									getCounterExampleFromModel(r, head_dp, body_dps, true);
-									errs() << "Error! Invalid rule has solutions: " << DataPointToStr(head_dp) << " <- ";
-									for (auto body_dp: body_dps)
-										errs() << DataPointToStr(body_dp) << " ";
-									errs() << "\n";
-									exit(-1);
-							}
 							continue;
-						}
-						*/
+						outs() << red << "(CleanBody=>CleanHead) Program is buggy.\n" << normal;
+						std::list<Expr> attr_values;
+						DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
+						addPosCex(pos_dp);
+						assert(mustPositive(r));
+						addMustPosCex(pos_dp);
+						LOGLINE("ice", errs() << red << "Failed DataPoint: " << DataPointToStr(pos_dp, empty, false) << normal << "\n");
+						failurePoint = m_pos_list.size()-1;
+						return false;
+					} 
 
-						/*
-						bool cleanBody = true;
-						if (body_pred_apps.size() > 0) {
-							for (Expr body_app : body_pred_apps) {
-								if (bind::domainSz(bind::fname(body_app)) > 0) {
-									cleanBody = false; 
-									break;
-								}
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//////////////////////////  BODY IS CLEAN (Generate Positive Samples)  //////////////////////////////////
+					//////////////////////////  PRE ==> INV   (Generate Positive Samples)  //////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					else if (!cleanHead && cleanBody)
+					{
+						// errs() << green << " // comments:  CleanBody ==> DirtyHead (Pre ==> Inv: Positives) " << normal << "\n";
+						// LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
+						// Head is possibly need to be refined!
+						// LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
+						do {
+							if (checkHornRule(r, db, solver) == UNSAT) { 
+								updated = false; 
+								break; 
 							}
-						}
-						bool cleanHead = (bind::domainSz(bind::fname(r_head)) <= 0); 
-						bool cleanHead, cleanBody;
-						*/
 
-						bool updated = false; int counter = 0; bool posUpdated = false;
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						///////////////////////////////////  CLEAN BODY /////////////////////////////////////////////////////////
-						//////// Under this situation, the solution must be Positive sample, 
-						//////// given all the predicates are initialized as False.
-						////////  False => ***   is always unsat, thus do not worry!
-						////////  True => ***    True can be only obtained from at least one sample!
-						////////////////////////////////////////////////////////////////////////////////////////////////////////
+							// Which predicates will be changed in this iteration of solving.
+							// ExprSet changedPreds;
+							// changedPreds.insert(dummy_pred);
+							// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
+							ExprSet changedPreds {dummy_pred};
+							changedPreds.insert(bind::fname(bind::fname(r_head)));
+							LOGLINE("ice", errs() << yellow << "insert " << *bind::fname(r_head) << normal << "\n");
 
-						if (cleanHead && cleanBody) 
-						{
-							/////////////////////////////////////////////////////////////////////////////////////////////////////////
-							//////////////////////////  BODY, HEAD ARE CLEAN (CHECK DIRECTLY)  //////////////////////////////////////
-							//////////////////////////  PRE ==> ~POST        (CHECK DIRECTLY)  //////////////////////////////////////
-							/////////////////////////////////////////////////////////////////////////////////////////////////////////
-							// Under this situation, HEAD can only be True/False
-							//  Body => False  is checked initially. This is sat as long as BODY is sat
-							//  Body => True   The head can be True only if there is at least one instance for the HEAD is positive
-							//  								indicating all the instances should be true! (assuming positive is no problem!)
-							/////////////////////////////////////////////////////////////////////////////////////////////////////////
-							// errs() << gray << " // comments: CleanBody ==> CleanHead (Pre ==> Post: DirectCheck) " << normal << "\n";
-							if (checkHornRule(r, db, solver) == UNSAT) 
-								continue;
-							outs() << red << "(CleanBody=>CleanHead) Program is buggy.\n" << normal;
-							std::list<Expr> attr_values;
-							DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
-							addPosCex(pos_dp);
-							assert(mustPositive(r));
-							addMustPosCex(pos_dp);
-							LOGLINE("ice", errs() << red << "Failed DataPoint: " << DataPointToStr(pos_dp, empty, false) << normal << "\n");
-							failurePoint = m_pos_list.size()-1;
-							return false;
-						} 
+							bool run = true;
+							updated = generatePositiveSamples (db, r, solver, index, run, changedPreds);
+							// errs() << "[debug] run = " << run << "\n[debug] updated = " << updated << "\n";
+							if (!run) /* this rule is fine */ 
+								return false;
+							if (updated) {
+								isChanged = true; 
+								posUpdated = true;
+								while (!C5learn (changedPreds));
+							}
+							errs() << "\n";
+						} while (updated);
+						// --- Extend work list as we just go through a strengthening loop ----
+						addUsedToWorkList (db, workList, r);
+					}
 
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						//////////////////////////  BODY IS CLEAN (Generate Positive Samples)  //////////////////////////////////
-						//////////////////////////  PRE ==> INV   (Generate Positive Samples)  //////////////////////////////////
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						else if (!cleanHead && cleanBody)
-						{
-							// errs() << green << " // comments:  CleanBody ==> DirtyHead (Pre ==> Inv: Positives) " << normal << "\n";
-							// LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
-							// Head is possibly need to be refined!
-							// LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
-							do {
-								if (checkHornRule(r, db, solver) == UNSAT) { 
-									updated = false; 
-									break; 
-								}
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					//////////////////////////  Head IS CLEAN (Generate Negative Samples)  //////////////////////////////////
+					////////////////////////// ~POST ==> ~INV (Generate Negative Samples)  //////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					else if (cleanHead && !cleanBody) 
+					{
+						// errs() << green << " // comments: DirtyBody ==> CleanHead (Inv/\\~Cond ==> Post: Negatives) " << normal << "\n";
+						do {
+							if (checkHornRule(r, db, solver) == UNSAT) { 
+								updated = false; 
+								break; 
+							}
 
-								// Which predicates will be changed in this iteration of solving.
-								// ExprSet changedPreds;
-								// changedPreds.insert(dummy_pred);
-								// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
-								ExprSet changedPreds {dummy_pred};
-								changedPreds.insert(bind::fname(bind::fname(r_head)));
-								LOGLINE("ice", errs() << yellow << "insert " << *bind::fname(r_head) << normal << "\n");
+							// Which predicates will be changed in this iteration of solving.
+							// ExprSet changedPreds;
+							// changedPreds.insert(dummy_pred);
+							// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
+							ExprSet changedPreds {dummy_pred};
+							changedPreds.insert(bind::fname(bind::fname(r_head)));
+							LOG("ice", errs() << yellow << "insert " << *bind::fname(bind::fname(r_head)) << normal << "\n");
 
-								bool run = true;
-								updated = generatePositiveSamples (db, r, solver, index, run, changedPreds);
-								// errs() << "[debug] run = " << run << "\n[debug] updated = " << updated << "\n";
-								if (!run) /* this rule is fine */ 
-									return false;
-								if (updated) {
-									isChanged = true; 
-									posUpdated = true;
-									while (!C5learn (changedPreds));
-								}
-								errs() << "\n";
-							} while (updated);
-							// --- Extend work list as we just go through a strengthening loop ----
-							addUsedToWorkList (db, workList, r);
-						}
+							bool run = true;
+							updated = generateNegativeSamples (db, r, solver, index, run, changedPreds);
+							// errs() << "[debug] run = " << run << "\n[debug] updated = " << updated << "\n";
+							if (!run) /* this rule is fine */ 
+								return false;
+							if (updated) {
+								isChanged = true; 
+								posUpdated = true;
+								while (!C5learn (changedPreds));
+								// C5learn (changedPreds);
+							}
+							errs() << "\n";
+						} while (updated);
+						LOG("ice", errs() << bcyan << "1.2 << Generate Initial Program State Samples." << normal << "\n");
+						// --- Extend work list as we just go through a strengthening loop ----
+						addUsedToWorkList (db, workList, r);
+					}
 
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						//////////////////////////  Head IS CLEAN (Generate Negative Samples)  //////////////////////////////////
-						////////////////////////// ~POST ==> ~INV (Generate Negative Samples)  //////////////////////////////////
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						else if (cleanHead && !cleanBody) 
-						{
-							// errs() << green << " // comments: DirtyBody ==> CleanHead (Inv/\\~Cond ==> Post: Negatives) " << normal << "\n";
-							do {
-								if (checkHornRule(r, db, solver) == UNSAT) { 
-									updated = false; 
-									break; 
-								}
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					///////////////////////////   BODY IS DIRTY (IMPLICATION)  //////////////////////////////////////////////
+					///////////////////////////   INV ==> INV   (IMPLICATION)  //////////////////////////////////////////////
+					/////////////////////////////////////////////////////////////////////////////////////////////////////////
+					else if (!cleanHead && !cleanBody) 
+					{
+						// errs() << green << " // comments: DirtyBody ==> DirtyHead. (Inv ==> Inv: IMPLICATION) " << normal << "\n";
+						do {
+							++counter;
+							errs() << green << "\nVerification Round " << counter << " " << normal;
+							/*
+								 errs() << underline << HornRuleToStr(r) << normal << gray; 
+								 for (auto rr : workList) errs() << HornRuleToStr(rr); 
+								 errs() << normal;
+								 errs() << bold << bold << "  *" << HornRuleToStr(r) << "* " << normal; 
+								 */
+							// errs() << normal << "\n";
 
-								// Which predicates will be changed in this iteration of solving.
-								// ExprSet changedPreds;
-								// changedPreds.insert(dummy_pred);
-								// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
-								ExprSet changedPreds {dummy_pred};
+							// Which predicates will be changed in this iteration of solving.
+							// ExprSet changedPreds;
+							// changedPreds.insert(dummy_pred);
+							// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
+							ExprSet changedPreds {dummy_pred};
+							updated = false;
+
+							result = checkHornRule(r, db, solver);
+							if(result != UNSAT) 
+							{
+								LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
 								changedPreds.insert(bind::fname(bind::fname(r_head)));
 								LOG("ice", errs() << yellow << "insert " << *bind::fname(bind::fname(r_head)) << normal << "\n");
 
-								bool run = true;
-								updated = generateNegativeSamples (db, r, solver, index, run, changedPreds);
-								// errs() << "[debug] run = " << run << "\n[debug] updated = " << updated << "\n";
-								if (!run) /* this rule is fine */ 
-									return false;
-								if (updated) {
-									isChanged = true; 
-									posUpdated = true;
-									while (!C5learn (changedPreds));
-									// C5learn (changedPreds);
+								GetModel(solver);
+								// body_dps => head_dp
+								DataPoint head_dp;
+								std::set<DataPoint> body_dps;
+								getCounterExampleFromModel(r, head_dp, body_dps, true);
+
+								updated = true; isChanged = true;
+								// If the counterexample is already labeled positive;
+								// Add its successive (aka. state transition) to positives instead.
+
+								bool head_in_pos = false, head_in_neg = false;
+								bool body_in_pos = false, body_in_neg = false;
+
+								bool positive_by_nature = m_must_pos_rule_set.count(r) > 0;
+								bool negative_by_nature = m_must_neg_rule_set.count(r) > 0;
+
+								if (m_pos_data_set.count(head_dp)) { head_in_pos = true; }
+								if (m_neg_data_set.count(head_dp)) { head_in_neg = true; }
+
+								for (DataPoint body_dp : body_dps) {
+									if (m_pos_data_set.count(body_dp)) { body_in_pos = body_in_pos || true; /* break; */ }
+									if (m_neg_data_set.count(body_dp)) { body_in_neg = body_in_neg || true; /* break; */ }
 								}
+
+								errs() << " Head" << lblue << "P:" << (head_in_pos? (green+std::string("[+]")+normal):"[x]") << " N:" << (head_in_neg? green+std::string("[-]")+normal:"[x]") << normal;
+								errs() << " Body" << lblue << "P:" << (body_in_pos? (green+std::string("[+]")+normal):"[x]") << " N:" << (body_in_neg? green+std::string("[-]")+normal:"[x]") << normal;
 								errs() << "\n";
-							} while (updated);
-							LOG("ice", errs() << bcyan << "1.2 << Generate Initial Program State Samples." << normal << "\n");
-							// --- Extend work list as we just go through a strengthening loop ----
-							addUsedToWorkList (db, workList, r);
-						}
 
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						///////////////////////////   BODY IS DIRTY (IMPLICATION)  //////////////////////////////////////////////
-						///////////////////////////   INV ==> INV   (IMPLICATION)  //////////////////////////////////////////////
-						/////////////////////////////////////////////////////////////////////////////////////////////////////////
-						else if (!cleanHead && !cleanBody) 
-						{
-							// errs() << green << " // comments: DirtyBody ==> DirtyHead. (Inv ==> Inv: IMPLICATION) " << normal << "\n";
-							do {
-								++counter;
-								errs() << green << "\nVerification Round " << counter << " " << normal;
-								/*
-								errs() << underline << HornRuleToStr(r) << normal << gray; 
-								for (auto rr : workList) errs() << HornRuleToStr(rr); 
-								errs() << normal;
-								errs() << bold << bold << "  *" << HornRuleToStr(r) << "* " << normal; 
-								*/
-								// errs() << normal << "\n";
+								if (positive_by_nature) body_in_pos = true;
+								if (negative_by_nature) head_in_neg = true;
 
-								// Which predicates will be changed in this iteration of solving.
-								// ExprSet changedPreds;
-								// changedPreds.insert(dummy_pred);
-								// LOGLINE("ice", errs() << yellow << "insert " << *dummy_pred << normal << "\n");
-								ExprSet changedPreds {dummy_pred};
-								updated = false;
+								if (body_in_pos && head_in_pos) {
+									errs() << bold << bmag << "      >>>>>>>>>> This should not be a counter-example! " << normal << "\n";
+									errs() << bold << bred << "      BUG!!" << normal << "\n";
+									return false;
+								}
 
-								result = checkHornRule(r, db, solver);
-								if(result != UNSAT) 
+								if (body_in_pos && head_in_neg) {
+									errs() << bold << bmag << "      >>>>>>>>>> BodyInstance is in Positive and HeadInstance in Negative (Learning wrong or Leanring has not invoked last time!)>>>>>>>>" << normal << "\n";
+									errs() << bold << bred << "      BUG!!" << normal << "\n";
+									return false;
+								} 
+								else if (body_in_pos) /* the whole negPoints */
 								{
-									LOG("ice", errs() << "SAT, NEED TO ADD More Examples\n");
-									changedPreds.insert(bind::fname(bind::fname(r_head)));
-									LOG("ice", errs() << yellow << "insert " << *bind::fname(bind::fname(r_head)) << normal << "\n");
-
-									GetModel(solver);
-									// body_dps => head_dp
-									DataPoint head_dp;
-									std::set<DataPoint> body_dps;
-									getCounterExampleFromModel(r, head_dp, body_dps, true);
-
-									updated = true; isChanged = true;
-									// If the counterexample is already labeled positive;
-									// Add its successive (aka. state transition) to positives instead.
-
-									bool head_in_pos = false, head_in_neg = false;
-									bool body_in_pos = false, body_in_neg = false;
-
-									bool positive_by_nature = m_must_pos_rule_set.count(r) > 0;
-									bool negative_by_nature = m_must_neg_rule_set.count(r) > 0;
-
-									if (m_pos_data_set.count(head_dp)) { head_in_pos = true; }
-									if (m_neg_data_set.count(head_dp)) { head_in_neg = true; }
-
-									for (DataPoint body_dp : body_dps) {
-										if (m_pos_data_set.count(body_dp)) { body_in_pos = body_in_pos || true; /* break; */ }
-										if (m_neg_data_set.count(body_dp)) { body_in_neg = body_in_neg || true; /* break; */ }
-									}
-
-									errs() << " Head" << lblue << "P:" << (head_in_pos? (green+std::string("[+]")+normal):"[x]") << " N:" << (head_in_neg? green+std::string("[-]")+normal:"[x]") << normal;
-									errs() << " Body" << lblue << "P:" << (body_in_pos? (green+std::string("[+]")+normal):"[x]") << " N:" << (body_in_neg? green+std::string("[-]")+normal:"[x]") << normal;
-									errs() << "\n";
-
-									if (positive_by_nature) body_in_pos = true;
-									if (negative_by_nature) head_in_neg = true;
-
-									if (body_in_pos && head_in_pos) {
-										errs() << bold << bmag << "      >>>>>>>>>> This should not be a counter-example! " << normal << "\n";
-										errs() << bold << bred << "      BUG!!" << normal << "\n";
+									// errs() << mag << "      status: BODY IS DIRTY (Positive Implication) >>>>>>>>>>>>>>>>>>" << normal << "\n";
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									///////////////////////////   BODY IS DIRTY (Positive => Positive)  /////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									// LOGLINE("diff", errs() << red << "[IMPLICATION]!! Body=/=>Head, and the body model is found in POSitive Set, then the Head must be refined !! \n" << normal);
+									if (bind::domainSz(bind::fname(r_head)) <= 0) 
+									{
+										// Positive ==> HEAD with no params
+										LOGLINE("diff", errs() << bred << " Positive ==> Head with no params!! (ERROR)" << normal << "\n");
+										outs()<<" Program is buggy. " << bred << "[implication found a counterexample. State => ~Post  and State is found in Positive]" << normal << "\n";
+										failurePoint = m_pos_list.size()-1;
+										std::list<int> preIndices; 
+										for (DataPoint body_dp : body_dps) { preIndices.push_back(m_pos_index_map[body_dp]); } postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 										return false;
 									}
 
-									if (body_in_pos && head_in_neg) {
-										errs() << bold << bmag << "      >>>>>>>>>> BodyInstance is in Positive and HeadInstance in Negative (Learning wrong or Leanring has not invoked last time!)>>>>>>>>" << normal << "\n";
-										errs() << bold << bred << "      BUG!!" << normal << "\n";
-										return false;
-									} 
-									else if (body_in_pos) /* the whole negPoints */
-									{
-										// errs() << mag << "      status: BODY IS DIRTY (Positive Implication) >>>>>>>>>>>>>>>>>>" << normal << "\n";
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										///////////////////////////   BODY IS DIRTY (Positive => Positive)  /////////////////////////////////////
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										// LOGLINE("diff", errs() << red << "[IMPLICATION]!! Body=/=>Head, and the body model is found in POSitive Set, then the Head must be refined !! \n" << normal);
-										if (bind::domainSz(bind::fname(r_head)) <= 0) 
-										{
-											// Positive ==> HEAD with no params
-											LOGLINE("diff", errs() << bred << " Positive ==> Head with no params!! (ERROR)" << normal << "\n");
-											outs()<<" Program is buggy. " << bred << "[implication found a counterexample. State => ~Post  and State is found in Positive]" << normal << "\n";
-											failurePoint = m_pos_list.size()-1;
-											std::list<int> preIndices; 
-											for (DataPoint body_dp : body_dps) { preIndices.push_back(m_pos_index_map[body_dp]); } postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-											return false;
-										}
-
-										// should be Positive => Positive !
-										// LOGLINE("diff", errs() << bred << " Positive ==> Positive !! " << normal << "\n");
-										if (m_pos_data_set.count(head_dp) <= 0) {
-											addPosCex(head_dp);
-
-											m_cex_list.push_back(head_dp); 
-											addDataPointToIndex(head_dp, index++);
-
-											std::list<int> preIndices; 
-											for (DataPoint body_dp : body_dps) { 
-												preIndices.push_back(m_pos_index_map[body_dp]); 
-											} 
-											postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-											posUpdated = true;
-
-											bool run = sampleFollowingViaLinearHornCtrs(r_head, head_dp, index, changedPreds);
-											if (!run) return false;
-
-											Expr e = head_dp.getPredName(); // e is head
-											changedPreds.insert(e);
-											LOGLINE("ice", errs() << yellow << "insert " << *e << normal << "\n");
-										}
-										else //it is a duplicate data point
-										{
-											LOGIT("ice", errs() << bred << " lijiaying: It might be possible the predicate has not updated Last Time. " << *head_dp.getPredName() << normal << "\n");
-											m_buggy = true;
-											return false;
-										}
-									} 
-									else if (head_in_neg)
-									{
-										// errs() << mag << "      status: BODY IS DIRTY (Negative Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										///////////////////////////   BODY IS DIRTY (Negative Implication)  /////////////////////////////////////////
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										for (DataPoint body_dp : body_dps) {
-											if(m_neg_data_set.count(body_dp)<=0) {
-												addNegCex(body_dp);
-
-												m_cex_list.push_back(body_dp); 
-												addDataPointToIndex(body_dp, index++);
-												Expr e = body_dp.getPredName(); // e is one of the bodies 
-												changedPreds.insert(e);
-												LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
-
-												bool run = samplePrecedingViaLinearHornCtrs(body_dp.getPredName(), body_dp, index, changedPreds);
-												if (!run) return false;
-											} else /* it is a duplicate data point */ { 
-												LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *body_dp.getPredName() << normal << "\n"); 
-												m_buggy = true;
-												return false;
-											}
-										}
-									}
-									else /* not body_in_pos and not head_in_neg */
-									{
-										// errs() << mag << "      status: BODY IS DIRTY (Pure Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										///////////////////////////   BODY IS DIRTY (Pure Implication)  /////////////////////////////////////////
-										/////////////////////////////////////////////////////////////////////////////////////////////////////////
-										for (DataPoint body_dp : body_dps) {
-											// errs() << " On body_dataPoint: " << DataPointToStr(body_dp) << "\n";
-											bool body_in_impl = m_impl_data_set.count(body_dp) > 0;
-											bool head_in_impl = m_impl_data_set.count(head_dp) > 0;
-
-											// if (m_impl_data_set.count(body_dp) <= 0) {
-											if (!body_in_impl || !head_in_impl) {
-												addImplCex(body_dp, head_dp);
-
-												m_cex_list.push_back(body_dp); 
-												addDataPointToIndex(body_dp, index++);
-												changedPreds.insert(body_dp.getPredName());
-												// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(body_dp.getPredName()) << "\n" << normal);
-											} else /* it is a duplicate data point */ { 
-												LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *body_dp.getPredName() << normal << "\n"); 
-												m_buggy = true;
-												return false;
-											}
-										}
+									// should be Positive => Positive !
+									// LOGLINE("diff", errs() << bred << " Positive ==> Positive !! " << normal << "\n");
+									if (m_pos_data_set.count(head_dp) <= 0) {
+										addPosCex(head_dp);
 
 										m_cex_list.push_back(head_dp); 
 										addDataPointToIndex(head_dp, index++);
-										changedPreds.insert(head_dp.getPredName());
-										// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(head_dp.getPredName()) << "\n" << normal);
+
+										std::list<int> preIndices; 
+										for (DataPoint body_dp : body_dps) { 
+											preIndices.push_back(m_pos_index_map[body_dp]); 
+										} 
+										postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+										posUpdated = true;
+
+										bool run = sampleFollowingViaLinearHornCtrs(r_head, head_dp, index, changedPreds);
+										if (!run) return false;
+
+										Expr e = head_dp.getPredName(); // e is head
+										changedPreds.insert(e);
+										LOGLINE("ice", errs() << yellow << "insert " << *e << normal << "\n");
+									}
+									else //it is a duplicate data point
+									{
+										LOGIT("ice", errs() << bred << " lijiaying: It might be possible the predicate has not updated Last Time. " << *head_dp.getPredName() << normal << "\n");
+										m_buggy = true;
+										return false;
+									}
+								} 
+								else if (head_in_neg)
+								{
+									// errs() << mag << "      status: BODY IS DIRTY (Negative Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									///////////////////////////   BODY IS DIRTY (Negative Implication)  /////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									for (DataPoint body_dp : body_dps) {
+										if(m_neg_data_set.count(body_dp)<=0) {
+											addNegCex(body_dp);
+
+											m_cex_list.push_back(body_dp); 
+											addDataPointToIndex(body_dp, index++);
+											Expr e = body_dp.getPredName(); // e is one of the bodies 
+											changedPreds.insert(e);
+											LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *e << "\n" << normal);
+
+											bool run = samplePrecedingViaLinearHornCtrs(body_dp.getPredName(), body_dp, index, changedPreds);
+											if (!run) return false;
+										} else /* it is a duplicate data point */ { 
+											LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *body_dp.getPredName() << normal << "\n"); 
+											m_buggy = true;
+											return false;
+										}
+									}
+								}
+								else /* not body_in_pos and not head_in_neg */
+								{
+									// errs() << mag << "      status: BODY IS DIRTY (Pure Implication) >>>>>>>>>>>>>>>>>>> " << normal << "\n";
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									///////////////////////////   BODY IS DIRTY (Pure Implication)  /////////////////////////////////////////
+									/////////////////////////////////////////////////////////////////////////////////////////////////////////
+									for (DataPoint body_dp : body_dps) {
+										// errs() << " On body_dataPoint: " << DataPointToStr(body_dp) << "\n";
+										bool body_in_impl = m_impl_data_set.count(body_dp) > 0;
+										bool head_in_impl = m_impl_data_set.count(head_dp) > 0;
+
+										// if (m_impl_data_set.count(body_dp) <= 0) {
+										if (!body_in_impl || !head_in_impl) {
+											addImplCex(body_dp, head_dp);
+
+											m_cex_list.push_back(body_dp); 
+											addDataPointToIndex(body_dp, index++);
+											changedPreds.insert(body_dp.getPredName());
+											// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(body_dp.getPredName()) << "\n" << normal);
+										} else /* it is a duplicate data point */ { 
+											LOGLINE("ice", errs() << bred << "      Unless the learned result is not updated! Pred: " << *body_dp.getPredName() << normal << "\n"); 
+											m_buggy = true;
+											return false;
 										}
 									}
 
-									if (updated) {
-										// Ask machine learning for a new invariant for body_app.
-										// Expr pre = m_candidate_model.getDef(body_app);
-										// C5learn (changedPreds);
-										while (!C5learn (changedPreds));
+									m_cex_list.push_back(head_dp); 
+									addDataPointToIndex(head_dp, index++);
+									changedPreds.insert(head_dp.getPredName());
+									// LOGLINE("ice", errs() << green << "  insert new predicate to ChangedPred: " << *(head_dp.getPredName()) << "\n" << normal);
 									}
-									errs() << "\n";
-								} while (updated);
-
-								// --- Extend worklist as we just go through a strengthening loop ----
-								if (counter > 1) {
-									if (posUpdated) addUsedToWorkList (db, workList, r);
-									else addNewToWorkList (db, workList, r);
 								}
+
+								if (updated) {
+									// Ask machine learning for a new invariant for body_app.
+									// Expr pre = m_candidate_model.getDef(body_app);
+									// C5learn (changedPreds);
+									while (!C5learn (changedPreds));
+								}
+								errs() << "\n";
+							} while (updated);
+
+							// --- Extend worklist as we just go through a strengthening loop ----
+							if (counter > 1) {
+								if (posUpdated) addUsedToWorkList (db, workList, r);
+								else addNewToWorkList (db, workList, r);
 							}
 						}
-						// LOGLINE("ice", errs() << "==================================================================\n");
-						LOGIT("ice", errs() << red << "=========================== Constraint Solving of Horn Clauses ============================\n" << normal);
-						return true;
 					}
+					// LOGLINE("ice", errs() << "==================================================================\n");
+					LOGIT("ice", errs() << red << "=========================== Constraint Solving of Horn Clauses ============================\n" << normal);
+					return true;
+				}
 
-					void ICE::getCounterExampleFromModel(HornRule& r, DataPoint& head_dp, std::set<DataPoint>& body_dps, bool containPredInfo) {
-						auto &db = m_hm.getHornClauseDB();
-						Expr r_head = r.head();
-						Expr r_body = r.body();
-						LOG("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
-						ExprVector body_pred_apps;
-						get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
-						std::list<Expr> attr_values;
-						body_dps.clear();
-						for (Expr body_app : body_pred_apps) {
-							// No counterexample can be obtained from it because it is clean.
-							if (bind::domainSz(bind::fname(body_app)) <= 0)
-								continue; 
-							attr_values = ModelToAttrValues(body_app);
-							// Presumbaly add counterexample
-							DataPoint body_dp(bind::fname(bind::fname(body_app)), attr_values);
-							body_dps.insert(body_dp);
-						}
-						attr_values = ModelToAttrValues(r_head);
-						head_dp = DataPoint(bind::fname(bind::fname(r_head)), attr_values);
+				void ICE::getCounterExampleFromModel(HornRule& r, DataPoint& head_dp, std::set<DataPoint>& body_dps, bool containPredInfo) {
+					auto &db = m_hm.getHornClauseDB();
+					Expr r_head = r.head();
+					Expr r_body = r.body();
+					LOG("ice", errs() << cyan << "extract relation in target hornrule: " << blue << *ruleBody << "\n" << normal);
+					ExprVector body_pred_apps;
+					get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
+					std::list<Expr> attr_values;
+					body_dps.clear();
+					for (Expr body_app : body_pred_apps) {
+						// No counterexample can be obtained from it because it is clean.
+						if (bind::domainSz(bind::fname(body_app)) <= 0)
+							continue; 
+						attr_values = ModelToAttrValues(body_app);
+						// Presumbaly add counterexample
+						DataPoint body_dp(bind::fname(bind::fname(body_app)), attr_values);
+						body_dps.insert(body_dp);
+					}
+					attr_values = ModelToAttrValues(r_head);
+					head_dp = DataPoint(bind::fname(bind::fname(r_head)), attr_values);
 
-						//print cex
-						// errs() << bold << mag << "Counter-Example: " << normal;
-						errs() << " solved counter-example: ";
-						int ith = 0;
-						for (auto body_dp : body_dps) {
-							if (containPredInfo)
-								errs() << mag << *(body_dp.getPredName()) << normal << " [" << DataPointToStr(body_dp) << "]";
-							else
-								errs() << "[" << DataPointToStr(body_dp) << "]";
-							if (++ith < body_dps.size())
-								errs() << ", ";
-						}
+					//print cex
+					// errs() << bold << mag << "Counter-Example: " << normal;
+					errs() << " solved counter-example: ";
+					int ith = 0;
+					for (auto body_dp : body_dps) {
 						if (containPredInfo)
-							errs() << " --> " << mag << *(head_dp.getPredName()) << normal << " [" << DataPointToStr(head_dp) << "]";
-						else 
-							errs() << " --> " << "[" << DataPointToStr(head_dp) << "]";
+							errs() << mag << *(body_dp.getPredName()) << normal << " [" << DataPointToStr(body_dp) << "]";
+						else
+							errs() << "[" << DataPointToStr(body_dp) << "]";
+						if (++ith < body_dps.size())
+							errs() << ", ";
+					}
+					if (containPredInfo)
+						errs() << " --> " << mag << *(head_dp.getPredName()) << normal << " [" << DataPointToStr(head_dp) << "]";
+					else 
+						errs() << " --> " << "[" << DataPointToStr(head_dp) << "]";
+				}
+
+
+				// convert a datapoint into a program state (3, 4) ==>  x=3 /\ y=4
+				Expr ICE::constructStateFromPredicateAndDataPoint(Expr pred, DataPoint p) {
+					ExprVector equations;
+					for(int i=0; i<=bind::domainSz(pred); i++)
+					{
+						Expr var = bind::domainTy(pred, i);
+						std::list<Expr>::iterator it = p.getAttrValues().begin();
+						std::advance(it, i);
+						Expr value = *it;
+
+						Expr arg_i_type = bind::domainTy(bind::fname (pred), i);
+						std::ostringstream oss; oss << *arg_i_type;
+						if (oss.str().compare("BOOL") == 0) {
+							oss.str(""); oss.clear(); oss << *value;
+							if (oss.str().compare("1") == 0) { value = mk<TRUE>(var->efac()); } 
+							else if (oss.str().compare("0") == 0){ value = mk<FALSE>(var->efac()); } 
+							else { exit (-3); }
+						}
+
+						LOG("ice", errs() << gray << *var << " = " << *value << "  ");
+						equations.push_back(mk<EQ>(var, value));
 					}
 
+					Expr this_state;
+					if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
+					else { this_state = equations[0]; }
+					return this_state;
+				}
 
-					// convert a datapoint into a program state (3, 4) ==>  x=3 /\ y=4
-					Expr ICE::constructStateFromPredicateAndDataPoint(Expr pred, DataPoint p) {
-						ExprVector equations;
-						for(int i=0; i<=bind::domainSz(pred); i++)
-						{
-							Expr var = bind::domainTy(pred, i);
-							std::list<Expr>::iterator it = p.getAttrValues().begin();
-							std::advance(it, i);
-							Expr value = *it;
 
-							Expr arg_i_type = bind::domainTy(bind::fname (pred), i);
-							std::ostringstream oss; oss << *arg_i_type;
-							if (oss.str().compare("BOOL") == 0) {
-								oss.str(""); oss.clear(); oss << *value;
-								if (oss.str().compare("1") == 0) { value = mk<TRUE>(var->efac()); } 
-								else if (oss.str().compare("0") == 0){ value = mk<FALSE>(var->efac()); } 
-								else { exit (-3); }
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::sampleFollowingViaLinearHornCtrs (Expr head, DataPoint p, int &index, ExprSet& changedPreds) {
+					// make the state
+					errs () << " Sample State From " << red << "expr: " << *head << " datapoint: " << DataPointToStr(p) << "\n" << normal;
+					Expr this_state = constructStateFromPredicateAndDataPoint(head, p); 
+					LOG("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+
+					// construct the predicate->state pair
+					std::map<Expr, ExprVector> relationToPositiveStateMap;
+					if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
+						ExprVector states;
+						states.push_back(this_state);
+						relationToPositiveStateMap.insert(std::make_pair(bind::fname(head), states));
+					} else {
+						ExprVector &states = relationToPositiveStateMap.find(bind::fname(head))->second;
+						states.push_back(this_state);
+					}
+
+					// generate more states from it!
+					std::map<HornRule, int> transitionCount;
+					bool run = getFollowingStates(transitionCount, relationToPositiveStateMap, head, p, index);
+					if (!run) return false;
+
+					if (DebugLevel >= 6) {
+						LOGLINE("ice", errs() << mag << bold << "\n====================== THE WHOLE STATE MAP ========================" << normal << "\n");
+						int i = 0;
+						for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
+							LOGIT("ice", errs() << blue << i << "> ");
+							LOGIT("ice", errs() << *(itr->first) << bold << " |--> " << normal);
+							LOGIT("ice", errs() << "(");
+							for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
+								LOGIT("ice", errs() << *(*itr2) << ", ");
 							}
+							LOGIT("ice", errs() << ")\n" << normal);
+							i++;
+						}
+					}
+					return true;
+				}
 
-							LOG("ice", errs() << gray << *var << " = " << *value << "  ");
+
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::samplePrecedingViaLinearHornCtrs (Expr head, DataPoint p, int &index, ExprSet& changedPreds) {
+					// make the state
+					// errs () << " Sample State From [expr]: " << bred << *head << normal << " datapoint: " << bred << DataPointToStr(p) << normal << "\n";
+					errs () << " Sample State From " << bgray << *(p.getPredName()) << normal << DataPointToStr(p) << "\n";
+					Expr this_state = constructStateFromPredicateAndDataPoint(head, p); 
+					LOG("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+
+					// construct the predicate->state pair
+					std::map<Expr, ExprVector> relationToPositiveStateMap;
+					if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
+						ExprVector states;
+						states.push_back(this_state);
+						relationToPositiveStateMap.insert(std::make_pair(bind::fname(head), states));
+					} else {
+						ExprVector &states = relationToPositiveStateMap.find(bind::fname(head))->second;
+						states.push_back(this_state);
+					}
+
+					// generate more states from it!
+					std::map<HornRule, int> transitionCount;
+					bool run = getPrecedingStates(transitionCount, relationToPositiveStateMap, head, p, index);
+					if (!run) return false;
+
+					if (DebugLevel >= 6) {
+						LOGLINE("ice", errs() << mag << bold << "====================== THE WHOLE STATE MAP ========================" << normal << "\n");
+						int i = 0;
+						for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
+							LOGIT("ice", errs() << blue << i << "> ");
+							LOGIT("ice", errs() << *(itr->first) << bold << " |--> " << normal);
+							LOGIT("ice", errs() << "(");
+							for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
+								LOGIT("ice", errs() << *(*itr2) << ", ");
+							}
+							LOGIT("ice", errs() << ")\n" << normal);
+							i++;
+						}
+					}
+					return true;
+				}
+
+
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::getFollowingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index)
+				{
+					auto &db = m_hm.getHornClauseDB();
+					errs() << bblue << bold << "[Following] > " << normal << " (Body) DataPoint: " << bgreen << DataPointToStr(p) << normal;
+					// errs() << " for Predicate:" << gray << *from_pred << normal << "\n";
+					bool run = true;
+					// errs() << " --check each rule to do inference: \n";
+					// for (auto r : db.getRules()) 
+					for (auto r : m_nonfact_rules) 
+					{
+						/*
+							 if (m_must_pos_rule_set.count(r))
+							 continue;
+							 */
+						// errs() << "  |-> HornRule." << blue << bold << HornRuleToStr(r) << normal;
+						std::map<HornRule, int>::iterator itc = transitionCount.find(r);
+						if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
+							// Avoid infinitely unroll a rule!
+							// Fixme. Set maximum unrolling number to be 101 or ...
+							continue;
+						}
+
+						// try to filter a rule that starts from the predicate!
+						ExprVector body_preds;
+						get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
+						if(body_preds.size() == 1 && bind::fname(body_preds[0]) == bind::fname(from_pred)) // r.body == from  meaning  from->***
+						{
+							errs() << blue << HornRuleToStr(r) << normal << " >>>";
+							Expr this_state = constructStateFromPredicateAndDataPoint(body_preds[0], p); 
+							// LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+
+							// infer the head state based on the rule
+							bool run = getRuleHeadState(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
+							if (!run) break;
+							// } else {
+							// 	errs() << " no, check next horn rule.\n";
+					}
+					}
+					return run;
+				}
+
+
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index)
+				{
+					auto &db = m_hm.getHornClauseDB();
+					errs() << bblue << bold << "[Preceding] > " << normal << bgreen << DataPointToStr(p) << normal;
+					errs() << " for Predicate:" << gray << *to_pred << normal << "\n";
+					// int count = 0;
+					// for (auto r : db.getRules())
+					for (auto r : m_nonfact_rules) {
+						// errs() << blue << "  |-> try " << HornRuleToStr(r) << normal << "\n";
+						if (m_must_neg_rule_set.count(r)) continue;
+						if (bind::fname(r.head()) != bind::fname(to_pred)) continue;
+						std::map<HornRule, int>::iterator itc = transitionCount.find(r);
+						if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
+							// Avoid infinitely unroll a rule!
+							// Fixme. Set maximum unrolling number to be 101 or ...
+							// errs() << " failed. Reason: Avoid infinitely unroll a rule! Current transitionCount is: " << itc->second << "\n"; 
+							continue;
+						}
+
+						// errs() << " > found a rule to infer the previous states. RuleNo." << blue << bold << HornRuleToStr(r) << normal << "\n";
+						// errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " (count=" << ++count << ") <<< to infer: ";
+						errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " <<< to infer: ";
+						Expr this_state = constructStateFromPredicateAndDataPoint(r.head(), p); 
+						bool run = getRuleBodyStates(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
+						if (!run) {
+							if (DebugLevel>3) 
+								LOGLINE("ice", errs() << red << " < run == false. to Predicate:" << *to_pred << normal << "\n");
+							// return false;
+							return true;
+						}
+					}
+					// errs() << green << " < finish the inference to Predicate=" << normal << *to_pred << "  Count=" << count << "\n";
+					return true;
+				}
+
+
+
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
+				{
+					Expr r_head = r.head();
+					// LOGIT("ice", errs() << "   " << "=>=>=>=>=>" << mag << " get RuleHeadSample " << bold << HornRuleToStr(r) << normal);
+					// LOGIT("ice", errs() << " FromState:" << *from_pred_state << normal << "\n");
+					// LOGIT("ice", errs() << " TRY to get an instance of RULE HEAD: " << *(r.head()) << "\n");
+					auto &db = m_hm.getHornClauseDB();
+					ZSolver<EZ3> solver(m_hm.getZContext());
+
+					// solve the Predicate and the Rule
+					solver.assertExpr(from_pred_state);
+					solver.assertExpr(extractTransitionRelation(r, db));
+					//solver.toSmtLib(outs());
+					boost::tribool isSat = Solve(solver);
+
+					int iteration = 0;
+					// while (sat) try to generate more!
+					bool run = true;
+					while(isSat)
+					{
+						GetModel(solver);
+						DataPoint head_dp; std::set<DataPoint> body_dps;
+						getCounterExampleFromModel(r, head_dp, body_dps, true);
+						errs() << "\n";
+						// errs() << " (infer next)-> " << DataPointToStr(head_dp) << "\n";
+
+						if(bind::domainSz(bind::fname(r_head)) == 0) //Fixme. reach a predicate with empty signature.
+						{
+							outs() << red << "Reach a predicate with empty signature.\n" << normal; 
+							LOGLINE("ice", outs() << bred << bold << " Program is buggy. [lijiaying: not bug for now.]" << normal << "\n");
+							addPosCex(head_dp);
+							failurePoint = m_pos_list.size()-1;
+							std::list<int> preIndices;
+							preIndices.push_back(pindex);
+							postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+							exit(-1);
+							return false;
+						}
+
+
+						ExprVector equations;
+						ExprVector abstractEquations; // Do not assgin concrete values to uncertainties.
+						for(int i=0; i<=bind::domainSz(r_head); i++)
+						{
+							Expr var = bind::domainTy(r_head, i);
+							bool isAbstract = false; // exist in the model
+							Expr value;
+#if !USE_EXTERNAL
+							value = model.eval(var);
+							{
+								if(bind::isBoolConst(value)) { Expr uncertain_value = mk<FALSE>(value->efac()); value = uncertain_value; }
+								else if(bind::isIntConst(value)) { Expr uncertain_value = mkTerm<mpz_class>(0, value->efac()); value = uncertain_value; } 
+								else if(bind::isBvConst(value)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(value), value->efac()); value = uncertain_value; }
+								else { isAbstract = true; }
+							}
+#else
+							std::string name = var->to_string();
+							if (m_z3_model.count(name) > 0) {
+								value = constructExprFromTypeValueMap(m_z3_model[name], var->efac());
+							} else { /* uncertain value */ // arg_i_value = getUnknownAttrValue(arg_i);
+								isAbstract = true;
+								if(bind::isBoolConst(var)) { Expr uncertain_value = mk<FALSE>(var->efac()); value = uncertain_value; }
+								else if(bind::isIntConst(var)) { Expr uncertain_value = mkTerm<mpz_class>(0, var->efac()); value = uncertain_value; } 
+								else if(bind::isBvConst(var)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(var), var->efac()); value = uncertain_value; }
+							}
+#endif
+							// LOGIT("ice", errs() << gray << *var << " = " << *value << "  ");
 							equations.push_back(mk<EQ>(var, value));
+							if (isAbstract) 
+								abstractEquations.push_back(mk<NEQ>(var, value));
 						}
 
 						Expr this_state;
 						if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
 						else { this_state = equations[0]; }
-						return this_state;
-					}
+						LOG("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
 
-
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::sampleFollowingViaLinearHornCtrs (Expr head, DataPoint p, int &index, ExprSet& changedPreds) {
-						// make the state
-						errs () << " Sample State From " << red << "expr: " << *head << " datapoint: " << DataPointToStr(p) << "\n" << normal;
-						Expr this_state = constructStateFromPredicateAndDataPoint(head, p); 
-						LOG("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
-
-						// construct the predicate->state pair
-						std::map<Expr, ExprVector> relationToPositiveStateMap;
-						if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
-							ExprVector states;
-							states.push_back(this_state);
-							relationToPositiveStateMap.insert(std::make_pair(bind::fname(head), states));
-						} else {
-							ExprVector &states = relationToPositiveStateMap.find(bind::fname(head))->second;
-							states.push_back(this_state);
-						}
-
-						// generate more states from it!
-						std::map<HornRule, int> transitionCount;
-						bool run = getFollowingStates(transitionCount, relationToPositiveStateMap, head, p, index);
-						if (!run) return false;
-
-						if (DebugLevel >= 6) {
-							LOGLINE("ice", errs() << mag << bold << "\n====================== THE WHOLE STATE MAP ========================" << normal << "\n");
-							int i = 0;
-							for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
-								LOGIT("ice", errs() << blue << i << "> ");
-								LOGIT("ice", errs() << *(itr->first) << bold << " |--> " << normal);
-								LOGIT("ice", errs() << "(");
-								for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
-									LOGIT("ice", errs() << *(*itr2) << ", ");
-								}
-								LOGIT("ice", errs() << ")\n" << normal);
-								i++;
-							}
-						}
-						return true;
-					}
-
-
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::samplePrecedingViaLinearHornCtrs (Expr head, DataPoint p, int &index, ExprSet& changedPreds) {
-						// make the state
-						// errs () << " Sample State From [expr]: " << bred << *head << normal << " datapoint: " << bred << DataPointToStr(p) << normal << "\n";
-						errs () << " Sample State From " << bgray << *(p.getPredName()) << normal << DataPointToStr(p) << "\n";
-						Expr this_state = constructStateFromPredicateAndDataPoint(head, p); 
-						LOG("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
-
-						// construct the predicate->state pair
-						std::map<Expr, ExprVector> relationToPositiveStateMap;
-						if(relationToPositiveStateMap.find(bind::fname(head)) == relationToPositiveStateMap.end()) {
-							ExprVector states;
-							states.push_back(this_state);
-							relationToPositiveStateMap.insert(std::make_pair(bind::fname(head), states));
-						} else {
-							ExprVector &states = relationToPositiveStateMap.find(bind::fname(head))->second;
-							states.push_back(this_state);
-						}
-
-						// generate more states from it!
-						std::map<HornRule, int> transitionCount;
-						bool run = getPrecedingStates(transitionCount, relationToPositiveStateMap, head, p, index);
-						if (!run) return false;
-
-						if (DebugLevel >= 6) {
-							LOGLINE("ice", errs() << mag << bold << "====================== THE WHOLE STATE MAP ========================" << normal << "\n");
-							int i = 0;
-							for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
-								LOGIT("ice", errs() << blue << i << "> ");
-								LOGIT("ice", errs() << *(itr->first) << bold << " |--> " << normal);
-								LOGIT("ice", errs() << "(");
-								for(ExprVector::iterator itr2 = itr->second.begin(); itr2 != itr->second.end(); ++itr2) {
-									LOGIT("ice", errs() << *(*itr2) << ", ");
-								}
-								LOGIT("ice", errs() << ")\n" << normal);
-								i++;
-							}
-						}
-						return true;
-					}
-
-
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::getFollowingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr from_pred, DataPoint p, int &index)
-					{
-						auto &db = m_hm.getHornClauseDB();
-						errs() << bblue << bold << "[Following] > " << normal << " (Body) DataPoint: " << bgreen << DataPointToStr(p) << normal;
-						// errs() << " for Predicate:" << gray << *from_pred << normal << "\n";
-						bool run = true;
-						// errs() << " --check each rule to do inference: \n";
-						for (auto r : db.getRules()) 
+						if(m_pos_data_set.count(head_dp)<=0) //no duplicate
 						{
+							addPosCex(head_dp);
+							m_cex_list.push_back(head_dp);
+							addDataPointToIndex(head_dp, index++);
+
+							std::list<int> preIndices;
+							preIndices.push_back(pindex);
+							postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+
+							if(relationToPositiveStateMap.find(bind::fname(r_head)) == relationToPositiveStateMap.end()) {
+								ExprVector states;
+								states.push_back(this_state);
+								relationToPositiveStateMap.insert(std::make_pair(bind::fname(r_head), states));
+							} else {
+								ExprVector &states = relationToPositiveStateMap.find(bind::fname(r_head))->second;
+								states.push_back(this_state);
+							}
+
+							std::map<HornRule, int>::iterator itc = transitionCount.find(r);
+							if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
+							else { itc->second = itc->second + 1; }
+							// errs() << red << "transitioncount " << HornRuleToStr(r) << "++ ->" << itc->second << "\n" << normal;
+
+							errs() << "==> ==> ==> ==> ==> Try to infer further....\n";
+							run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
+							if (!run) break;
+
+							itc = transitionCount.find(r);
+							itc->second = itc->second - 1;
+							// errs() << red << "transitioncount " << HornRuleToStr(r) << "-- ->" << itc->second << "\n" << normal;
+						}
+
+						// Iterate with the next possible solution.
+						iteration ++;
+						// Enough samples ?
+						if (iteration >= RuleSampleWidth) { break; }
+
+						Expr notagain;
+						if(abstractEquations.size() > 1) { notagain = mknary<OR>(abstractEquations.begin(), abstractEquations.end()); } 
+						else if (abstractEquations.size() == 1) { notagain = abstractEquations[0]; } 
+						else { break; }// There is nothing to be re-sampled ?
+
+						solver.assertExpr(notagain);
+						isSat = Solve(solver);
+					}
+					return run;
+				}
+
+
+				// Sample Horn Constraint System.
+				// Fixme. Not suitable for non-linear Horn Constraint System.
+				bool ICE::getRuleBodyStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr to_pred_state, int pindex, int &index)
+				{
+					// LOGIT("ice", errs() << "   " << "=>=>=>=>=>" << mag << " get RuleHeadSample " << bold << HornRuleToStr(r) << normal);
+					// LOGIT("ice", errs() << " FromState:" << *to_pred_state << normal << "\n");
+					// LOGIT("ice", errs() << " RULE HEAD: " << *(r.head()) << "\n");
+					// LOGIT("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
+					Expr r_head = r.head();
+					Expr r_body = r.body();
+					// LOGIT("ice", errs() << " TRY to get instances of RULE BODY(each predicate): " << *(r.body()) << "\n");
+					auto &db = m_hm.getHornClauseDB();
+					ZSolver<EZ3> solver(m_hm.getZContext());
+
+					// solve the Predicate and the Rule
+					solver.assertExpr(to_pred_state);
+					solver.assertExpr(extractTransitionRelation(r, db));
+					//solver.toSmtLib(outs());
+					boost::tribool isSat = Solve(solver);
+
+					int iteration = 0;
+					// while (sat) try to generate more!
+					while(isSat)
+					{
+						GetModel(solver);
+						DataPoint head_dp; std::set<DataPoint> body_dps;
+						getCounterExampleFromModel(r, head_dp, body_dps, true);
+
+						std::list<Expr> attr_values;
+						ExprVector body_preds;
+						get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
+						bool cleanBody = true;
+						if (body_preds.size() > 0) {
+							for (Expr body_pred : body_preds) {
+								if (bind::domainSz(bind::fname(body_pred)) > 0) {
+									cleanBody = false; 
+									break;
+								}
+							}
+						}
+
+						if(cleanBody) //Fixme. reach a predicate with empty signature.
+						{
+							outs() << "clean body\n";
+							outs() << red << "To predicates with empty signature.\n" << normal; 
+							// LOGLINE("ice", errs() << bred << bold << " Program is buggy. [lijiaying: not bug for now.]" << normal << "\n");
 							/*
-								 if (m_must_pos_rule_set.count(r))
-								 continue;
-								 */
-							// errs() << "  |-> HornRule." << blue << bold << HornRuleToStr(r) << normal;
-							std::map<HornRule, int>::iterator itc = transitionCount.find(r);
-							if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
-								// Avoid infinitely unroll a rule!
-								// Fixme. Set maximum unrolling number to be 101 or ...
-								continue;
-							}
-
-							// try to filter a rule that starts from the predicate!
-							ExprVector body_preds;
-							get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
-							if(body_preds.size() == 1 && bind::fname(body_preds[0]) == bind::fname(from_pred)) // r.body == from  meaning  from->***
-							{
-								errs() << blue << HornRuleToStr(r) << normal << " >>>";
-								Expr this_state = constructStateFromPredicateAndDataPoint(body_preds[0], p); 
-								// LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
-
-								// infer the head state based on the rule
-								bool run = getRuleHeadState(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
-								if (!run) break;
-								// } else {
-								// 	errs() << " no, check next horn rule.\n";
+							 * addPosCex(head_dp); 
+							 * failurePoint = m_pos_list.size()-1; 
+							 * std::list<int> preIndices; 
+							 * preIndices.push_back(pindex); 
+							 * postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+							 */
+							return false;
 						}
-						}
-						return run;
-					}
 
+						ExprVector equations;
+						ExprVector abstractEquations; // Do not assgin concrete values to uncertainties.
 
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::getPrecedingStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, Expr to_pred, DataPoint p, int &index)
-					{
-						auto &db = m_hm.getHornClauseDB();
-						errs() << bblue << bold << "[Preceding] > " << normal << bgreen << DataPointToStr(p) << normal;
-						errs() << " for Predicate:" << gray << *to_pred << normal << "\n";
-						// int count = 0;
-						for (auto r : db.getRules()) {
-							// errs() << blue << "  |-> try " << HornRuleToStr(r) << normal << "\n";
-							if (m_must_neg_rule_set.count(r)) continue;
-							if (bind::fname(r.head()) != bind::fname(to_pred)) continue;
-							std::map<HornRule, int>::iterator itc = transitionCount.find(r);
-							if (itc != transitionCount.end() && itc->second >= RuleSampleLen /*101*/) {
-								// Avoid infinitely unroll a rule!
-								// Fixme. Set maximum unrolling number to be 101 or ...
-								// errs() << " failed. Reason: Avoid infinitely unroll a rule! Current transitionCount is: " << itc->second << "\n"; 
-								continue;
-							}
-
-							// errs() << " > found a rule to infer the previous states. RuleNo." << blue << bold << HornRuleToStr(r) << normal << "\n";
-							// errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " (count=" << ++count << ") <<< to infer: ";
-							errs() << blue << "   |-- use " << HornRuleToStr(r) << normal << " <<< to infer: ";
-							Expr this_state = constructStateFromPredicateAndDataPoint(r.head(), p); 
-							bool run = getRuleBodyStates(transitionCount, relationToPositiveStateMap, r, this_state, m_pos_index_map[p], index);
-							if (!run) {
-								if (DebugLevel>3) 
-									LOGLINE("ice", errs() << red << " < run == false. to Predicate:" << *to_pred << normal << "\n");
-								// return false;
-								return true;
-							}
-						}
-						// errs() << green << " < finish the inference to Predicate=" << normal << *to_pred << "  Count=" << count << "\n";
-						return true;
-					}
-
-
-
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::getRuleHeadState(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr from_pred_state, int pindex, int &index)
-					{
-						Expr r_head = r.head();
-						// LOGIT("ice", errs() << "   " << "=>=>=>=>=>" << mag << " get RuleHeadSample " << bold << HornRuleToStr(r) << normal);
-						// LOGIT("ice", errs() << " FromState:" << *from_pred_state << normal << "\n");
-						// LOGIT("ice", errs() << " TRY to get an instance of RULE HEAD: " << *(r.head()) << "\n");
-						auto &db = m_hm.getHornClauseDB();
-						ZSolver<EZ3> solver(m_hm.getZContext());
-
-						// solve the Predicate and the Rule
-						solver.assertExpr(from_pred_state);
-						solver.assertExpr(extractTransitionRelation(r, db));
-						//solver.toSmtLib(outs());
-						boost::tribool isSat = Solve(solver);
-
-						int iteration = 0;
-						// while (sat) try to generate more!
-						bool run = true;
-						while(isSat)
+						for(auto body_pred : body_preds) 
 						{
-							GetModel(solver);
-							DataPoint head_dp; std::set<DataPoint> body_dps;
-							getCounterExampleFromModel(r, head_dp, body_dps, true);
-							errs() << "\n";
-							// errs() << " (infer next)-> " << DataPointToStr(head_dp) << "\n";
-
-							if(bind::domainSz(bind::fname(r_head)) == 0) //Fixme. reach a predicate with empty signature.
+							for(int i=0; i<=bind::domainSz(body_pred); i++)
 							{
-								outs() << red << "Reach a predicate with empty signature.\n" << normal; 
-								LOGLINE("ice", outs() << bred << bold << " Program is buggy. [lijiaying: not bug for now.]" << normal << "\n");
-								addPosCex(head_dp);
-								failurePoint = m_pos_list.size()-1;
-								std::list<int> preIndices;
-								preIndices.push_back(pindex);
-								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-								exit(-1);
-								return false;
-							}
-
-
-							ExprVector equations;
-							ExprVector abstractEquations; // Do not assgin concrete values to uncertainties.
-							for(int i=0; i<=bind::domainSz(r_head); i++)
-							{
-								Expr var = bind::domainTy(r_head, i);
+								Expr var = bind::domainTy(body_pred, i);
 								bool isAbstract = false; // exist in the model
 								Expr value;
 #if !USE_EXTERNAL
@@ -2626,29 +2763,39 @@ namespace seahorn
 								equations.push_back(mk<EQ>(var, value));
 								if (isAbstract) 
 									abstractEquations.push_back(mk<NEQ>(var, value));
+
+								//convert true/false to 1/0 in C5 data point
+								if(isOpX<TRUE>(value)) { value = mkTerm<mpz_class>(1, value->efac()); }
+								if(isOpX<FALSE>(value)) { value = mkTerm<mpz_class>(0, value->efac()); }
+								attr_values.push_back(value);
 							}
 
 							Expr this_state;
 							if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
 							else { this_state = equations[0]; }
-							LOG("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
+							// LOGIT("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
 
-							if(m_pos_data_set.count(head_dp)<=0) //no duplicate
+							DataPoint neg_dp(bind::fname(bind::fname(body_pred)), attr_values);
+							LOGIT("ice", errs() << "\n" << lblue << "    --<> (Head) " << normal << bmag << DataPointToStr(neg_dp) << normal << "\n");
+							int orig_size = m_neg_data_set.size();
+							addNegCex(neg_dp);
+
+							if(m_neg_data_set.size() == orig_size + 1) //no duplicate
 							{
-								addPosCex(head_dp);
-								m_cex_list.push_back(head_dp);
-								addDataPointToIndex(head_dp, index++);
+								// if (!ICEICE) { clearNegData(body_pred); }
+								m_cex_list.push_back(neg_dp);
+								addDataPointToIndex(neg_dp, index++);
 
 								std::list<int> preIndices;
 								preIndices.push_back(pindex);
 								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
 
-								if(relationToPositiveStateMap.find(bind::fname(r_head)) == relationToPositiveStateMap.end()) {
+								if(relationToPositiveStateMap.find(bind::fname(body_pred)) == relationToPositiveStateMap.end()) {
 									ExprVector states;
 									states.push_back(this_state);
-									relationToPositiveStateMap.insert(std::make_pair(bind::fname(r_head), states));
+									relationToPositiveStateMap.insert(std::make_pair(bind::fname(body_pred), states));
 								} else {
-									ExprVector &states = relationToPositiveStateMap.find(bind::fname(r_head))->second;
+									ExprVector &states = relationToPositiveStateMap.find(bind::fname(body_pred))->second;
 									states.push_back(this_state);
 								}
 
@@ -2657,306 +2804,153 @@ namespace seahorn
 								else { itc->second = itc->second + 1; }
 								// errs() << red << "transitioncount " << HornRuleToStr(r) << "++ ->" << itc->second << "\n" << normal;
 
-								errs() << "==> ==> ==> ==> ==> Try to infer further....\n";
-								run = getFollowingStates(transitionCount, relationToPositiveStateMap, r_head, head_dp, index);
-								if (!run) break;
+								errs() << "   ==> ==> ==> ==> Try to infer further....\n";
+								bool run = getPrecedingStates(transitionCount, relationToPositiveStateMap, body_pred, neg_dp, index);
+								if (!run) return false;
 
 								itc = transitionCount.find(r);
 								itc->second = itc->second - 1;
 								// errs() << red << "transitioncount " << HornRuleToStr(r) << "-- ->" << itc->second << "\n" << normal;
 							}
-
-							// Iterate with the next possible solution.
-							iteration ++;
-							// Enough samples ?
-							if (iteration >= RuleSampleWidth) { break; }
-
-							Expr notagain;
-							if(abstractEquations.size() > 1) { notagain = mknary<OR>(abstractEquations.begin(), abstractEquations.end()); } 
-							else if (abstractEquations.size() == 1) { notagain = abstractEquations[0]; } 
-							else { break; }// There is nothing to be re-sampled ?
-
-							solver.assertExpr(notagain);
-							isSat = Solve(solver);
 						}
-						return run;
+
+						// Iterate with the next possible solution.
+						iteration ++;
+						// Enough samples ?
+						if (iteration >= RuleSampleWidth) { break; }
+
+						Expr notagain;
+						if(abstractEquations.size() > 1) { notagain = mknary<OR>(abstractEquations.begin(), abstractEquations.end()); } 
+						else if (abstractEquations.size() == 1) { notagain = abstractEquations[0]; } 
+						else { break; }// There is nothing to be re-sampled ?
+
+						solver.assertExpr(notagain);
+						isSat = Solve(solver);
 					}
+					return true;
+				}
 
-
-					// Sample Horn Constraint System.
-					// Fixme. Not suitable for non-linear Horn Constraint System.
-					bool ICE::getRuleBodyStates(std::map<HornRule, int> &transitionCount, std::map<Expr, ExprVector> &relationToPositiveStateMap, HornRule r, Expr to_pred_state, int pindex, int &index)
-					{
-						// LOGIT("ice", errs() << "   " << "=>=>=>=>=>" << mag << " get RuleHeadSample " << bold << HornRuleToStr(r) << normal);
-						// LOGIT("ice", errs() << " FromState:" << *to_pred_state << normal << "\n");
-						// LOGIT("ice", errs() << " RULE HEAD: " << *(r.head()) << "\n");
-						// LOGIT("ice", errs() << "RULE BODY: " << *(r.body()) << "\n");
-						Expr r_head = r.head();
-						Expr r_body = r.body();
-						// LOGIT("ice", errs() << " TRY to get instances of RULE BODY(each predicate): " << *(r.body()) << "\n");
-						auto &db = m_hm.getHornClauseDB();
-						ZSolver<EZ3> solver(m_hm.getZContext());
-
-						// solve the Predicate and the Rule
-						solver.assertExpr(to_pred_state);
-						solver.assertExpr(extractTransitionRelation(r, db));
-						//solver.toSmtLib(outs());
-						boost::tribool isSat = Solve(solver);
-
-						int iteration = 0;
-						// while (sat) try to generate more!
-						while(isSat)
-						{
-							GetModel(solver);
-							DataPoint head_dp; std::set<DataPoint> body_dps;
-							getCounterExampleFromModel(r, head_dp, body_dps, true);
-
-							std::list<Expr> attr_values;
-							ExprVector body_preds;
-							get_all_pred_apps(r.body(), db, std::back_inserter(body_preds));
-							bool cleanBody = true;
-							if (body_preds.size() > 0) {
-								for (Expr body_pred : body_preds) {
-									if (bind::domainSz(bind::fname(body_pred)) > 0) {
-										cleanBody = false; 
-										break;
-									}
-								}
-							}
-
-							if(cleanBody) //Fixme. reach a predicate with empty signature.
-							{
-								outs() << "clean body\n";
-								outs() << red << "To predicates with empty signature.\n" << normal; 
-								// LOGLINE("ice", errs() << bred << bold << " Program is buggy. [lijiaying: not bug for now.]" << normal << "\n");
-								/*
-								 * addPosCex(head_dp); 
-								 * failurePoint = m_pos_list.size()-1; 
-								 * std::list<int> preIndices; 
-								 * preIndices.push_back(pindex); 
-								 * postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-								 */
-								return false;
-							}
-
-							ExprVector equations;
-							ExprVector abstractEquations; // Do not assgin concrete values to uncertainties.
-
-							for(auto body_pred : body_preds) 
-							{
-								for(int i=0; i<=bind::domainSz(body_pred); i++)
-								{
-									Expr var = bind::domainTy(body_pred, i);
-									bool isAbstract = false; // exist in the model
-									Expr value;
-#if !USE_EXTERNAL
-									value = model.eval(var);
-									{
-										if(bind::isBoolConst(value)) { Expr uncertain_value = mk<FALSE>(value->efac()); value = uncertain_value; }
-										else if(bind::isIntConst(value)) { Expr uncertain_value = mkTerm<mpz_class>(0, value->efac()); value = uncertain_value; } 
-										else if(bind::isBvConst(value)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(value), value->efac()); value = uncertain_value; }
-										else { isAbstract = true; }
-									}
-#else
-									std::string name = var->to_string();
-									if (m_z3_model.count(name) > 0) {
-										value = constructExprFromTypeValueMap(m_z3_model[name], var->efac());
-									} else { /* uncertain value */ // arg_i_value = getUnknownAttrValue(arg_i);
-										isAbstract = true;
-										if(bind::isBoolConst(var)) { Expr uncertain_value = mk<FALSE>(var->efac()); value = uncertain_value; }
-										else if(bind::isIntConst(var)) { Expr uncertain_value = mkTerm<mpz_class>(0, var->efac()); value = uncertain_value; } 
-										else if(bind::isBvConst(var)) { Expr uncertain_value = bv::bvnum (mpz_class ("0"), expr::op::bind::getWidth(var), var->efac()); value = uncertain_value; }
-									}
-#endif
-									// LOGIT("ice", errs() << gray << *var << " = " << *value << "  ");
-									equations.push_back(mk<EQ>(var, value));
-									if (isAbstract) 
-										abstractEquations.push_back(mk<NEQ>(var, value));
-
-									//convert true/false to 1/0 in C5 data point
-									if(isOpX<TRUE>(value)) { value = mkTerm<mpz_class>(1, value->efac()); }
-									if(isOpX<FALSE>(value)) { value = mkTerm<mpz_class>(0, value->efac()); }
-									attr_values.push_back(value);
-								}
-
-								Expr this_state;
-								if(equations.size() > 1) { this_state = mknary<AND>(equations.begin(), equations.end()); }
-								else { this_state = equations[0]; }
-								// LOGIT("ice", errs() << gray << " This head state: " << *this_state << normal << "\n");
-
-								DataPoint neg_dp(bind::fname(bind::fname(body_pred)), attr_values);
-								LOGIT("ice", errs() << "\n" << lblue << "    --<> (Head) " << normal << bmag << DataPointToStr(neg_dp) << normal << "\n");
-								int orig_size = m_neg_data_set.size();
-								addNegCex(neg_dp);
-
-								if(m_neg_data_set.size() == orig_size + 1) //no duplicate
-								{
-									// if (!ICEICE) { clearNegData(body_pred); }
-									m_cex_list.push_back(neg_dp);
-									addDataPointToIndex(neg_dp, index++);
-
-									std::list<int> preIndices;
-									preIndices.push_back(pindex);
-									postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
-
-									if(relationToPositiveStateMap.find(bind::fname(body_pred)) == relationToPositiveStateMap.end()) {
-										ExprVector states;
-										states.push_back(this_state);
-										relationToPositiveStateMap.insert(std::make_pair(bind::fname(body_pred), states));
-									} else {
-										ExprVector &states = relationToPositiveStateMap.find(bind::fname(body_pred))->second;
-										states.push_back(this_state);
-									}
-
-									std::map<HornRule, int>::iterator itc = transitionCount.find(r);
-									if (itc == transitionCount.end()) { transitionCount.insert(std::make_pair(r, 1)); } 
-									else { itc->second = itc->second + 1; }
-									// errs() << red << "transitioncount " << HornRuleToStr(r) << "++ ->" << itc->second << "\n" << normal;
-
-									errs() << "   ==> ==> ==> ==> Try to infer further....\n";
-									bool run = getPrecedingStates(transitionCount, relationToPositiveStateMap, body_pred, neg_dp, index);
-									if (!run) return false;
-
-									itc = transitionCount.find(r);
-									itc->second = itc->second - 1;
-									// errs() << red << "transitioncount " << HornRuleToStr(r) << "-- ->" << itc->second << "\n" << normal;
-								}
-							}
-
-							// Iterate with the next possible solution.
-							iteration ++;
-							// Enough samples ?
-							if (iteration >= RuleSampleWidth) { break; }
-
-							Expr notagain;
-							if(abstractEquations.size() > 1) { notagain = mknary<OR>(abstractEquations.begin(), abstractEquations.end()); } 
-							else if (abstractEquations.size() == 1) { notagain = abstractEquations[0]; } 
-							else { break; }// There is nothing to be re-sampled ?
-
-							solver.assertExpr(notagain);
-							isSat = Solve(solver);
-						}
-						return true;
-					}
-
-					void countInvSize (Expr body_formula) {
-						if (isOpX<OR> (body_formula)) {
-							for (Expr arg : mk_it_range (body_formula->args_begin(), body_formula->args_end ())) {
-								if (isOpX<AND> (arg)) { outs() << arg->arity() << ", "; }
-								else { outs() << "1, "; }
-							}
-						} else {
-							if (isOpX<AND> (body_formula)) { outs() << body_formula->arity() << ", "; } 
+				void countInvSize (Expr body_formula) {
+					if (isOpX<OR> (body_formula)) {
+						for (Expr arg : mk_it_range (body_formula->args_begin(), body_formula->args_end ())) {
+							if (isOpX<AND> (arg)) { outs() << arg->arity() << ", "; }
 							else { outs() << "1, "; }
 						}
-						outs() << "\n";
+					} else {
+						if (isOpX<AND> (body_formula)) { outs() << body_formula->arity() << ", "; } 
+						else { outs() << "1, "; }
 					}
-
-
-					// ICE: Induction CounterExample guided invariant inference.
-					void ICE::runICE()
-					{
-						m_buggy = false;
-						std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
-						//load the Horn clause database
-						auto &db = m_hm.getHornClauseDB ();
-						db.buildIndexes ();
-						LOG("ice", errs() << "DB: \n" << cyan << db << normal);
-						errs() << yellow << bold;
-						errs() << "=========================start runICE method==================================\n";
-						errs() << "  DebugLevel=" << DebugLevel << "\n";
-						errs() << "  Bounded=" << Bounded << "\n";
-						errs() << "  ShowSvmDataFile=" << ShowSvmDataFile << "\n";
-						errs() << "  ShowC5NameFile=" << ShowC5NameFile << "\n";
-						errs() << "  ShowC5IntervalFile=" << ShowC5IntervalFile << "\n";
-						errs() << "  ShowC5DataFile=" << ShowC5DataFile << "\n";
-						errs() << "  ShowC5HexDataFile=" << ShowC5HexDataFile << "\n";
-						errs() << "  ShowC5JsonFile=" << ShowC5JsonFile << "\n";
-						errs() << "  ShowC5JsonStruct=" << ShowC5JsonStruct << "\n";
-						errs() << "  ShowDataSet=" << ShowDataSet << "\n";
-						errs() << normal;
-
-						for (auto rel : db.getRelations())
-							LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
-						errs() << "===========================================================\n";
-
-						int index = 0;
-						bool isChanged = true;
-						int c = 0;
-						n_svm_calls = 0;
-						failurePoint = -1;
-						bool no_verification_found_error;
-
-						//print the map from predicate name to C5-form predicate name
-						// LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
-						std::ofstream ruleout("rule.txt");
-						for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
-							ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
-						ruleout << "\n\n";
-						int ruleno = 0;
-						for (auto r: db.getRules()) {
-							ruleIndex[r] = ruleno++;
-							ruleout << HornRuleToStr(r, true) << "\n";
-						}
-						ruleout.close();
-						// markRules(db);
-
-
-						while(isChanged) //There are still some counterexamples to find
-						{
-							isChanged = false;
-							no_verification_found_error = solveConstraints(db, isChanged, index);
-							if (!no_verification_found_error) { 
-								errs() << DataSetToStr(true);
-								break; /* A buggy program is catched. */ 
-							}
-							c ++;
-						}
-
-						std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
-						outs() << "************** CHCs Solved in " << (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) /1000000.0 << " (secs) **************\n\n";
-
-						// if (no_verification_found_error && !m_buggy) {
-						if (no_verification_found_error) {
-							outs() << "************** Program is correct **************\n";
-							LOGIT("ice", errs() << "FINAL INVARIANTS MAP:\n");
-							for(Expr rel : db.getRelations())
-							{
-								ExprVector arg_list;
-								for(int i=0; i<bind::domainSz(rel); i++)
-								{
-									Expr arg_i_type = bind::domainTy(rel, i);
-									Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
-									arg_list.push_back(arg_i);
-								}
-								Expr fapp = bind::fapp(rel, arg_list);
-								Expr cand = m_candidate_model.getDef(fapp);
-								LOGIT("ice", errs() << "REL: " << *fapp << ", CAND: " << *cand << "\n");
-								outs() << "REL: " << *fapp << " -- invariant size: ";
-								countInvSize (cand);
-							}
-							outs() << "************** Program Correctness End **************\n\n";
-						} else {
-							outs() << "************** Program is buggy **************\n";
-							outs() << "Buggy Trace:\n";
-							outs() << "Temporarily unavailable!\n";
-							// drawPosTree ();
-							outs() << "************** Buggy Trace End **************\n\n";
-						}
-
-						outs() <<"************** Learning Statistics **************:\n";
-						outs() <<"Total CHC size: " << db.getRules().size() << "\n";
-						outs() <<"Total Relation size: " << db.getRelations().size() << "\n";
-						outs() <<"Total Var size: " << db.getVars().size() << "\n";
-						outs() <<"Neg sample size: " << m_neg_data_set.size() << "\n";
-						outs() <<"Pos sample size: " << m_pos_data_set.size() << "\n";
-						outs() <<"Total sample size: " << m_neg_data_set.size() + m_pos_data_set.size() << "\n";
-						outs() <<"Iteration number: " << index << "\n";
-						outs() <<"************** Learning Statistics End **************\n\n";
-
-						// Dump the invariants into file, for validation with Houdini
-						if (!ICEInvDump.empty ()) { saveInvsToSmtLibFile(); }
-
-						addInvCandsToProgramSolver();
-					}
+					outs() << "\n";
 				}
+
+
+				// ICE: Induction CounterExample guided invariant inference.
+				void ICE::runICE()
+				{
+					m_buggy = false;
+					std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+					//load the Horn clause database
+					auto &db = m_hm.getHornClauseDB ();
+					db.buildIndexes ();
+					LOG("ice", errs() << "DB: \n" << cyan << db << normal);
+					errs() << yellow << bold;
+					errs() << "=========================start runICE method==================================\n";
+					errs() << "  DebugLevel=" << DebugLevel << "\n";
+					errs() << "  Bounded=" << Bounded << "\n";
+					errs() << "  ShowSvmDataFile=" << ShowSvmDataFile << "\n";
+					errs() << "  ShowC5NameFile=" << ShowC5NameFile << "\n";
+					errs() << "  ShowC5IntervalFile=" << ShowC5IntervalFile << "\n";
+					errs() << "  ShowC5DataFile=" << ShowC5DataFile << "\n";
+					errs() << "  ShowC5HexDataFile=" << ShowC5HexDataFile << "\n";
+					errs() << "  ShowC5JsonFile=" << ShowC5JsonFile << "\n";
+					errs() << "  ShowC5JsonStruct=" << ShowC5JsonStruct << "\n";
+					errs() << "  ShowDataSet=" << ShowDataSet << "\n";
+					errs() << normal;
+
+					for (auto rel : db.getRelations())
+						LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
+					errs() << "===========================================================\n";
+
+					int index = 0;
+					bool isChanged = true;
+					int c = 0;
+					n_svm_calls = 0;
+					failurePoint = -1;
+					bool no_verification_found_error;
+
+					while(isChanged) //There are still some counterexamples to find
+					{
+						isChanged = false;
+						no_verification_found_error = solveConstraints(db, isChanged, index);
+						if (!no_verification_found_error) { 
+							errs() << DataSetToStr(true);
+							break; /* A buggy program is catched. */ 
+						}
+						c ++;
+					}
+
+					std::chrono::steady_clock::time_point end= std::chrono::steady_clock::now();
+					outs() << "************** CHCs Solved in " << (std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count()) /1000000.0 << " (secs) **************\n\n";
+
+					// if (no_verification_found_error && !m_buggy)
+					if (no_verification_found_error) {
+						outs() << "************** Program is correct **************\n";
+						LOGIT("ice", errs() << "FINAL INVARIANTS MAP:\n");
+						for(Expr rel : db.getRelations())
+						{
+							ExprVector arg_list;
+							for(int i=0; i<bind::domainSz(rel); i++)
+							{
+								Expr arg_i_type = bind::domainTy(rel, i);
+								Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
+								arg_list.push_back(arg_i);
+							}
+							Expr fapp = bind::fapp(rel, arg_list);
+							Expr cand = m_candidate_model.getDef(fapp);
+							LOGIT("ice", errs() << "REL: " << *fapp << ", CAND: " << *cand << "\n");
+							outs() << "REL: " << *fapp << " -- invariant size: ";
+							countInvSize (cand);
+						}
+						outs() << "************** Program Correctness End **************\n\n";
+					} else {
+						outs() << "************** Program is buggy **************\n";
+						outs() << "Buggy Trace:\n";
+						outs() << "Temporarily unavailable!\n";
+						// drawPosTree ();
+						outs() << "************** Buggy Trace End **************\n\n";
+					}
+
+					outs() <<"************** Learning Statistics **************:\n";
+					outs() <<"Total CHC size: " << db.getRules().size() << "\n";
+					outs() <<"Total Relation size: " << db.getRelations().size() << "\n";
+					outs() <<"Total Var size: " << db.getVars().size() << "\n";
+					outs() <<"Neg sample size: " << m_neg_data_set.size() << "\n";
+					outs() <<"Pos sample size: " << m_pos_data_set.size() << "\n";
+					outs() <<"Total sample size: " << m_neg_data_set.size() + m_pos_data_set.size() << "\n";
+					outs() <<"Iteration number: " << index << "\n";
+					outs() <<"************** Learning Statistics End **************\n\n";
+
+					// Dump the invariants into file, for validation with Houdini
+					if (!ICEInvDump.empty ()) { saveInvsToSmtLibFile(); }
+
+					addInvCandsToProgramSolver();
+				}
+
+				void ICE::ruleInit() {
+					//print the map from predicate name to C5-form predicate name
+					// LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
+					auto &db = m_hm.getHornClauseDB ();
+					std::ofstream ruleout("rule.txt");
+					for(auto it = m_rel_to_c5_rel_name_map.begin(); it != m_rel_to_c5_rel_name_map.end(); ++it) 
+						ruleout << *(it->second) << "    " << *(it->first) << "\n"; 
+					ruleout << "\n\n";
+					int ruleno = 0;
+					for (auto r: db.getRules()) {
+						ruleIndex[r] = ruleno++;
+						ruleout << HornRuleToStr(r, true) << "\n";
+					}
+					ruleout.close();
+					// markRules(db);
+				}
+
+			}
