@@ -8,7 +8,8 @@ int main()
 {
 	int a = unknown1();
 	int b = unknown2();
-	if (a>0 && a<200 && b<20) {
+	// if (a>0 && a<200 && b<20) {
+	if (a+b>0) {
 		while(b>0){
 			a++;
 			b--;

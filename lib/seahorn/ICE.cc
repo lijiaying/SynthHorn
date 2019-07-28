@@ -94,7 +94,7 @@ namespace seahorn
 
 	bool ICEPass::runOnModule (Module &M)
 	{
-		RuleSampleLen = 5;
+		// RuleSampleLen = 5;
 		LOG("ice", errs() << green << bold);
 		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		LOG("ice", errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n");
@@ -2352,7 +2352,7 @@ namespace seahorn
 						bool run = getFollowingStates(transitionCount, relationToPositiveStateMap, head, p, index);
 						if (!run) return false;
 
-						if (DebugLevel >= 3) {
+						if (DebugLevel >= 6) {
 							LOGLINE("ice", errs() << mag << bold << "\n====================== THE WHOLE STATE MAP ========================" << normal << "\n");
 							int i = 0;
 							for(std::map<Expr, ExprVector>::iterator itr = relationToPositiveStateMap.begin(); itr != relationToPositiveStateMap.end(); ++itr) {
@@ -2531,6 +2531,7 @@ namespace seahorn
 								std::list<int> preIndices;
 								preIndices.push_back(pindex);
 								postree.insert(std::make_pair (m_pos_list.size()-1, preIndices));
+								exit(-1);
 								return false;
 							}
 
