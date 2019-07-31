@@ -502,7 +502,7 @@ class Seapp(sea.LimitedCmd):
             # if bcfilename.endswith('.pp.ms.o.bc'):
             if bcfilename.endswith('.bc'):
                 dest = os.path.join(destdir, bcfilename)
-                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                # print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
                 shutil.copy(infile, dest) 
         # end lijiaying
 
@@ -574,7 +574,7 @@ class MixedSem(sea.LimitedCmd):
             # if bcfilename.endswith('.pp.ms.o.bc'):
             if bcfilename.endswith('.bc'):
                 dest = os.path.join(destdir, bcfilename)
-                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                # print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
                 shutil.copy(infile, dest) 
         # end lijiaying
 
@@ -738,7 +738,7 @@ class Seaopt(sea.LimitedCmd):
             # if bcfilename.endswith('.pp.ms.o.bc'):
             if bcfilename.endswith('.bc'):
                 dest = os.path.join(destdir, bcfilename)
-                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                # print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
                 shutil.copy(infile, dest) 
         # end lijiaying
 
@@ -993,7 +993,7 @@ class Seahorn(sea.LimitedCmd):
             # if bcfilename.endswith('.pp.ms.o.bc'):
             if bcfilename.endswith('.bc'):
                 dest = os.path.join(destdir, bcfilename)
-                print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
+                # print 'copy bcfile ', bcfilename, ' to ', dest, '\n'
                 shutil.copy(infile, dest) 
         # end lijiaying
 

@@ -178,7 +178,7 @@ namespace seahorn
 			std::map<HornRule, std::pair<bool, bool>> m_rule_cd_info_map;
 
 		public:
-			void ruleInit();
+			void initICE();
 			void setupC5();
 			void initC5(ExprSet targets);
 			bool C5learn(ExprSet targets);

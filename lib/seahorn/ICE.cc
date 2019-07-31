@@ -96,20 +96,15 @@ namespace seahorn
 	{
 		// RuleSampleLen = 5;
 		LOG("ice", errs() << green << bold);
-		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-		LOG("ice", errs() << "-----------------------------------------------------------------------------------------------------------------------------------\n");
+		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+		LOG("ice", errs() << "---------------------------------------------------------------------------------------------------\n");
 		LOG("ice", errs() << normal);
 		HornifyModule &hm = getAnalysis<HornifyModule> ();
 
 		LOG("ice-res", errs() << "Start ICE Pass\n");
 		Stats::resume ("ICE inv");
 		ICE ice(hm);
-		ice.ruleInit();
-
-
-		ice.setupC5();
-		ice.markRules(hm.getHornClauseDB());
-		ice.genInitialCandidates(hm.getHornClauseDB());
+		ice.initICE();
 		ice.runICE();
 		LOG("ice-res", errs() << "RUN ICE SUCCESSCULLY\n");
 		Stats::stop ("ICE inv");
@@ -1943,6 +1938,7 @@ namespace seahorn
 			workList.insert(workList.end(), m_nonfact_rules.begin(), m_nonfact_rules.end());
 			workList.reverse();
 
+			errs() << "\n\n";
 			LOGIT("ice", errs() << green << bold << "=========================== Constraint Solving of Horn Clauses (Round" << solveRound << ") ============================" << normal);
 			errs() << gray << " <>WorkList: "; for (auto rr : workList) errs() << HornRuleToStr(rr); errs() << normal << "\n";
 			errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
@@ -1958,14 +1954,12 @@ namespace seahorn
 				workList.pop_front();
 				Expr r_head = r.head();
 				Expr r_body = r.body();
-				ExprVector body_pred_apps;
-				get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
-				errs() << bgray << " >----------------------- Verify HornRule " << HornRuleToStr(r); 
+				errs() << bgray << " >< Round" << solveRound << "---------- Verify HornRule " << HornRuleToStr(r); 
 				bool cleanHead = m_rule_cd_info_map[r].first;
 				bool cleanBody = m_rule_cd_info_map[r].second;
 				errs() << " -{" << "body" << (cleanBody? "[C]" : "[D]") << " " << "head" << (cleanHead? "[C]" : "[D]") << "}";
-				errs() << " ----------------> ";
-				errs() << " [";
+				errs() << " ------->  [";
+				ExprVector body_pred_apps; get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
 				for (auto body_pred_app: body_pred_apps) errs() << *body_pred_app << " "; 
 				errs() << "] ==> [" << *r_head << "]" << normal; //  << "\n";
 				if (checkHornRule(r, db, solver) == UNSAT) 
@@ -2010,14 +2004,14 @@ namespace seahorn
 					//  								indicating all the instances should be true! (assuming positive is no problem!)
 					/////////////////////////////////////////////////////////////////////////////////////////////////////////
 					// errs() << gray << " // comments: CleanBody ==> CleanHead (Pre ==> Post: DirectCheck) " << normal << "\n";
-					if (checkHornRule(r, db, solver) == UNSAT) 
-						continue;
+					// if (checkHornRule(r, db, solver) == UNSAT) 
+					//  	continue;
 					outs() << red << "(CleanBody=>CleanHead) Program is buggy.\n" << normal;
 					std::list<Expr> attr_values;
 					DataPoint pos_dp(bind::fname(bind::fname(r_head)), attr_values);
 					addPosCex(pos_dp);
-					assert(mustPositive(r));
-					addMustPosCex(pos_dp);
+					// assert(mustPositive(r));
+					// addMustPosCex(pos_dp);
 					LOGLINE("ice", errs() << red << "Failed DataPoint: " << DataPointToStr(pos_dp, empty, false) << normal << "\n");
 					failurePoint = m_pos_list.size()-1;
 					return false;
@@ -2027,17 +2021,20 @@ namespace seahorn
 				//////////////////////////  BODY IS CLEAN (Generate Positive Samples)  //////////////////////////////////
 				//////////////////////////  PRE ==> INV   (Generate Positive Samples)  //////////////////////////////////
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
-				else if (!cleanHead && cleanBody)
+				// else if (!cleanHead && cleanBody)
+				else if (m_must_pos_rule_set.count(r))
 				{
 					// errs() << green << " // comments:  CleanBody ==> DirtyHead (Pre ==> Inv: Positives) " << normal << "\n";
 					// LOGIT("ice", errs() << bred << " [1].2 Head is not clean. Possibly need to be refined!" << normal << "\n");
 					// Head is possibly need to be refined!
 					// LOGLINE ("ice", errs() << bcyan << ">> Generate Initial Program States. RuleNo." << HornRuleToStr(r) << normal << "\n");
 					do {
+						/*
 						if (checkHornRule(r, db, solver) == UNSAT) { 
 							updated = false; 
 							break; 
 						}
+						*/
 
 						// Which predicates will be changed in this iteration of solving.
 						// ExprSet changedPreds;
@@ -2058,6 +2055,8 @@ namespace seahorn
 							while (!C5learn (changedPreds));
 						}
 						errs() << "\n";
+						if (checkHornRule(r, db, solver) == UNSAT)
+							break;
 					} while (updated);
 					// --- Extend work list as we just go through a strengthening loop ----
 					addUsedToWorkList (db, workList, r);
@@ -2067,14 +2066,17 @@ namespace seahorn
 				//////////////////////////  Head IS CLEAN (Generate Negative Samples)  //////////////////////////////////
 				////////////////////////// ~POST ==> ~INV (Generate Negative Samples)  //////////////////////////////////
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
-				else if (cleanHead && !cleanBody) 
+				// else if (cleanHead && !cleanBody) 
+				else if (m_must_neg_rule_set.count(r))
 				{
 					// errs() << green << " // comments: DirtyBody ==> CleanHead (Inv/\\~Cond ==> Post: Negatives) " << normal << "\n";
 					do {
+						/*
 						if (checkHornRule(r, db, solver) == UNSAT) { 
 							updated = false; 
 							break; 
 						}
+						*/
 
 						// Which predicates will be changed in this iteration of solving.
 						// ExprSet changedPreds;
@@ -2096,8 +2098,9 @@ namespace seahorn
 							// C5learn (changedPreds);
 						}
 						errs() << "\n";
+						if (checkHornRule(r, db, solver) == UNSAT)
+							break;
 					} while (updated);
-					LOG("ice", errs() << bcyan << "1.2 << Generate Initial Program State Samples." << normal << "\n");
 					// --- Extend work list as we just go through a strengthening loop ----
 					addUsedToWorkList (db, workList, r);
 				}
@@ -2106,12 +2109,14 @@ namespace seahorn
 				///////////////////////////   BODY IS DIRTY (IMPLICATION)  //////////////////////////////////////////////
 				///////////////////////////   INV ==> INV   (IMPLICATION)  //////////////////////////////////////////////
 				/////////////////////////////////////////////////////////////////////////////////////////////////////////
-				else if (!cleanHead && !cleanBody) 
+				// else if (!cleanHead && !cleanBody) 
+				else 
 				{
 					// errs() << green << " // comments: DirtyBody ==> DirtyHead. (Inv ==> Inv: IMPLICATION) " << normal << "\n";
+					errs() << "\n";
 					do {
 						++counter;
-						errs() << green << "\nVerification Round " << counter << " " << normal;
+						errs() << green << "Verification Round " << counter << " " << normal;
 						/*
 							 errs() << underline << HornRuleToStr(r) << normal << gray; 
 							 for (auto rr : workList) errs() << HornRuleToStr(rr); 
@@ -2847,7 +2852,6 @@ namespace seahorn
 			auto &db = m_hm.getHornClauseDB ();
 			db.buildIndexes ();
 			LOG("ice", errs() << "DB: \n" << cyan << db << normal);
-			errs() << yellow << bold;
 			errs() << "=========================start runICE method==================================\n";
 			errs() << "  DebugLevel=" << DebugLevel << "\n";
 			errs() << "  Bounded=" << Bounded << "\n";
@@ -2859,11 +2863,12 @@ namespace seahorn
 			errs() << "  ShowC5JsonFile=" << ShowC5JsonFile << "\n";
 			errs() << "  ShowC5JsonStruct=" << ShowC5JsonStruct << "\n";
 			errs() << "  ShowDataSet=" << ShowDataSet << "\n";
-			errs() << normal;
+			errs() << "===========================================================\n";
 
+			/*
 			for (auto rel : db.getRelations())
 				LOG("ice", errs() << "db relation: " << cyan << bold << *rel << normal << "\n");
-			errs() << "===========================================================\n";
+				*/
 
 			int index = 0;
 			bool isChanged = true;
@@ -2932,7 +2937,7 @@ namespace seahorn
 
 
 
-		void ICE::ruleInit() {
+		void ICE::initICE() {
 			//print the map from predicate name to C5-form predicate name
 			// LOGDP("ice", errs() << "C5 NAME TO PRED NAME MAP\n" << normal);
 			auto &db = m_hm.getHornClauseDB ();
@@ -2947,6 +2952,9 @@ namespace seahorn
 			}
 			ruleout.close();
 			// markRules(db);
+			setupC5();
+			markRules(db);
+			genInitialCandidates(db);
 		}
 
 	}
