@@ -59,6 +59,7 @@ static llvm::cl::opt<bool> ShowC5DataFile("show-c5-data-file", llvm::cl::desc ("
 static llvm::cl::opt<bool> ShowC5HexDataFile("show-c5-hex-data-file", llvm::cl::desc ("Show the hex data file, corresponding to the data file proceeded by C5.0"), cl::init (false));
 static llvm::cl::opt<bool> ShowC5JsonFile("show-c5-json-file", llvm::cl::desc ("Show the Json file output from C5.0"), cl::init (false));
 static llvm::cl::opt<bool> ShowC5JsonStruct("show-c5-json-struct", llvm::cl::desc ("Show the Json file in structured form output from C5.0"), cl::init (false));
+static llvm::cl::opt<bool> ShowSMT("show-smt", llvm::cl::desc ("Show the smt file being solved"), cl::init (false));
 
 static llvm::cl::opt<unsigned> ColorEnable("color", cl::desc("Enable colored output or not"), cl::init (5));
 
@@ -94,7 +95,7 @@ namespace seahorn
 
 	bool ICEPass::runOnModule (Module &M)
 	{
-		// RuleSampleLen = 5;
+		RuleSampleLen = 5;
 		LOG("ice", errs() << green << bold);
 		LOG("ice", errs() << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
 		LOG("ice", errs() << "---------------------------------------------------------------------------------------------------\n");
@@ -238,6 +239,17 @@ namespace seahorn
 			end += "-";
 		errs() << end << "\n" << normal;
 		//errs() << "|--------------------- END -------------------------|\n" << normal;
+	}
+
+
+	Expr bv2sint(Expr x) {
+		Expr up32 = mkTerm<mpz_class>(4294967296, x->efac());
+		Expr mpz0 = mkTerm<mpz_class>(0, x->efac());
+		Expr bv0 = bv::bvnum(0, 32, x->efac());
+		// Expr x = arg_list.at(i-1);
+		Expr ux = mk<BV2INT>(x);
+		Expr sx = mk<ITE>(mk<BSLT>(x, bv0), mk<MINUS>(ux, up32), ux);
+		return sx;
 	}
 
 
@@ -390,9 +402,17 @@ namespace seahorn
 						int coef = atoi(thetas[i].c_str());
 						if (coef == 0) continue; //if (coef != 1 && coef != -1) nonOctagon = true;
 
+						/*
+						(ite (bvslt main@%x.0.i_1 #x00000000)
+						  (- (bv2int main@%x.0.i_1) 4294967296)
+						  (bv2int main@%x.0.i_1))
+							 bvnum (mpz_class num, unsigned bwidth, ExprFactory &efac)
+							*/
 						Expr c = mkTerm<mpz_class>(coef, rel->efac());
+
 						if (Bounded)
-							addargs.push_back (mk<MULT> (c, mk<BV2INT>(arg_list.at(i-1))));
+							addargs.push_back (mk<MULT> (c, bv2sint(arg_list.at(i-1))));
+							// addargs.push_back (mk<MULT> (c, mk<BV2INT>(arg_list.at(i-1))));
 						else
 							addargs.push_back (mk<MULT> (c, arg_list.at(i-1)));
 
@@ -1010,7 +1030,8 @@ namespace seahorn
 						decision_expr = mk<LEQ>(attr_expr, threshold);
 					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
-						attr_expr = mk<BV2INT>(attr_expr);
+						// attr_expr = mk<BV2INT>(attr_expr);
+						attr_expr = bv2sint(attr_expr);
 						decision_expr = mk<LEQ>(attr_expr, threshold);
 					} else {
 						LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
@@ -1053,8 +1074,10 @@ namespace seahorn
 			if (Bounded) {
 				if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-				left_expr = mk<BV2INT>(left_expr);
-				right_expr = mk<BV2INT>(right_expr);
+				left_expr = bv2sint(left_expr);
+				right_expr = bv2sint(right_expr);
+				// left_expr = mk<BV2INT>(left_expr);
+				// right_expr = mk<BV2INT>(right_expr);
 			} else {
 				if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
@@ -1085,8 +1108,10 @@ namespace seahorn
 			if (Bounded) {
 				if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-				left_expr = mk<BV2INT>(left_expr);
-				right_expr = mk<BV2INT>(right_expr);
+				left_expr = bv2sint(left_expr);
+				right_expr = bv2sint(right_expr);
+				// left_expr = mk<BV2INT>(left_expr);
+				// right_expr = mk<BV2INT>(right_expr);
 			} else {
 				if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
@@ -1130,7 +1155,8 @@ namespace seahorn
 			if (Bounded) {
 				if(!bind::isBvConst(right_expr)) 
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
-				left_expr = mk<BV2INT>(left_expr);
+				left_expr = bv2sint(left_expr);
+				// left_expr = mk<BV2INT>(left_expr);
 			} else {
 				if(!bind::isIntConst(right_expr))
 					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
@@ -1676,6 +1702,8 @@ namespace seahorn
 			if (bind::domainSz(bind::fname(r_head)) <= 0) { LOGLINE ("ice", errs () << "Rule cannot be refined.\n"); exit (-3); }
 
 			//get cex
+			if (ShowSMT)
+				solver.toSmtLib(outs());
 			GetModel(solver);
 			DataPoint head_dp; std::set<DataPoint> body_dps;
 			getCounterExampleFromModel(r, head_dp, body_dps, true);
@@ -1693,7 +1721,8 @@ namespace seahorn
 				// run = sampleFollowingViaLinearHornCtrs(r_head, head_dp, index, changedPreds);
 				// make the state
 				Expr this_state = constructStateFromPredicateAndDataPoint(r_head, head_dp); 
-				LOGLINE("ice", errs() << gray << " This state: " << *this_state << normal << "\n");
+				errs() << "\n";
+				LOGLINE("ice", errs() << gray << "This state: " << *this_state << normal << "\n");
 
 				// construct the predicate->state pair
 				std::map<Expr, ExprVector> relationToPositiveStateMap;
@@ -1712,7 +1741,7 @@ namespace seahorn
 				return run;
 			} else /* it is a duplicate data point */ {
 				LOGLINE("ice", errs() << bred << "Duplicated positive points should be impossible." << normal << "\n");
-				// exit (-3);
+				exit (-3);
 			}
 			return true;
 		}
@@ -1954,14 +1983,14 @@ namespace seahorn
 				workList.pop_front();
 				Expr r_head = r.head();
 				Expr r_body = r.body();
-				errs() << bgray << " >< Round" << solveRound << "---------- Verify HornRule " << HornRuleToStr(r); 
-				bool cleanHead = m_rule_cd_info_map[r].first;
-				bool cleanBody = m_rule_cd_info_map[r].second;
-				errs() << " -{" << "body" << (cleanBody? "[C]" : "[D]") << " " << "head" << (cleanHead? "[C]" : "[D]") << "}";
-				errs() << " ------->  [";
+				errs() << bgray << " >< Round" << solveRound << "   Rule " << HornRuleToStr(r); 
+				errs() << "    [";
 				ExprVector body_pred_apps; get_all_pred_apps(r_body, db, std::back_inserter(body_pred_apps));
 				for (auto body_pred_app: body_pred_apps) errs() << *body_pred_app << " "; 
 				errs() << "] ==> [" << *r_head << "]" << normal; //  << "\n";
+				bool cleanHead = m_rule_cd_info_map[r].first;
+				bool cleanBody = m_rule_cd_info_map[r].second;
+				errs() << "   $body:" << (cleanBody? "[C]" : "[D]") << ", " << " $head:" << (cleanHead? "[C]" : "[D]");
 				if (checkHornRule(r, db, solver) == UNSAT) 
 					continue;
 				// errs() << "=========================================== CURRENT SYSTEM STATE ======================================================\n";
@@ -2329,7 +2358,7 @@ namespace seahorn
 
 			//print cex
 			// errs() << bold << mag << "Counter-Example: " << normal;
-			errs() << " solved counter-example: ";
+			errs() << " counter-example: ";
 			int ith = 0;
 			for (auto body_dp : body_dps) {
 				if (containPredInfo)
