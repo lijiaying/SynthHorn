@@ -73,6 +73,7 @@ namespace seahorn
 		private:
 			HornifyModule &m_hm;
 			HornDbModel m_candidate_model;
+			std::map<Expr, std::string> m_candidate_string;
 			std::map<Expr, Expr> m_fact_model;
 
 			std::string m_C5filename;
@@ -305,7 +306,7 @@ namespace seahorn
 			void addDataPointToIndex(DataPoint dp, int index) {m_data_point_to_index_map.insert(std::make_pair(dp, index));}
 
 			void convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprSet targets);
-			std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
+			std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt, std::string& expr_str);
 			// std::list<std::list<Expr>> constructBoundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 			// std::list<std::list<Expr>> constructUnboundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 

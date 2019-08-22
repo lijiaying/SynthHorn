@@ -876,15 +876,21 @@ namespace seahorn
 			if(pt.get<std::string>("children") == std::string("null")) {
 				LOG("ice", errs() << "PT HAS NO CHILDREN\n");
 				Expr candidate;
-				if(pt.get<std::string>("classification") == "true" || pt.get<std::string>("classification") == "True")
+				std::string candidateStr;
+				if(pt.get<std::string>("classification") == "true" || pt.get<std::string>("classification") == "True") {
 					candidate = mk<TRUE>(db.getExprFactory());
-				if(pt.get<std::string>("classification") == "false" || pt.get<std::string>("classification") == "False")
+					candidateStr = "True";
+				}
+				if(pt.get<std::string>("classification") == "false" || pt.get<std::string>("classification") == "False") {
 					candidate = mk<FALSE>(db.getExprFactory());
+					candidateStr = "False";
+				}
 				for(Expr rel : db.getRelations()) {
 					// if (m_fact_predicates.count(bind::fname(rel))) continue;
 					Expr fapp = getFappFromRel(rel);
 					if(m_fact_model.count(fapp) == 0) { // otherwise we should not modify the candidate
 						m_candidate_model.addDef(fapp, candidate);
+						m_candidate_string[fapp] = candidateStr;
 						// LOGLINE("ice", errs() << *fapp << " ---CANDIDATE---> " << *candidate << "\n");
 						LOGIT("ice", errs() << *fapp << green << *candidate << normal << "\n");
 					}
@@ -903,6 +909,7 @@ namespace seahorn
 				Expr rel = *rels_it;
 				// if (m_fact_predicates.count(bind::fname(rel))) continue;
 				Expr candidate;
+				std::string candidateStr;
 				Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 				std::ostringstream oss; oss << C5_rel_name;
 				// LOGLINE("ice", errs() << "target: " << oss.str() << "\n");
@@ -912,14 +919,20 @@ namespace seahorn
 					LOGLINE("ice", errs() << "working on ptree-----------------------------\n " << cyan << ptreeToString(sub_pt) << "\n" << normal);
 				if(sub_pt.get<std::string>("children") == std::string("null")) {
 					// errs() << bold << red << "branch 0\n" << normal;
-					if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True")
+					if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
 						candidate = mk<TRUE>(db.getExprFactory());
-					if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False")
+						candidateStr = "True";
+					}
+					if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
 						candidate = mk<FALSE>(db.getExprFactory());
+						candidateStr = "False";
+					}
 				} else {
 					std::list<Expr> stack;
 					stack.push_back(mk<TRUE>(db.getExprFactory()));
-					std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
+					std::string expr_str;
+					std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt, expr_str);
+					std::cout << "** " << expr_str << "\n";
 					ExprVector disjunctions;
 					for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
 						ExprVector conjunctions;
@@ -951,9 +964,10 @@ namespace seahorn
 		}
 
 
-		std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
+		std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt, std::string& expr_str)
 		{
 			Expr decision_expr;
+			std::string decision_str;
 			std::list<std::list<Expr>> final_formula;
 			auto &db = m_hm.getHornClauseDB();
 			LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
@@ -972,6 +986,7 @@ namespace seahorn
 					return final_formula;
 				}
 				else if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
+					// expr_str = "False";
 					return final_formula;
 				}
 			}
@@ -989,13 +1004,19 @@ namespace seahorn
 
 				if(attr_name.find("+") != -1) { 
 					LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
-					decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); } 
+					decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); 
+					decision_str = attr_name;
+				} 
 				else if(attr_name.find("-") != -1) { 
 					LOG("ice", errs() << cyan << " + minus attr: \n" << normal);
-					decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name); } 
+					decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name);
+					decision_str = attr_name;
+				}
 				else if (attr_name.find("mod") != -1) { 
 					LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
-					decision_expr = modAttrToDecisionExpr(sub_pt, attr_name); } 
+					decision_expr = modAttrToDecisionExpr(sub_pt, attr_name);
+					decision_str = attr_name;
+				}
 				else if (attr_name.find("SVM") != -1) {
 					LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
 					Expr attr_expr;
@@ -1005,9 +1026,11 @@ namespace seahorn
 					}
 					if(isOpX<GEQ>(attr_expr)) {
 						decision_expr = mk<NEG>(attr_expr);
+						decision_str = " !" + attr_name;
 						assert(cut == 0);
 					} else if(isOpX<PLUS>(attr_expr)) {
 						decision_expr = mk<LEQ>(attr_expr, threshold);
+						decision_str = attr_name + "<=" + std::to_string(cut);
 					}
 				}
 				else
@@ -1024,15 +1047,18 @@ namespace seahorn
 					if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> bool const \n" << normal);
 						decision_expr = mk<NEG>(attr_expr);
+						decision_str = " !" + attr_name;
 						assert(cut == 0);
 					} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
 						decision_expr = mk<LEQ>(attr_expr, threshold);
+						decision_str = attr_name + "<=" + std::to_string(cut);
 					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
 						// attr_expr = mk<BV2INT>(attr_expr);
 						attr_expr = bv2sint(attr_expr);
 						decision_expr = mk<LEQ>(attr_expr, threshold);
+						decision_str = attr_name + "<=" + std::to_string(cut);
 					} else {
 						LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 						return final_formula;
@@ -1042,12 +1068,23 @@ namespace seahorn
 				//assert(sub_pt.children().size() == 2);
 				stack.push_back(decision_expr);
 				boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
-				std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second);
+				std::string left_str;
+				std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second, left_str);
 				stack.pop_back();
 				stack.push_back(mk<NEG>(decision_expr));
-				std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second);
+				std::string right_str;
+				std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second, right_str);
 				stack.pop_back();
 				final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
+				if (left_str != "") {
+					expr_str = left_str + "  ||  ";
+				}
+				if (decision_str != "") {
+					expr_str += decision_str + "  ||  ";
+				}
+				if (right_str != "") {
+					expr_str += right_str;
+				}
 				return final_formula_left;
 			}
 			// should not be here.
@@ -1291,8 +1328,11 @@ namespace seahorn
 				Expr fapp = getFappFromRel(rel); /* predicate function */
 				// Expr True = mk<TRUE>(rel->efac());
 				Expr False = mk<FALSE>(rel->efac());
-				if (m_fact_model.count(fapp) == 0)
+				if (m_fact_model.count(fapp) == 0) {
 					m_candidate_model.addDef(fapp, False); /* predicate <- True */
+					m_candidate_string[fapp] = "False";
+				}
+					
 				// m_candidate_model.addDef(fapp, True); /* predicate <- True */
 				/*
 
@@ -1327,6 +1367,7 @@ namespace seahorn
 					if (bind::fname (query) == rel) {
 						// errs() << green << bold << "match\n" << normal;
 						m_candidate_model.addDef(fapp, False);
+						m_candidate_string[fapp] = "False";
 						// errs() << " +++ add def " << blue << *fapp << " -> False" << normal << "\n";
 					}
 					else 
@@ -1416,12 +1457,16 @@ namespace seahorn
 					Expr rel = bind::fname(head);
 					Expr fapp = getFappFromRel(rel);
 					Expr curSolve = mk<TRUE>(rel->efac());
+					std::string curSolveStr = "True";
 
 					// errs() << "knowns count = " << m_pred_knowns_count[rel] << "\n";
 					if (m_pred_knowns_count[rel] == 0) {
-						if (m_must_neg_rule_set.count(r))
+						if (m_must_neg_rule_set.count(r)) {
 							curSolve = mk<FALSE>(rel->efac());
+							curSolveStr = "False";
+						}
 						m_candidate_model.addDef(fapp, curSolve);
+						m_candidate_string[fapp] = curSolveStr; 
 						m_fact_model[fapp] = curSolve;
 						m_fact_predicates.insert(bind::fname(rel));
 					} else {
@@ -1451,6 +1496,14 @@ namespace seahorn
 							// errs() << " is a fact: " << *fapp << "\n";
 							Expr preSolve = m_candidate_model.getDef(fapp);
 							m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
+							std::string preSolveStr = m_candidate_string[fapp];
+							if (preSolveStr == "False") 
+								m_candidate_string[fapp] = curSolveStr; 
+							else if (preSolveStr == "True") 
+								;
+							else 
+								m_candidate_string[fapp] = preSolveStr + " OR " + curSolveStr; 
+							m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
 							m_fact_model[fapp] = mk<OR>(preSolve, curSolve);
 							m_fact_predicates.insert(bind::fname(rel));
 						}
@@ -1464,6 +1517,7 @@ namespace seahorn
 				Expr fapp = getFappFromRel(rel); /* predicate function */
 				Expr fmodel = mk<FALSE>(rel->efac());
 				m_candidate_model.addDef(fapp, fmodel);
+				m_candidate_string[fapp] = "False"; 
 				m_fact_model[fapp] = fmodel;
 			}
 
