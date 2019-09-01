@@ -718,8 +718,10 @@ namespace seahorn
 				 }
 				 */
 
-			if (ShowCandidate)
-				errs() << CandidateToStr();
+			if (ShowCandidate) {
+				// errs() << CandidateToStr();
+				errs() << ReadableCandidateToStr();
+			}
 			return true;
 		}
 
@@ -779,7 +781,19 @@ namespace seahorn
 			for(Expr rel : db.getRelations()) {
 				Expr fapp, cand_app;
 				getFappAndCandForRel(rel, m_candidate_model, fapp, cand_app);
-				oss << green << " @@ " << *fapp << " " << lblue << *cand_app << normal << "\n";
+				oss << green << " @@(cand) " << *fapp << " " << lblue << *cand_app << normal << "\n";
+			}
+			return oss.str();
+		}
+
+		std::string ICE::ReadableCandidateToStr() {
+			auto &db = m_hm.getHornClauseDB();
+			//print the invariant map after this learning round
+			std::ostringstream oss; 
+			for(Expr rel : db.getRelations()) {
+				Expr fapp, cand_app;
+				getFappAndCandForRel(rel, m_readable_model, fapp, cand_app);
+				oss << green << " @@(readable) " << *fapp << " " << lblue << *cand_app << normal << "\n";
 			}
 			return oss.str();
 		}
@@ -876,21 +890,21 @@ namespace seahorn
 			if(pt.get<std::string>("children") == std::string("null")) {
 				LOG("ice", errs() << "PT HAS NO CHILDREN\n");
 				Expr candidate;
-				std::string candidateStr;
+				Expr readable_candidate;
 				if(pt.get<std::string>("classification") == "true" || pt.get<std::string>("classification") == "True") {
 					candidate = mk<TRUE>(db.getExprFactory());
-					candidateStr = "True";
+					readable_candidate = mk<TRUE>(db.getExprFactory());
 				}
 				if(pt.get<std::string>("classification") == "false" || pt.get<std::string>("classification") == "False") {
 					candidate = mk<FALSE>(db.getExprFactory());
-					candidateStr = "False";
+					readable_candidate = mk<FALSE>(db.getExprFactory());
 				}
 				for(Expr rel : db.getRelations()) {
 					// if (m_fact_predicates.count(bind::fname(rel))) continue;
 					Expr fapp = getFappFromRel(rel);
 					if(m_fact_model.count(fapp) == 0) { // otherwise we should not modify the candidate
 						m_candidate_model.addDef(fapp, candidate);
-						m_candidate_string[fapp] = candidateStr;
+						m_readable_model.addDef(fapp, readable_candidate);
 						// LOGLINE("ice", errs() << *fapp << " ---CANDIDATE---> " << *candidate << "\n");
 						LOGIT("ice", errs() << *fapp << green << *candidate << normal << "\n");
 					}
@@ -909,7 +923,7 @@ namespace seahorn
 				Expr rel = *rels_it;
 				// if (m_fact_predicates.count(bind::fname(rel))) continue;
 				Expr candidate;
-				std::string candidateStr;
+				Expr readable_candidate;
 				Expr C5_rel_name = m_rel_to_c5_rel_name_map.find(bind::fname(rel))->second;
 				std::ostringstream oss; oss << C5_rel_name;
 				// LOGLINE("ice", errs() << "target: " << oss.str() << "\n");
@@ -921,18 +935,16 @@ namespace seahorn
 					// errs() << bold << red << "branch 0\n" << normal;
 					if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
 						candidate = mk<TRUE>(db.getExprFactory());
-						candidateStr = "True";
+						readable_candidate = mk<TRUE>(db.getExprFactory());
 					}
 					if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
 						candidate = mk<FALSE>(db.getExprFactory());
-						candidateStr = "False";
+						readable_candidate = mk<FALSE>(db.getExprFactory());
 					}
 				} else {
 					std::list<Expr> stack;
 					stack.push_back(mk<TRUE>(db.getExprFactory()));
-					std::string expr_str;
-					std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt, expr_str);
-					std::cout << "** " << expr_str << "\n";
+					std::list<std::list<Expr>> final_formula = constructFormula(stack, sub_pt);
 					ExprVector disjunctions;
 					for(std::list<std::list<Expr>>::iterator disj_it = final_formula.begin(); disj_it != final_formula.end(); ++disj_it) {
 						ExprVector conjunctions;
@@ -948,26 +960,53 @@ namespace seahorn
 						else disjunct = mknary<AND>(conjunctions.begin(), conjunctions.end());
 						disjunctions.push_back(disjunct);
 					}
-					if(disjunctions.size() <= 0) candidate = mk<TRUE>(db.getExprFactory());
-					else if(disjunctions.size() == 1) candidate = disjunctions[0];
-					else candidate = mknary<OR>(disjunctions.begin(), disjunctions.end());
+
+					if(disjunctions.size() <= 0) { candidate = mk<TRUE>(db.getExprFactory()); }
+					else if(disjunctions.size() == 1) { candidate = disjunctions[0]; }
+					else { candidate = mknary<OR>(disjunctions.begin(), disjunctions.end()); }
+					// errs() << "condidate: " << *candidate << "\n";
+					
+
+					std::list<Expr> readable_stack;
+					readable_stack.push_back(mk<TRUE>(db.getExprFactory()));
+					std::list<std::list<Expr>> final_readable_formula = constructReadableFormula(readable_stack, sub_pt);
+					ExprVector readable_disjunctions;
+					for(std::list<std::list<Expr>>::iterator disj_it = final_readable_formula.begin(); disj_it != final_readable_formula.end(); ++disj_it) {
+						ExprVector readable_conjunctions;
+						for(std::list<Expr>::iterator conj_it = (*disj_it).begin(); conj_it != (*disj_it).end(); ++conj_it)
+						{
+							if (isOpX<TRUE>(*conj_it)) continue;
+							if (isOpX<FALSE>(*conj_it)) { readable_conjunctions.clear(); break; }
+							readable_conjunctions.push_back(*conj_it);
+						}
+						Expr readable_disjunct;
+						if (readable_conjunctions.size() <= 0) continue;
+						else if (readable_conjunctions.size() == 1)  readable_disjunct = readable_conjunctions[0];
+						else readable_disjunct = mknary<AND>(readable_conjunctions.begin(), readable_conjunctions.end());
+						readable_disjunctions.push_back(readable_disjunct);
+					}
+
+					if(readable_disjunctions.size() <= 0) { readable_candidate = mk<TRUE>(db.getExprFactory()); }
+					else if(readable_disjunctions.size() == 1) { readable_candidate = readable_disjunctions[0]; }
+					else { readable_candidate = mknary<OR>(readable_disjunctions.begin(), readable_disjunctions.end()); }
 					// errs() << "condidate: " << *candidate << "\n";
 				}
 
 				Expr fapp = getFappFromRel(rel);
 				if(m_fact_model.count(fapp) == 0) { // otherwise we should not modify the candidate
 					m_candidate_model.addDef(fapp, candidate);
-					LOGIT("ice", errs() << *fapp << green << *candidate << normal << "\n");
+					m_readable_model.addDef(fapp, readable_candidate);
+					LOGIT("ice", errs() << *fapp << blue << *candidate << normal << "\n");
+					LOGIT("ice", errs() << *fapp << green << *readable_candidate << normal << "\n");
 				}
 				rels_it++;
 			}
 		}
 
 
-		std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt, std::string& expr_str)
+		std::list<std::list<Expr>> ICE::constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
 		{
 			Expr decision_expr;
-			std::string decision_str;
 			std::list<std::list<Expr>> final_formula;
 			auto &db = m_hm.getHornClauseDB();
 			LOG("ice", errs() << cyan << bold << "Construct formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
@@ -986,7 +1025,6 @@ namespace seahorn
 					return final_formula;
 				}
 				else if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
-					// expr_str = "False";
 					return final_formula;
 				}
 			}
@@ -1005,17 +1043,14 @@ namespace seahorn
 				if(attr_name.find("+") != -1) { 
 					LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
 					decision_expr = plusAttrToDecisionExpr(sub_pt, attr_name); 
-					decision_str = attr_name;
 				} 
 				else if(attr_name.find("-") != -1) { 
 					LOG("ice", errs() << cyan << " + minus attr: \n" << normal);
 					decision_expr = minusAttrToDecisionExpr(sub_pt, attr_name);
-					decision_str = attr_name;
 				}
 				else if (attr_name.find("mod") != -1) { 
 					LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
 					decision_expr = modAttrToDecisionExpr(sub_pt, attr_name);
-					decision_str = attr_name;
 				}
 				else if (attr_name.find("SVM") != -1) {
 					LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
@@ -1026,11 +1061,9 @@ namespace seahorn
 					}
 					if(isOpX<GEQ>(attr_expr)) {
 						decision_expr = mk<NEG>(attr_expr);
-						decision_str = " !" + attr_name;
 						assert(cut == 0);
 					} else if(isOpX<PLUS>(attr_expr)) {
 						decision_expr = mk<LEQ>(attr_expr, threshold);
-						decision_str = attr_name + "<=" + std::to_string(cut);
 					}
 				}
 				else
@@ -1047,18 +1080,15 @@ namespace seahorn
 					if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> bool const \n" << normal);
 						decision_expr = mk<NEG>(attr_expr);
-						decision_str = " !" + attr_name;
 						assert(cut == 0);
 					} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
 						decision_expr = mk<LEQ>(attr_expr, threshold);
-						decision_str = attr_name + "<=" + std::to_string(cut);
 					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
 						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
 						// attr_expr = mk<BV2INT>(attr_expr);
 						attr_expr = bv2sint(attr_expr);
 						decision_expr = mk<LEQ>(attr_expr, threshold);
-						decision_str = attr_name + "<=" + std::to_string(cut);
 					} else {
 						LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
 						return final_formula;
@@ -1068,23 +1098,12 @@ namespace seahorn
 				//assert(sub_pt.children().size() == 2);
 				stack.push_back(decision_expr);
 				boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
-				std::string left_str;
-				std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second, left_str);
+				std::list<std::list<Expr>> final_formula_left = constructFormula(stack, child_itr->second);
 				stack.pop_back();
 				stack.push_back(mk<NEG>(decision_expr));
-				std::string right_str;
-				std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second, right_str);
+				std::list<std::list<Expr>> final_formula_right = constructFormula(stack, (++child_itr)->second);
 				stack.pop_back();
 				final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
-				if (left_str != "") {
-					expr_str = left_str + "  ||  ";
-				}
-				if (decision_str != "") {
-					expr_str += decision_str + "  ||  ";
-				}
-				if (right_str != "") {
-					expr_str += right_str;
-				}
 				return final_formula_left;
 			}
 			// should not be here.
@@ -1093,6 +1112,108 @@ namespace seahorn
 			return final_formula;
 		}
 
+
+		std::list<std::list<Expr>> ICE::constructReadableFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt)
+		{
+			Expr decision_expr;
+			std::list<std::list<Expr>> final_formula;
+			auto &db = m_hm.getHornClauseDB();
+			LOG("ice", errs() << cyan << bold << "Construct readable formula for ptree ---------------\n " << mag << ptreeToString(sub_pt) << normal);
+			if (Bounded) { LOG("ice", errs() << red << "--------------- **  BOUNED  ** -----------------\n " << normal); } 
+			else { LOG("ice", errs() << red << "--------------- ** UNBOUNED ** -----------------\n " << normal); }
+			//leaf node
+			if(sub_pt.get<std::string>("children") == std::string("null"))
+			{
+				LOG("ice", errs() << "LEAF NODE\n");
+				if(sub_pt.get<std::string>("classification") == "true" || sub_pt.get<std::string>("classification") == "True") {
+					std::list<Expr> new_conjunct = stack;
+					final_formula.push_back(new_conjunct);
+					return final_formula;
+				}
+				else if(sub_pt.get<std::string>("classification") == "false" || sub_pt.get<std::string>("classification") == "False") {
+					return final_formula;
+				}
+			}
+			//internal node
+			else 
+			{
+				LOG("ice", errs() << "INTERNAL NODE\n");
+				std::string attr_name = sub_pt.get<std::string>("attribute");
+				LOG("ice", errs() << "CUT ATTRIBUTE: " << attr_name << "\n");
+				int cut = sub_pt.get<int>("cut");
+				Expr threshold = mkTerm (mpz_class (std::to_string(cut)), db.getExprFactory());
+				// int upper = sub_pt.get<int>("upper"); int lower = sub_pt.get<int>("lower");
+				// LOGIT("ice", errs() << " CutExpr[" << *threshold << "] cut:" << cut << " upper:" << upper << " lower:" << lower << "\n");
+
+				if(attr_name.find("+") != -1) { 
+					LOG("ice", errs() << cyan << " + plus attr: \n" << normal);
+					decision_expr = plusAttrToReadableDecisionExpr(sub_pt, attr_name); 
+				} 
+				else if(attr_name.find("-") != -1) { 
+					LOG("ice", errs() << cyan << " + minus attr: \n" << normal);
+					decision_expr = minusAttrToReadableDecisionExpr(sub_pt, attr_name);
+				}
+				else if (attr_name.find("mod") != -1) { 
+					LOG("ice", errs() << cyan << " + mod attr: \n" << normal);
+					decision_expr = modAttrToReadableDecisionExpr(sub_pt, attr_name);
+				}
+				else if (attr_name.find("SVM") != -1) {
+					LOG("ice", errs() << cyan << " + svm attr: \n" << normal);
+					Expr attr_expr;
+					for(ExprMap::iterator it = m_svmattr_name_to_expr_map.begin(); it!= m_svmattr_name_to_expr_map.end(); ++it) {
+						std::ostringstream oss; oss << *(it->first);
+						if(oss.str() == attr_name) { attr_expr = it->second; }
+					}
+					if(isOpX<GEQ>(attr_expr)) {
+						decision_expr = mk<NEG>(attr_expr);
+						assert(cut == 0);
+					} else if(isOpX<PLUS>(attr_expr)) {
+						decision_expr = mk<LEQ>(attr_expr, threshold);
+					}
+				}
+				else
+				{ // not svm
+					LOG("ice", errs() << cyan << " + variable (not svm) attr: \n" << normal);
+					// LOGLINE("ice", errs() << cyan << " + variable (not svm) attr: " << attr_name << " \nall_attrs:\n" << normal);
+
+					Expr attr_expr;
+					for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+						std::ostringstream oss; oss << *(it->first);
+						if(oss.str() == attr_name) { attr_expr = it->second; break; }
+					}
+					LOG("ice", errs() << blue << " << attr_expr: " << *attr_expr << " >>\n" << normal);
+					if(bind::isBoolConst(attr_expr) /*|| isOpX<GEQ>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> bool const \n" << normal);
+						decision_expr = mk<NEG>(attr_expr);
+						assert(cut == 0);
+					} else if(bind::isIntConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> int const , cut: " << cut << "\n" << normal);
+						decision_expr = mk<LEQ>(attr_expr, threshold);
+					} else if(bind::isBvConst(attr_expr) /*|| isOpX<PLUS>(attr_expr)*/) {
+						LOG("ice", errs() << blue << "  --> bv const , cut: " << cut << "\n" << normal);
+						decision_expr = mk<LEQ>(attr_expr, threshold);
+					} else {
+						LOG("ice", errs() << "DECISION NODE TYPE WRONG!\n");
+						return final_formula;
+					}
+				}
+				LOG("ice", errs() << bold << green << "decision expr: " << *decision_expr << "\n" << normal);
+				//assert(sub_pt.children().size() == 2);
+				stack.push_back(decision_expr);
+				boost::property_tree::ptree::assoc_iterator child_itr = sub_pt.get_child("children").ordered_begin();
+				std::list<std::list<Expr>> final_formula_left = constructReadableFormula(stack, child_itr->second);
+				stack.pop_back();
+				stack.push_back(mk<NEG>(decision_expr));
+				std::list<std::list<Expr>> final_formula_right = constructReadableFormula(stack, (++child_itr)->second);
+				stack.pop_back();
+				final_formula_left.insert(final_formula_left.end(), final_formula_right.begin(), final_formula_right.end());
+				return final_formula_left;
+			}
+			// should not be here.
+			LOGLINE("ice", errs() << bred << "should not be here." << normal << "\n");
+			exit(-4);
+			return final_formula;
+		}
 
 		//given an attribute which is x+y, return the expr
 		Expr ICE::plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
@@ -1123,6 +1244,33 @@ namespace seahorn
 			Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 			// Expr c = mkTerm<mpz_class>(1, left_expr->efac());
 			// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c, left_expr), mk<MULT>(c, right_expr)), threshold);
+			Expr decision_expr = mk<LEQ>(mk<PLUS>(left_expr, right_expr), threshold);
+			return decision_expr;
+		}
+
+		//given an attribute which is x+y, return the expr
+		Expr ICE::plusAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+		{
+			typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+			boost::char_separator<char> sep("+");
+			t_tokenizer tok(attr_name, sep);
+			std::string left_name = *(tok.begin());
+			std::string right_name = *(++tok.begin());
+			Expr left_expr, right_expr;
+			for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+				std::ostringstream oss; oss << *(it->first);
+				if(oss.str() == left_name) left_expr = it->second;
+				if(oss.str() == right_name) right_expr = it->second;
+			}
+			if (Bounded) {
+				if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			} else {
+				if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+			}
+			int cut = sub_pt.get<int>("cut");
+			Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
 			Expr decision_expr = mk<LEQ>(mk<PLUS>(left_expr, right_expr), threshold);
 			return decision_expr;
 		}
@@ -1160,6 +1308,34 @@ namespace seahorn
 			// Expr decision_expr = mk<LEQ>(mk<PLUS>(mk<MULT>(c1, left_expr), mk<MULT>(c2, right_expr)), threshold);
 			Expr decision_expr = mk<LEQ>(mk<MINUS>(left_expr, right_expr), threshold);
 
+			return decision_expr;
+		}
+
+
+		//given an attribute which is x-y, return the expr
+		Expr ICE::minusAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+		{
+			typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+			boost::char_separator<char> sep("-");
+			t_tokenizer tok(attr_name, sep);
+			std::string left_name = *(tok.begin());
+			std::string right_name = *(++tok.begin());
+			Expr left_expr, right_expr;
+			for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+				std::ostringstream oss; oss << *(it->first);
+				if(oss.str() == left_name) left_expr = it->second;
+				if(oss.str() == right_name) right_expr = it->second;
+			}
+			if (Bounded) {
+				if(!bind::isBvConst(left_expr) || !bind::isBvConst(right_expr)) 
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			} else {
+				if(!bind::isIntConst(left_expr) || !bind::isIntConst(right_expr))
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+			}
+			int cut = sub_pt.get<int>("cut");
+			Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
+			Expr decision_expr = mk<LEQ>(mk<MINUS>(left_expr, right_expr), threshold);
 			return decision_expr;
 		}
 
@@ -1205,6 +1381,45 @@ namespace seahorn
 
 			return decision_expr;
 		}
+
+		//given an attribute which is x%y, return the expr
+		Expr ICE::modAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name)
+		{
+			typedef boost::tokenizer< boost::char_separator<char>> t_tokenizer;
+			boost::char_separator<char> sep("mod");
+			t_tokenizer tok(attr_name, sep);
+			std::string left_name = *(tok.begin());
+			std::string right_name = *(++tok.begin());
+			Expr left_expr = NULL, right_expr = NULL;
+			for(ExprMap::iterator it = m_attr_name_to_expr_map.begin(); it!= m_attr_name_to_expr_map.end(); ++it) {
+				std::ostringstream oss; oss << *(it->first);
+				if(oss.str() == left_name) left_expr = it->second;
+				if(oss.str() == right_name) right_expr = it->second;
+			}
+
+			if (right_expr == NULL) {
+				bool right_has_only_digits = (right_name.find_first_not_of( "0123456789" ) == -1);
+				if (right_has_only_digits && bind::isIntConst(left_expr)) { right_expr = mkTerm<mpz_class>(atoi(right_name.c_str()), left_expr->efac()); } 
+				else { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+			} else if ( Bounded && !bind::isBvConst(right_expr) ) {
+				LOG("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			} else if ( !Bounded && !bind::isIntConst(right_expr) ) {
+				LOG("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+			}
+			// if(!bind::isIntConst(left_expr)) { LOG("ice", errs() << "OPERAND TYPE WRONG!\n"); }
+			if (Bounded) {
+				if(!bind::isBvConst(right_expr)) 
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG (not bv)!\n");
+			} else {
+				if(!bind::isIntConst(right_expr))
+					LOGLINE("ice", errs() << "OPERAND TYPE WRONG! (not int)\n");
+			}
+			int cut = sub_pt.get<int>("cut");
+			Expr threshold = mkTerm<mpz_class>(cut, left_expr->efac());
+			Expr decision_expr = mk<LEQ>(mk<MOD>(left_expr, right_expr), threshold);
+			return decision_expr;
+		}
+
 
 
 		// Collect unknowns in the rules
@@ -1322,7 +1537,11 @@ namespace seahorn
 		{
 			LOGLINE("init candidate", errs() << "---- init candidate start ---- \n");
 			extractUnknowns(db);
-			extractFacts (db, empty);
+			LOGIT("init candidate", errs() << "---1plain---\n" << cyan << CandidateToStr() << normal);
+			LOGIT("init candidate", errs() << "---1readable---\n" << cyan <<  ReadableCandidateToStr() << normal);
+			extractFacts(db, empty);
+			LOGIT("init candidate", errs() << "---2plain---\n" << cyan << CandidateToStr() << normal);
+			LOGIT("init candidate", errs() << "---2readable---\n" << cyan <<  ReadableCandidateToStr() << normal);
 			for(Expr rel : db.getRelations()) /* predicates */
 			{
 				Expr fapp = getFappFromRel(rel); /* predicate function */
@@ -1330,7 +1549,7 @@ namespace seahorn
 				Expr False = mk<FALSE>(rel->efac());
 				if (m_fact_model.count(fapp) == 0) {
 					m_candidate_model.addDef(fapp, False); /* predicate <- True */
-					m_candidate_string[fapp] = "False";
+					m_readable_model.addDef(fapp, False); /* predicate <- True */
 				}
 					
 				// m_candidate_model.addDef(fapp, True); /* predicate <- True */
@@ -1346,8 +1565,9 @@ namespace seahorn
 
 			// LOGIT("init candidate", m_candidate_model.Print(errs()));
 			LOGLINE("init candidate", errs() << "---- init candidate done ---- \n");
-			// LOGIT("init candidate", errs() << cyan <<  m_candidate_model << normal);
-			LOGIT("init candidate", errs() << cyan <<  CandidateToStr() << normal);
+			// LOGIT("init candidate", errs() << "---plain---\n" << cyan <<  m_candidate_model << normal);
+			LOGIT("init candidate", errs() << "---plain---\n" << cyan << CandidateToStr() << normal);
+			LOGIT("init candidate", errs() << "---readable---\n" << cyan <<  ReadableCandidateToStr() << normal);
 		}
 
 
@@ -1367,7 +1587,7 @@ namespace seahorn
 					if (bind::fname (query) == rel) {
 						// errs() << green << bold << "match\n" << normal;
 						m_candidate_model.addDef(fapp, False);
-						m_candidate_string[fapp] = "False";
+						m_readable_model.addDef(fapp, False);
 						// errs() << " +++ add def " << blue << *fapp << " -> False" << normal << "\n";
 					}
 					else 
@@ -1449,25 +1669,27 @@ namespace seahorn
 				 */
 			// For each rule with format [true->head]:
 			//     If head in targets:
-			//     		curSolve = true /\ arg1_value /\ arg2_value /\ ...
+			//     		curCandSolve = true /\ arg1_value /\ arg2_value /\ ...
 			for (auto r : db.getRules()) {
 				// errs() << "\n\n @@@@@@@@@@@@@@@@@@@@@@@@ on rule: " << HornRuleToStr(r, true) << "\n";
 				if (isOpX<TRUE>(r.body()) && isOpX<FAPP>(r.head())) {
 					Expr head = r.head();
 					Expr rel = bind::fname(head);
 					Expr fapp = getFappFromRel(rel);
-					Expr curSolve = mk<TRUE>(rel->efac());
-					std::string curSolveStr = "True";
+					Expr True = mk<TRUE>(rel->efac());
+					Expr False = mk<TRUE>(rel->efac());
+					Expr curCandSolve = True;
+					Expr curReadSolve = True;
 
 					// errs() << "knowns count = " << m_pred_knowns_count[rel] << "\n";
 					if (m_pred_knowns_count[rel] == 0) {
 						if (m_must_neg_rule_set.count(r)) {
-							curSolve = mk<FALSE>(rel->efac());
-							curSolveStr = "False";
+							curCandSolve = False;
+							curReadSolve = False;
 						}
-						m_candidate_model.addDef(fapp, curSolve);
-						m_candidate_string[fapp] = curSolveStr; 
-						m_fact_model[fapp] = curSolve;
+						m_candidate_model.addDef(fapp, curCandSolve);
+						m_readable_model.addDef(fapp, curReadSolve);
+						m_fact_model[fapp] = curCandSolve;
 						m_fact_predicates.insert(bind::fname(rel));
 					} else {
 						// if (targets.empty() || targets.count(bind::fname(rel)) > 0)
@@ -1479,32 +1701,59 @@ namespace seahorn
 							Expr arg_i_type = bind::domainTy(rel, i);
 							Expr arg_i = bind::fapp(bind::constDecl(variant::variant(i, mkTerm<std::string> ("v", rel->efac ())), arg_i_type));
 
-							if(isOpX<TRUE>(arg_i_value)) {
-								// errs() << " is a fact: " << *head << " (arg_i=true)\n";
+							if(isOpX<TRUE>(arg_i_value)) { // errs() << " is a fact: " << *head << " (arg_i=true)\n";
 								fact = true; 
-								if (isOpX<TRUE>(curSolve)) curSolve = arg_i;
-								else curSolve = mk<AND>(curSolve, arg_i); 
-							} else if(isOpX<FALSE>(arg_i_value)) { 
-								// errs() << " is a fact: " << *head << " (arg_i=false)\n";
+								if (isOpX<TRUE>(curCandSolve)) {
+									curCandSolve = arg_i;
+									curReadSolve = arg_i;
+								}
+								else {
+									curCandSolve = mk<AND>(curCandSolve, arg_i); 
+									curReadSolve = mk<AND>(curCandSolve, arg_i); 
+								}
+							} else if(isOpX<FALSE>(arg_i_value)) { // errs() << " is a fact: " << *head << " (arg_i=false)\n";
 								fact = true; 
-								if (isOpX<TRUE>(curSolve)) curSolve = mk<NEG>(arg_i);
-								else curSolve = mk<AND>(curSolve, mk<NEG>(arg_i)); 
+								if (isOpX<TRUE>(curCandSolve)) {
+									curCandSolve = mk<NEG>(arg_i);
+									curReadSolve = mk<NEG>(arg_i);
+								}
+								else {
+									curCandSolve = mk<AND>(curCandSolve, mk<NEG>(arg_i)); 
+									curReadSolve = mk<AND>(curCandSolve, mk<NEG>(arg_i)); 
+								}
+							}
+
+							if(isOpX<TRUE>(arg_i_value)) { // errs() << " is a fact: " << *head << " (arg_i=true)\n";
+								if (isOpX<TRUE>(curCandSolve)) curCandSolve = arg_i;
+								else curCandSolve = mk<AND>(curCandSolve, arg_i); 
+							} else if(isOpX<FALSE>(arg_i_value)) { // errs() << " is a fact: " << *head << " (arg_i=false)\n";
+								if (isOpX<TRUE>(curCandSolve)) curCandSolve = mk<NEG>(arg_i);
+								else curCandSolve = mk<AND>(curCandSolve, mk<NEG>(arg_i)); 
 							}
 						}
 
 						if (fact) { // Add fact rules into solutions.
 							// errs() << " is a fact: " << *fapp << "\n";
-							Expr preSolve = m_candidate_model.getDef(fapp);
-							m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
-							std::string preSolveStr = m_candidate_string[fapp];
-							if (preSolveStr == "False") 
-								m_candidate_string[fapp] = curSolveStr; 
-							else if (preSolveStr == "True") 
-								;
+							Expr preCandSolve = m_candidate_model.getDef(fapp);
+							/*
+							if (isOpX<TRUE>(preCandSolve))
+								m_candidate_model.addDef(fapp, True);
 							else 
-								m_candidate_string[fapp] = preSolveStr + " OR " + curSolveStr; 
-							m_candidate_model.addDef(fapp, mk<OR>(preSolve, curSolve));
-							m_fact_model[fapp] = mk<OR>(preSolve, curSolve);
+							if (isOpX<FALSE>(preCandSolve))
+								m_candidate_model.addDef(fapp, curCandSolve);
+							else
+							*/
+								m_candidate_model.addDef(fapp, mk<OR>(preCandSolve, curCandSolve));
+
+							Expr preReadSolve = m_readable_model.getDef(fapp);
+							if (isOpX<TRUE>(preReadSolve))
+								m_readable_model.addDef(fapp, True);
+							else if (isOpX<FALSE>(preReadSolve))
+								m_readable_model.addDef(fapp, curReadSolve);
+							else
+								m_readable_model.addDef(fapp, mk<OR>(preReadSolve, curReadSolve));
+
+							m_fact_model[fapp] = mk<OR>(preCandSolve, curCandSolve);
 							m_fact_predicates.insert(bind::fname(rel));
 						}
 					}
@@ -1516,9 +1765,9 @@ namespace seahorn
 				m_fact_predicates.insert(bind::fname(rel));
 				Expr fapp = getFappFromRel(rel); /* predicate function */
 				Expr fmodel = mk<FALSE>(rel->efac());
-				m_candidate_model.addDef(fapp, fmodel);
-				m_candidate_string[fapp] = "False"; 
 				m_fact_model[fapp] = fmodel;
+				m_candidate_model.addDef(fapp, fmodel);
+				m_readable_model.addDef(fapp, fmodel);
 			}
 
 			errs() << "Fact Predicates: \n";
@@ -1910,6 +2159,7 @@ namespace seahorn
 			}
 		}
 
+
 		boost::tribool ICE::checkHornRule(HornRule& r, HornClauseDB& db, ZSolver<EZ3>& solver) 
 		{
 			// errs() << "checking... ";
@@ -2024,7 +2274,12 @@ namespace seahorn
 			errs() << "\n\n";
 			LOGIT("ice", errs() << green << bold << "=========================== Constraint Solving of Horn Clauses (Round" << solveRound << ") ============================" << normal);
 			errs() << gray << " <>WorkList: "; for (auto rr : workList) errs() << HornRuleToStr(rr); errs() << normal << "\n";
-			errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
+			// errs() << "> Predicate Candidate: \n" << CandidateToStr() << "\n";
+			errs() << "> Predicate Candidate: \n";
+			LOGIT("init candidate", errs() << "---plain---\n" << cyan << CandidateToStr() << normal);
+			LOGIT("init candidate", errs() << "---readable---\n" << cyan <<  ReadableCandidateToStr() << normal);
+			// errs() << "> Predicate Candidate: \n" << ReadableCandidateToStr() << "\n";
+			// errs() << "> Predicate Candidate: \n" << ReadableCandidateToStr() << "\n";
 			ZSolver<EZ3> solver(m_hm.getZContext());
 			boost::tribool result;
 

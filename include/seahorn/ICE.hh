@@ -73,7 +73,7 @@ namespace seahorn
 		private:
 			HornifyModule &m_hm;
 			HornDbModel m_candidate_model;
-			std::map<Expr, std::string> m_candidate_string;
+			HornDbModel m_readable_model;
 			std::map<Expr, Expr> m_fact_model;
 
 			std::string m_C5filename;
@@ -173,6 +173,7 @@ namespace seahorn
 			std::set<DataPoint> m_tmp_data_set; 
 
 			std::string CandidateToStr();
+			std::string ReadableCandidateToStr();
 			std::set<Expr> m_fact_predicates;
 			std::set<HornRule> m_fact_rule_set;
 			std::set<HornRule> m_nonfact_rules;
@@ -306,7 +307,8 @@ namespace seahorn
 			void addDataPointToIndex(DataPoint dp, int index) {m_data_point_to_index_map.insert(std::make_pair(dp, index));}
 
 			void convertPtreeToInvCandidate(boost::property_tree::ptree pt, ExprSet targets);
-			std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt, std::string& expr_str);
+			std::list<std::list<Expr>> constructFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
+			std::list<std::list<Expr>> constructReadableFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 			// std::list<std::list<Expr>> constructBoundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 			// std::list<std::list<Expr>> constructUnboundedFormula(std::list<Expr> stack, boost::property_tree::ptree sub_pt);
 
@@ -317,6 +319,9 @@ namespace seahorn
 			Expr plusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
 			Expr minusAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
 			Expr modAttrToDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
+			Expr plusAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
+			Expr minusAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
+			Expr modAttrToReadableDecisionExpr(boost::property_tree::ptree sub_pt, std::string attr_name);
 
 			void saveInvsToSmtLibFile();
 
